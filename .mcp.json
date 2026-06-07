@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "mast3kmedia": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["mcp-server.mjs"],
+      "env": {}
+    }
+  }
+}
