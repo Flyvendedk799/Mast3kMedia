@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="da" class="no-js">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kontakt — Mast3kMedia</title>
+<meta name="description" content="Lad os bygge noget sammen. Skriv til Mast3kMedia — dansk digitalt bureau for software, SaaS, AI og vækst." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="assets/base.css" />
+<link rel="stylesheet" href="assets/sub.css" />
+</head>
+<body>
+
+<div class="preloader">
+  <div class="preloader__word">Mast3kMedia® — kontakt</div>
+  <div class="preloader__count">00</div>
+  <div class="preloader__bar"></div>
+</div>
+<div class="grain"></div>
+<div class="scroll-prog"></div>
+
+<nav class="nav">
+  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
+  <div class="nav-links">
+    <a href="ydelser.html">Ydelser</a>
+    <a href="pris.html">Priser</a>
+    <a href="arbejde.html">Arbejde</a>
+    <a href="oss.html">Open Source</a>
+    <a href="om.html">Om os</a>
+    <a href="kontakt.html" class="active">Kontakt</a>
+  </div>
+  <div class="nav-cta">
+    <a href="#form" class="btn" data-magnetic="0.3"><span class="btn-label">Skriv til os
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+    <button class="nav-burger" aria-label="Menu"><span></span><span></span></button>
+  </div>
+</nav>
+<div class="menu">
+  <a href="ydelser.html">Ydelser</a>
+    <a href="pris.html">Priser</a>
+  <a href="arbejde.html">Arbejde</a>
+    <a href="oss.html">Open Source</a>
+  <a href="om.html">Om os</a>
+  <a href="kontakt.html">Kontakt</a>
+  <div class="menu-meta"><span class="mono">hej@mast3kmedia.dk</span><span class="mono">København · DK</span></div>
+</div>
+
+<main>
+
+<section class="page-hero">
+  <div class="hero-glow"></div>
+  <div class="shell">
+    <span class="crumb mono"><a href="index.html">Forside</a> / Kontakt</span>
+    <h1 class="page-title display" data-reveal="lines">
+      <span class="line-wrap"><span class="line-inner">Lad os bygge</span></span>
+      <span class="line-wrap"><span class="line-inner">noget <span class="lime">sammen</span>.</span></span>
+    </h1>
+    <p class="page-intro" data-reveal="up">Fortæl os om dit projekt. Vi svarer typisk inden for én arbejdsdag — fra et rigtigt menneske, ikke en bot.</p>
+  </div>
+</section>
+
+<section class="section-pad" id="form" style="padding-top:clamp(2rem,4vw,3rem)">
+  <div class="shell contact-grid">
+    <!-- FORM -->
+    <form class="contact-form" data-reveal="up" onsubmit="return mast3kSubmit(event)">
+      <div class="field">
+        <label>Hvad drejer det sig om?</label>
+        <div class="chip-row" id="chips">
+          <span class="chip on" data-chip>Software</span>
+          <span class="chip" data-chip>SaaS</span>
+          <span class="chip" data-chip>AI &amp; automatisering</span>
+          <span class="chip" data-chip>Marketing &amp; SEO</span>
+          <span class="chip" data-chip>Andet</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="name">Navn</label>
+        <input id="name" type="text" placeholder="Dit fulde navn" required />
+      </div>
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input id="email" type="email" placeholder="dig@firma.dk" required />
+      </div>
+      <div class="field">
+        <label for="company">Virksomhed</label>
+        <input id="company" type="text" placeholder="Firmanavn (valgfrit)" />
+      </div>
+      <div class="field">
+        <label for="budget">Budget</label>
+        <select id="budget">
+          <option>Under €10.000</option>
+          <option>€10.000 – €25.000</option>
+          <option>€25.000 – €75.000</option>
+          <option>Over €75.000</option>
+          <option>Ikke fastlagt endnu</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="msg">Fortæl om projektet</label>
+        <textarea id="msg" placeholder="Hvad vil du gerne bygge? Hvor er I henne nu?" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-solid" data-magnetic="0.2"><span class="btn-label" id="submitLabel">Send besked
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></button>
+    </form>
+
+    <!-- ASIDE -->
+    <aside class="contact-aside" data-reveal="stagger">
+      <div class="contact-block">
+        <span class="mono">E-mail</span>
+        <a href="mailto:hej@mast3kmedia.dk" class="ulink">hej@mast3kmedia.dk</a>
+      </div>
+      <div class="contact-block">
+        <span class="mono">Book direkte</span>
+        <a href="#" class="ulink">cal.com/mast3kmedia →</a>
+      </div>
+      <div class="contact-block">
+        <span class="mono">Kontor</span>
+        <p>København, Danmark</p>
+      </div>
+      <div class="contact-block">
+        <span class="mono">Telefon</span>
+        <a href="tel:+4500000000" class="ulink">+45 00 00 00 00</a>
+      </div>
+      <div class="panel" style="padding:1.6rem;margin-top:1rem">
+        <span class="pill-live"><span class="dot"></span>Booker nye projekter — Q3 2026</span>
+        <p class="muted" style="margin-top:1rem;font-size:0.95rem">Vi tager et begrænset antal projekter ad gangen for at holde kvaliteten oppe. Skriv tidligt.</p>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section-pad" style="border-top:1px solid var(--line-soft)">
+  <div class="shell">
+    <div class="ih" data-reveal="up">
+      <span class="eyebrow">01 — FAQ</span>
+      <h2 class="ih-title display">Inden du skriver.</h2>
+    </div>
+    <div data-reveal="up">
+      <div class="svc-row" style="grid-template-columns:1fr 1.4fr;border-top:1px solid var(--line-soft)"><div class="svc-row-main" style="padding:0"><h3 style="font-size:clamp(1.3rem,2.4vw,1.8rem)">Hvor hurtigt kan I starte?</h3></div><div class="svc-row-main" style="padding:0"><p style="margin:0">Typisk inden for 1–2 uger. Akutte projekter kan vi ofte tage hånd om hurtigere — spørg endelig.</p></div></div>
+      <div class="svc-row" style="grid-template-columns:1fr 1.4fr"><div class="svc-row-main" style="padding:0"><h3 style="font-size:clamp(1.3rem,2.4vw,1.8rem)">Hvem ejer koden?</h3></div><div class="svc-row-main" style="padding:0"><p style="margin:0">Det gør du — fra dag ét. Alt lever i dit eget GitHub. Ingen lock-in, ingen black box.</p></div></div>
+      <div class="svc-row" style="grid-template-columns:1fr 1.4fr"><div class="svc-row-main" style="padding:0"><h3 style="font-size:clamp(1.3rem,2.4vw,1.8rem)">Arbejder I fast pris eller løbende?</h3></div><div class="svc-row-main" style="padding:0"><p style="margin:0">Begge dele. Sprints er fast pris, produkt-forløb er månedlige. Vi finder den model der passer dig.</p></div></div>
+      <div class="svc-row" style="grid-template-columns:1fr 1.4fr"><div class="svc-row-main" style="padding:0"><h3 style="font-size:clamp(1.3rem,2.4vw,1.8rem)">Tager I små projekter?</h3></div><div class="svc-row-main" style="padding:0"><p style="margin:0">Ja — en landing page eller et MVP er et perfekt sted at starte et samarbejde.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <span class="brand"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
+        <p class="faint">Digitalt bureau for software, SaaS, AI &amp; vækst. Bygget i Danmark, sendt til hele verden.</p>
+      </div>
+      <div class="footer-col"><span class="mono">Sitemap</span><a href="ydelser.html" class="ulink">Ydelser</a>
+    <a href="pris.html">Priser</a><a href="arbejde.html" class="ulink">Arbejde</a><a href="oss.html" class="ulink">Open Source</a><a href="om.html" class="ulink">Om os</a><a href="kontakt.html" class="ulink">Kontakt</a></div>
+      <div class="footer-col"><span class="mono">Social</span><a href="#" class="ulink">LinkedIn</a><a href="#" class="ulink">GitHub</a><a href="#" class="ulink">Instagram</a><a href="#" class="ulink">Dribbble</a></div>
+      <div class="footer-col"><span class="mono">Kontor</span><span class="faint">København · DK</span><span class="faint">hej@mast3kmedia.dk</span><span class="faint">+45 00 00 00 00</span></div>
+    </div>
+    <div class="footer-bottom"><span class="mono">© 2026 Mast3kMedia ApS</span><span class="mono">Designet &amp; kodet i København</span></div>
+  </div>
+</footer>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+<script src="assets/anim.js"></script>
+<script>
+  document.querySelectorAll('[data-chip]').forEach(function (c) {
+    c.addEventListener('click', function () { c.classList.toggle('on'); });
+  });
+  function mast3kSubmit(e) {
+    e.preventDefault();
+    var label = document.getElementById('submitLabel');
+    label.innerHTML = 'Tak — vi vender tilbage inden for 1 arbejdsdag';
+    var btn = label.closest('button'); btn.style.pointerEvents = 'none';
+    setTimeout(function () { e.target.reset(); }, 400);
+    return false;
+  }
+</script>
+</body>
+</html>

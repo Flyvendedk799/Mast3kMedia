@@ -1,0 +1,24 @@
+/* Mast3kMedia Design System — Spacing Tokens (4px base grid) */
+
+:root {
+
+  /* ── Spacing Scale ── */
+  --space-1:    4px;    /* Icon gap, micro padding */
+  --space-2:    8px;    /* Tight padding */
+  --space-3:    12px;   /* Badge padding */
+  --space-4:    16px;   /* Default padding */
+  --space-5:    24px;   /* Card gap, section gap */
+  --space-6:    32px;   /* Component padding */
+  --space-7:    48px;   /* Section internal spacing */
+  --space-8:    64px;   /* Section vertical spacing */
+  --space-9:    96px;   /* Large section gaps */
+  --space-10:   128px;  /* Page section padding */
+
+  /* ── Border Radius ── */
+  --radius-sm:    4px;      /* Badges, small chips */
+  --radius-md:    8px;      /* Cards, dropdowns */
+  --radius-lg:    12px;     /* Large cards, modals */
+  --radius-xl:    20px;     /* App icons */
+  --radius-2xl:   28px;     /* Large app icons (128px+) */
+  --radius-full:  9999px;   /* Pills, avatars, buttons */
+}

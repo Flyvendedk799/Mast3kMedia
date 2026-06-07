@@ -1,0 +1,28 @@
+/* Mast3kMedia Design System — Color Tokens */
+
+:root {
+
+  /* ── Brand Accents ── */
+  --color-green:       #00FF88;   /* Neon Mint — primary accent, logo, CTAs */
+  --color-green-dim:   #00CC6A;   /* Neon Mint on light backgrounds */
+  --color-cyan:        #00CFFF;   /* Electric Cyan — secondary accent, links, data */
+  --color-cyan-dim:    #009FCC;   /* Electric Cyan on light backgrounds */
+
+  /* ── Neutral Surface Scale ── */
+  --color-void:        #07070A;   /* Near-black — primary background */
+  --color-surface:     #0E0E14;   /* Elevated surfaces, cards */
+  --color-surface-2:   #16161E;   /* Deeper surfaces, hover states */
+  --color-surface-3:   #1E1E28;   /* Active / selected states */
+  --color-border:      #28283A;   /* Borders, dividers, separators */
+
+  /* ── Text ── */
+  --color-white:       #FFFFFF;   /* Primary text on dark */
+  --color-off-white:   #E8E8F0;   /* Secondary headings */
+  --color-muted:       #6A6A82;   /* Supporting text, captions, placeholders */
+
+  /* ── Semantic ── */
+  --color-success:     #00FF88;   /* Same as green */
+  --color-error:       #FF5060;   /* Error / destructive */
+  --color-warning:     #FFB547;   /* Warnings */
+  --color-info:        #00CFFF;   /* Same as cyan */
+}

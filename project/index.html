@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="da" class="no-js">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mast3kMedia — Digitalt bureau for software, SaaS, AI &amp; vækst</title>
+<meta name="description" content="Mast3kMedia er det danske bureau for alt digitalt. Vi designer, koder og skalerer software, SaaS, AI og marketing for ambitiøse virksomheder." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="assets/base.css" />
+<link rel="stylesheet" href="assets/home.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap" />
+</head>
+<body>
+
+<!-- ===== Preloader ===== -->
+<div class="preloader">
+  <div class="preloader__word">Mast3kMedia® — indlæser</div>
+  <div class="preloader__count">00</div>
+  <div class="preloader__bar"></div>
+</div>
+
+<div class="grain"></div>
+<div class="scroll-prog"></div>
+
+<!-- ===== Nav ===== -->
+<nav class="nav">
+  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
+  <div class="nav-links">
+    <a href="ydelser.html">Ydelser</a>
+    <a href="pris.html">Priser</a>
+    <a href="arbejde.html">Arbejde</a>
+    <a href="oss.html">Open Source</a>
+    <a href="om.html">Om os</a>
+    <a href="kontakt.html">Kontakt</a>
+  </div>
+  <div class="nav-cta">
+    <a href="kontakt.html" class="btn" data-magnetic="0.3"><span class="btn-label">Start projekt
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+    <button class="nav-burger" aria-label="Menu"><span></span><span></span></button>
+  </div>
+</nav>
+
+<!-- ===== Mobile menu ===== -->
+<div class="menu">
+  <a href="ydelser.html">Ydelser</a>
+    <a href="pris.html">Priser</a>
+  <a href="arbejde.html">Arbejde</a>
+    <a href="oss.html">Open Source</a>
+  <a href="om.html">Om os</a>
+  <a href="kontakt.html">Kontakt</a>
+  <div class="menu-meta">
+    <span class="mono">hej@mast3kmedia.dk</span>
+    <span class="mono">København · DK</span>
+  </div>
+</div>
+
+<main>
+
+<!-- ===== HERO ===== -->
+<header class="hero" data-hero>
+  <div class="field-line">
+    <span class="v" style="left:20%"></span><span class="v" style="left:40%"></span>
+    <span class="v" style="left:60%"></span><span class="v" style="left:80%"></span>
+  </div>
+  <canvas class="hero-canvas" id="heroCanvas"></canvas>
+  <div class="hero-glow"></div>
+
+  <div class="shell hero-inner">
+    <div class="hero-top" data-hero-fade>
+      <span class="eyebrow">Kodebureau · København · siden 2026</span>
+      <span class="pill-live"><span class="dot"></span>Plads til 2 nye i Q3</span>
+    </div>
+
+    <div class="hero-grid">
+      <div class="hero-lead-col">
+        <h1 class="hero-title display">
+          <span class="line-wrap" data-hero-line><span class="line-inner">Mindre snak.</span></span>
+          <span class="line-wrap" data-hero-line><span class="line-inner">Mere kode.</span></span>
+          <span class="line-wrap" data-hero-line><span class="line-inner">Rigtig <span class="lime">vækst</span>.</span></span>
+        </h1>
+        <p class="hero-lead" data-hero-fade>
+          Mast3kMedia er et lille kodebureau i København. Vi bygger software, SaaS,
+          AI og marketing for folk der hellere vil have noget der <span class="hl">virker</span> end et slide
+          der lover det. Og du taler med dem der bygger — ikke en sælger i jakkesæt.
+        </p>
+        <div class="hero-actions" data-hero-fade>
+          <a href="arbejde.html" class="btn btn-solid" data-magnetic="0.25"><span class="btn-label">Se vores arbejde
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+          <a href="#services" class="btn" data-magnetic="0.25"><span class="btn-label">Sådan arbejder vi
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+        </div>
+      </div>
+
+      <aside class="hero-cta" data-hero-fade>
+        <form class="hcta-form" id="heroForm" onsubmit="return heroQuickContact(event)">
+          <div class="hcta-head">
+            <span class="pill-live"><span class="dot"></span>Svar inden for 1 arbejdsdag</span>
+          </div>
+          <h2 class="hcta-title">Har du noget på tegnebrættet?</h2>
+          <p class="hcta-sub">Sig hvad du roder med, og smid din mail. Du hører fra et menneske — ikke en bot — inden for en arbejdsdag.</p>
+          <div class="hcta-chips" id="heroChips">
+            <span class="hchip on" data-chip>Software</span>
+            <span class="hchip" data-chip>SaaS</span>
+            <span class="hchip" data-chip>AI</span>
+            <span class="hchip" data-chip>Marketing</span>
+          </div>
+          <div class="hcta-field">
+            <input type="email" id="heroEmail" required placeholder="dig@firma.dk" aria-label="Din e-mail" />
+          </div>
+          <button type="submit" class="hcta-send" data-magnetic="0.15">
+            <span class="send-label">Fyr den af</span>
+            <svg class="send-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <span class="send-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+          </button>
+          <span class="hcta-foot mono">Eller skriv til hej@mast3kmedia.dk</span>
+        </form>
+        <div class="hcta-done" id="heroDone" hidden>
+          <div class="hcta-check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path class="check-path" d="M20 6 9 17l-5-5"/>
+            </svg>
+          </div>
+          <h2 class="hcta-title">Tak — vi er på sagen.</h2>
+          <p class="hcta-sub">Du hører fra et rigtigt menneske inden for én arbejdsdag.</p>
+        </div>
+      </aside>
+    </div>
+
+    <div class="hero-stats" data-hero-fade>
+      <div class="hstat"><div class="hstat-n display"><span data-count="42">0</span>+</div><div class="mono">Projekter leveret</div></div>
+      <div class="hstat"><div class="hstat-n display"><span data-count="12">0</span></div><div class="mono">SaaS i drift</div></div>
+      <div class="hstat"><div class="hstat-n display"><span data-count="98">0</span>%</div><div class="mono">Kundeloyalitet</div></div>
+    </div>
+  </div>
+
+  <a href="#services" class="hero-scroll mono">Scroll
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+  </a>
+</header>
+
+<!-- ===== Marquee strip ===== -->
+<div class="strip">
+  <div class="marquee" data-speed="0.5">
+    <div class="marquee__track">
+      <span class="marquee__item strip-word">Softwareudvikling <i class="sep" aria-hidden="true"></i></span>
+      <span class="marquee__item strip-word">SaaS-produkter <i class="sep" aria-hidden="true"></i></span>
+      <span class="marquee__item strip-word">AI &amp; Automatisering <i class="sep" aria-hidden="true"></i></span>
+      <span class="marquee__item strip-word">Marketing &amp; Vækst <i class="sep" aria-hidden="true"></i></span>
+      <span class="marquee__item strip-word">SEO <i class="sep" aria-hidden="true"></i></span>
+      <span class="marquee__item strip-word">Brand &amp; Design <i class="sep" aria-hidden="true"></i></span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SERVICES ===== -->
+<section id="services" class="section-pad">
+  <div class="shell">
+    <div class="sec-head">
+      <span class="eyebrow" data-reveal="up">01 — Ydelser</span>
+      <h2 class="sec-title display" data-reveal="lines">
+        <span class="line-wrap"><span class="line-inner">Vi kan det hele.</span></span>
+        <span class="line-wrap"><span class="line-inner">Også det <span class="lime">kedelige</span>.</span></span>
+      </h2>
+      <p class="sec-sub" data-reveal="up">Fra første commit til den annonce der lander kunden. Du slipper for at jonglere fem leverandører, der peger fingre ad hinanden.</p>
+    </div>
+
+    <div class="svc-grid" data-reveal="stagger">
+      <a href="ydelser.html" class="svc-card" data-tilt="4">
+        <span class="svc-num mono">01</span>
+        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg></div>
+        <h3 class="svc-name">Softwareudvikling</h3>
+        <p class="svc-desc">Skræddersyet software, web og apps. Håndkodet — ikke et no-code-korthus der vælter, dagen du begynder at skalere.</p>
+        <span class="svc-go mono">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
+      </a>
+      <a href="ydelser.html" class="svc-card" data-tilt="4">
+        <span class="svc-num mono">02</span>
+        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
+        <h3 class="svc-name">SaaS-produkter</h3>
+        <p class="svc-desc">Færdige platforme du kan sælge i morgen. White-label, hvis dit eget logo skal på. Vi bygger, hoster og passer dem.</p>
+        <span class="svc-go mono">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
+      </a>
+      <a href="ydelser.html" class="svc-card" data-tilt="4">
+        <span class="svc-num mono">03</span>
+        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></div>
+        <h3 class="svc-name">AI &amp; Automatisering</h3>
+        <p class="svc-desc">AI der laver arbejde — ikke bare imponerer på et slide. Agenter, workflows og integrationer, fra prompt til produktion.</p>
+        <span class="svc-go mono">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
+      </a>
+      <a href="ydelser.html" class="svc-card" data-tilt="4">
+        <span class="svc-num mono">04</span>
+        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 17l5-5 4 4 8-9M21 7v5M21 7h-5"/></svg></div>
+        <h3 class="svc-name">Marketing &amp; Vækst</h3>
+        <p class="svc-desc">SEO og annoncer der måles i kroner, ikke i likes. Vi får produktet ud over rampen — og holder gang i det.</p>
+        <span class="svc-go mono">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
+      </a>
+    </div>
+
+    <div class="svc-extra" data-reveal="up">
+      <span class="mono">Også:</span>
+      <span class="tag">Brand &amp; identitet</span>
+      <span class="tag">UX / UI-design</span>
+      <span class="tag">Webshops</span>
+      <span class="tag">API &amp; integrationer</span>
+      <span class="tag">Cloud &amp; DevOps</span>
+      <span class="tag">Data &amp; analytics</span>
+      <span class="tag">Content &amp; SoMe</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FEATURED WORK ===== -->
+<section id="work" class="section-pad work">
+  <div class="shell">
+    <div class="sec-head row">
+      <div>
+        <span class="eyebrow" data-reveal="up">02 — Cases</span>
+        <h2 class="sec-title display" data-reveal="lines">
+          <span class="line-wrap"><span class="line-inner">Ting vi har</span></span>
+          <span class="line-wrap"><span class="line-inner"><span class="lime">bygget</span>.</span></span>
+        </h2>
+      </div>
+      <a href="arbejde.html" class="btn btn-ghost" data-magnetic="0.3"><span class="btn-label">Alle cases
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+    </div>
+  </div>
+
+  <div class="shell case-list">
+    <!-- case 1 -->
+    <a href="case.html" class="case" data-reveal="up">
+      <div class="case-media ph" data-parallax-scope>
+        <div class="ph-inner" data-parallax="-0.12"><span class="ph-label">Produkt-screenshot</span></div>
+        <span class="case-index mono">01 / 06</span>
+      </div>
+      <div class="case-info">
+        <div class="case-head"><h3 class="case-title">NordSync</h3><span class="case-cat mono">SaaS · Dashboard</span></div>
+        <p class="case-desc">Realtids analytics-platform med live datastreaming og interaktive dashboards til cloud-infrastruktur.</p>
+        <div class="case-tags"><span class="tag">React</span><span class="tag">D3.js</span><span class="tag">WebSocket</span><span class="tag">Redis</span></div>
+      </div>
+    </a>
+    <!-- case 2 -->
+    <a href="case.html" class="case alt" data-reveal="up">
+      <div class="case-media ph" data-parallax-scope>
+        <div class="ph-inner" data-parallax="-0.12"><span class="ph-label">App-mockup</span></div>
+        <span class="case-index mono">02 / 06</span>
+      </div>
+      <div class="case-info">
+        <div class="case-head"><h3 class="case-title">Flux Mobile</h3><span class="case-cat mono">App · Produktivitet</span></div>
+        <p class="case-desc">Cross-platform produktivitets-app med offline-first sync, realtids-samarbejde og dyb integration.</p>
+        <div class="case-tags"><span class="tag">React Native</span><span class="tag">Firebase</span><span class="tag">Redux</span></div>
+      </div>
+    </a>
+    <!-- case 3 -->
+    <a href="case.html" class="case" data-reveal="up">
+      <div class="case-media ph" data-parallax-scope>
+        <div class="ph-inner" data-parallax="-0.12"><span class="ph-label">Arkitektur-diagram</span></div>
+        <span class="case-index mono">03 / 06</span>
+      </div>
+      <div class="case-info">
+        <div class="case-head"><h3 class="case-title">PayHub</h3><span class="case-cat mono">Fintech · API</span></div>
+        <p class="case-desc">Samlet betalings-gateway der integrerer Stripe, MobilePay og krypto bag ét PCI-compliant API.</p>
+        <div class="case-tags"><span class="tag">Python</span><span class="tag">FastAPI</span><span class="tag">PostgreSQL</span></div>
+      </div>
+    </a>
+    <!-- case 4 -->
+    <a href="case.html" class="case alt" data-reveal="up">
+      <div class="case-media ph" data-parallax-scope>
+        <div class="ph-inner" data-parallax="-0.12"><span class="ph-label">AI-flow</span></div>
+        <span class="case-index mono">04 / 06</span>
+      </div>
+      <div class="case-info">
+        <div class="case-head"><h3 class="case-title">Vela AI</h3><span class="case-cat mono">AI · Automatisering</span></div>
+        <p class="case-desc">Autonom AI-assistent der håndterer support, salg og workflows med menneskelig præcision.</p>
+        <div class="case-tags"><span class="tag">Next.js</span><span class="tag">OpenAI</span><span class="tag">Vercel</span></div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- ===== STATS BAND ===== -->
+<section class="stats-band">
+  <div class="shell stats-inner" data-reveal="stagger">
+    <div class="stat"><div class="stat-n display"><span data-count="42">0</span>+</div><div class="stat-l mono">Produkter sendt i drift</div></div>
+    <div class="stat"><div class="stat-n display"><span data-count="3.4" data-dec="1">0</span>M€</div><div class="stat-l mono">Omsætning skabt for kunder</div></div>
+    <div class="stat"><div class="stat-n display"><span data-count="96">0</span>%</div><div class="stat-l mono">Ville anbefale os</div></div>
+    <div class="stat"><div class="stat-n display"><span data-count="6">0</span> uger</div><div class="stat-l mono">Fra idé til live i snit</div></div>
+  </div>
+</section>
+
+<!-- ===== PROCESS (pinned horizontal) ===== -->
+<section id="process" class="process">
+  <div class="proc-pin">
+    <div class="proc-head shell">
+      <span class="eyebrow">03 — Proces</span>
+      <h2 class="display proc-title">Fra idé<br>til <span class="lime">live</span>.</h2>
+    </div>
+    <div class="proc-track">
+      <article class="proc-card"><span class="proc-num display">01</span><h3>Afdæk</h3><p>Vi spørger “hvorfor”, før vi spørger “hvordan”. Strategi før en eneste linje kode.</p></article>
+      <article class="proc-card"><span class="proc-num display">02</span><h3>Design</h3><p>Vi tegner produktet, før det koster noget at bygge. Du ser det — og kan rette det.</p></article>
+      <article class="proc-card"><span class="proc-num display">03</span><h3>Byg</h3><p>Seniorer der commit’er hver uge. Ren kode, du ejer fra dag ét — ingen sort boks.</p></article>
+      <article class="proc-card"><span class="proc-num display">04</span><h3>Lancér</h3><p>I produktion med analytics og overvågning. Ikke “det virker på min maskine”.</p></article>
+      <article class="proc-card"><span class="proc-num display">05</span><h3>Skalér</h3><p>Vi forsvinder ikke efter launch. Marketing, SEO og små forbedringer, uge efter uge.</p></article>
+    </div>
+  </div>
+</section>
+
+<!-- ===== APPROACH / WHY ===== -->
+<section class="section-pad why">
+  <div class="shell why-grid">
+    <div class="why-left">
+      <span class="eyebrow" data-reveal="up">04 — Hvem vi er</span>
+      <h2 class="display why-title" data-reveal="lines">
+        <span class="line-wrap"><span class="line-inner">Små team.</span></span>
+        <span class="line-wrap"><span class="line-inner">Ingen <span class="lime">bullshit</span>.</span></span>
+        <span class="line-wrap"><span class="line-inner">Det er modellen.</span></span>
+      </h2>
+      <p class="why-lead" data-reveal="up">Du arbejder med dem der rent faktisk bygger. Ingen account managers, ingen junior-bænk, ingen overlevering hvor halvdelen går tabt. Bare folk der har sendt rigtige produkter i markedet.</p>
+      <a href="om.html" class="btn" data-magnetic="0.25" data-reveal="up"><span class="btn-label">Mød holdet
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+      <div class="stickers" data-reveal="up">
+        <span class="sticker fill">// senior only</span>
+        <span class="sticker">no-bullshit™</span>
+        <span class="sticker">kaffe → kode</span>
+        <span class="sticker">made in KBH</span>
+      </div>
+    </div>
+    <div class="why-right" data-reveal="stagger">
+      <div class="why-item"><span class="why-n mono">/01</span><div><h4>Seniorer, hele vejen</h4><p>Dem du møder til mødet, er dem der skriver koden. Ingen bait-and-switch.</p></div></div>
+      <div class="why-item"><span class="why-n mono">/02</span><div><h4>Du ejer det hele</h4><p>Din kode i dit eget GitHub fra dag ét. Vi gør dig ikke afhængig af os.</p></div></div>
+      <div class="why-item"><span class="why-n mono">/03</span><div><h4>Hurtigt, men ikke sjusket</h4><p>Vi leverer i uger, ikke kvartaler — uden at det kommer til at ligne det.</p></div></div>
+      <div class="why-item"><span class="why-n mono">/04</span><div><h4>Vækst er ikke en eftertanke</h4><p>SEO og konvertering tænkes ind fra første skitse — ikke bolt’et på til sidst.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TESTIMONIAL ===== -->
+<section class="section-pad quote-sec">
+  <div class="shell">
+    <blockquote class="bigquote display" data-reveal="lines">
+      <span class="line-wrap"><span class="line-inner">“De byggede vores</span></span>
+      <span class="line-wrap"><span class="line-inner">platform på <span class="lime">6 uger</span> —</span></span>
+      <span class="line-wrap"><span class="line-inner">og væksten kom</span></span>
+      <span class="line-wrap"><span class="line-inner">af sig selv.”</span></span>
+    </blockquote>
+    <div class="quote-by" data-reveal="up">
+      <div class="ph quote-av"></div>
+      <div><strong>Mathilde Sørensen</strong><span class="mono">CEO · Nordkraft</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA / FOOTER ===== -->
+<footer class="footer" id="kontakt">
+  <div class="shell">
+    <div class="footer-cta" data-reveal="up">
+      <span class="eyebrow">Nok om os</span>
+      <a href="kontakt.html" class="footer-big-link">
+        <span class="footer-big">Skal vi <span class="o">tale</span> sammen?</span>
+      </a>
+      <div class="footer-cta-row">
+        <a href="kontakt.html" class="btn btn-solid" data-magnetic="0.25"><span class="btn-label">Start et projekt
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+        <a href="mailto:hej@mast3kmedia.dk" class="ulink mono footer-mail">hej@mast3kmedia.dk</a>
+      </div>
+      <p class="ps-note"><b>P.S.</b> Vi svarer faktisk på mails. Som regel samme dag.</p>
+      <div class="signature">— Jonas &amp; holdet</div>
+    </div>
+
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <span class="brand"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
+        <p class="faint">Kodebureau fra København. Software, SaaS, AI og marketing — uden varm luft.</p>
+        <p class="footer-coord">55.6761° N · 12.5683° E — København, DK</p>
+      </div>
+      <div class="footer-col"><span class="mono">Sitemap</span><a href="ydelser.html" class="ulink">Ydelser</a>
+    <a href="pris.html">Priser</a><a href="arbejde.html" class="ulink">Arbejde</a><a href="oss.html" class="ulink">Open Source</a><a href="om.html" class="ulink">Om os</a><a href="kontakt.html" class="ulink">Kontakt</a></div>
+      <div class="footer-col"><span class="mono">Social</span><a href="#" class="ulink">LinkedIn</a><a href="#" class="ulink">GitHub</a><a href="#" class="ulink">Instagram</a><a href="#" class="ulink">Dribbble</a></div>
+      <div class="footer-col"><span class="mono">Kontor</span><span class="faint">København · DK</span><span class="faint">hej@mast3kmedia.dk</span><span class="faint">+45 00 00 00 00</span></div>
+    </div>
+
+    <div class="footer-bottom">
+      <span class="mono">© 2026 Mast3kMedia ApS</span>
+      <span class="mono">Designet &amp; kodet i København</span>
+    </div>
+  </div>
+</footer>
+
+</main>
+
+<!-- ===== Scripts ===== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+<script src="assets/anim.js"></script>
+<script src="assets/home.js"></script>
+<script>
+  /* ── Chips ── */
+  var heroTitles = { Software: 'Hvad skal vi bygge?', SaaS: 'Fortæl os om dit SaaS-projekt.', AI: 'Hvad skal AI løse for dig?', Marketing: 'Klar til at vækste?' };
+  var defaultTitle = 'Har du noget på tegnebrættet?';
+
+  function updateHeroTitle() {
+    var selected = Array.from(document.querySelectorAll('#heroChips .hchip.on')).map(function(c){ return c.textContent.trim(); });
+    var titleEl = document.querySelector('.hcta-form .hcta-title');
+    if (!titleEl) return;
+    var next = selected.length === 1 && heroTitles[selected[0]] ? heroTitles[selected[0]] : defaultTitle;
+    if (titleEl.textContent.trim() === next) return;
+    titleEl.classList.add('crossfade', 'fading');
+    setTimeout(function(){ titleEl.textContent = next; titleEl.classList.remove('fading'); }, 190);
+  }
+
+  document.querySelectorAll('#heroChips [data-chip]').forEach(function(c) {
+    c.addEventListener('click', function() {
+      c.classList.toggle('on');
+      c.animate([{transform:'scale(1)'},{transform:'scale(0.86)'},{transform:'scale(1.07)'},{transform:'scale(1)'}],
+        {duration:300, easing:'cubic-bezier(.16,1,.3,1)'});
+      updateHeroTitle();
+    });
+  });
+
+  /* ── Mouse-tracking glow ── */
+  var hcta = document.querySelector('.hcta-form');
+  if (hcta) {
+    hcta.addEventListener('mousemove', function(e) {
+      var r = hcta.getBoundingClientRect();
+      hcta.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+      hcta.style.setProperty('--my', ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%');
+    });
+  }
+
+  /* ── Submit ── */
+  function heroQuickContact(e) {
+    e.preventDefault();
+    var emailInput = document.getElementById('heroEmail');
+    if (!emailInput.checkValidity()) {
+      var form = document.querySelector('.hcta-form');
+      form.classList.remove('shake');
+      void form.offsetWidth;
+      form.classList.add('shake');
+      emailInput.focus();
+      return false;
+    }
+    var btn = e.target.querySelector('.hcta-send');
+    btn.classList.add('loading');
+    setTimeout(function() {
+      var form = document.getElementById('heroForm');
+      var done = document.getElementById('heroDone');
+      form.hidden = true;
+      done.hidden = false;
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+          done.classList.add('anim-in');
+        });
+      });
+    }, 1400);
+    return false;
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+/* Mast3kMedia Design System — Typography Tokens */
+
+:root {
+
+  /* ── Type Scale ── */
+  --text-display:   80px;    /* Hero display — Space Grotesk 700 */
+  --text-h1:        48px;    /* Page titles — Space Grotesk 700 */
+  --text-h2:        32px;    /* Section titles — Space Grotesk 600 */
+  --text-h3:        24px;    /* Subsection — Space Grotesk 500 */
+  --text-h4:        20px;    /* Card titles — Space Grotesk 500 */
+  --text-body-lg:   18px;    /* Lead paragraphs — DM Sans 400 */
+  --text-body:      16px;    /* Standard body — DM Sans 400 */
+  --text-sm:        14px;    /* Helper / small — DM Sans 400 */
+  --text-label:     11px;    /* Mono labels — JetBrains Mono 400, uppercase */
+  --text-caption:   10px;    /* Footnotes — JetBrains Mono 400 */
+
+  /* ── Line Heights ── */
+  --leading-tight:    1.1;
+  --leading-snug:     1.3;
+  --leading-normal:   1.5;
+  --leading-relaxed:  1.7;
+  --leading-loose:    1.9;
+
+  /* ── Letter Spacing ── */
+  --tracking-tight:   -0.02em;
+  --tracking-normal:   0em;
+  --tracking-wide:     0.05em;
+  --tracking-wider:    0.1em;
+  --tracking-widest:   0.2em;
+  --tracking-label:    0.25em;   /* For uppercase mono labels */
+}

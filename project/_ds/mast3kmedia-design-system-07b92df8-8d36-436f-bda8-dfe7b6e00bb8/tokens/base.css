@@ -1,0 +1,84 @@
+/* Mast3kMedia Design System — Base Reset & Utility Classes */
+
+.m3k-reset *,
+.m3k-reset *::before,
+.m3k-reset *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.m3k-body {
+  background: var(--color-void);
+  color: var(--color-white);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-relaxed);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Section label with trailing line */
+.m3k-section-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-green);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.m3k-section-label::after {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 1px;
+  background: var(--color-green);
+  opacity: .4;
+}
+
+/* Mono label utilities */
+.m3k-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: var(--weight-regular);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.m3k-label-green {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-green);
+}
+
+/* Wordmark */
+.m3k-wordmark {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--color-white);
+}
+.m3k-wordmark em,
+.m3k-wordmark .accent {
+  color: var(--color-green);
+  font-style: normal;
+}
+.m3k-wordmark.dark { color: var(--color-void); }
+.m3k-wordmark.dark em { color: var(--color-green-dim); }
+
+/* Dividers */
+.m3k-divider {
+  height: 1px;
+  background: var(--color-border);
+  border: none;
+}
+.m3k-divider-accent {
+  height: 1px;
+  background: linear-gradient(to right, var(--color-green), var(--color-cyan), transparent);
+  border: none;
+}

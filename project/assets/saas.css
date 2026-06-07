@@ -1,0 +1,97 @@
+/* ============================================================
+   SaaS page — Mast3kMedia
+   ============================================================ */
+
+/* ---- featured product card ---- */
+.saas-feature { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(1.5rem, 4vw, 3.5rem); align-items: center; }
+.saas-feature-card { background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--radius-xl); padding: clamp(1.6rem, 3vw, 2.4rem); }
+.saas-feature-badge { display: inline-flex; align-items: center; gap: 0.5em; font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lime); margin-bottom: 1.2rem; }
+.saas-feature-card h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); display: flex; align-items: center; gap: 0.6rem; }
+.saas-feature-card h2 svg { width: 0.85em; height: 0.85em; color: var(--muted); }
+.saas-feature-card .lede { color: var(--muted); font-size: 1.08rem; margin: 1rem 0 1.6rem; max-width: 46ch; }
+.saas-feature-stats { display: flex; gap: 1.8rem; flex-wrap: wrap; margin-bottom: 1.8rem; }
+.sfs { display: flex; flex-direction: column; gap: 0.2rem; }
+.sfs b { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; }
+.sfs span { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+@media (max-width: 880px) { .saas-feature { grid-template-columns: 1fr; } }
+
+/* ---- browser / app mock ---- */
+.browser-mock { background: oklch(0.135 0.005 75); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 40px 80px -45px rgba(0,0,0,0.8); }
+.browser-bar { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1rem; border-bottom: 1px solid var(--line-soft); }
+.browser-dots { display: flex; gap: 0.4rem; }
+.browser-dots span { width: 11px; height: 11px; border-radius: 50%; background: var(--bg-3); }
+.browser-url { font-family: var(--font-mono); font-size: 0.64rem; color: var(--faint); letter-spacing: 0.04em; margin: 0 auto; background: var(--bg-2); border: 1px solid var(--line-soft); border-radius: 6px; padding: 0.28em 0.95em; }
+.browser-body { display: grid; grid-template-columns: 136px 1fr; min-height: 260px; }
+
+.mock-sidebar { background: var(--bg-2); border-right: 1px solid var(--line-soft); padding: 1.1rem 0.85rem; display: flex; flex-direction: column; gap: 1.1rem; }
+.mock-logo { font-family: var(--font-display); font-weight: 700; font-size: 0.92rem; letter-spacing: -0.04em; color: var(--lime); padding: 0 0.3rem 0.4rem; border-bottom: 1px solid var(--line-soft); }
+.mock-nav { display: flex; flex-direction: column; gap: 0.15rem; }
+.mock-nav-item { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; color: var(--faint); padding: 0.52em 0.65em; border-radius: 7px; }
+.mock-nav-item.active { background: var(--bg-3); color: var(--paper); }
+
+.mock-main { padding: 1.1rem; display: flex; flex-direction: column; gap: 0.85rem; overflow: hidden; }
+.mock-header { display: flex; justify-content: space-between; align-items: center; }
+.mock-title { font-family: var(--font-display); font-weight: 600; font-size: 0.84rem; }
+.mock-date { font-family: var(--font-mono); font-size: 0.57rem; color: var(--faint); }
+.mock-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.mock-kpi { background: var(--bg-2); border: 1px solid var(--line-soft); border-radius: 9px; padding: 0.7rem 0.8rem; display: flex; flex-direction: column; gap: 0.18rem; }
+.mock-kpi-label { font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+.mock-kpi-val { font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--paper); line-height: 1; }
+.mock-kpi-delta { font-family: var(--font-mono); font-size: 0.55rem; color: var(--faint); }
+.mock-kpi-delta.up { color: var(--lime); }
+.mock-chart-label { font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+.mock-chart { display: flex; align-items: flex-end; gap: 5px; height: 54px; }
+.mock-bar { flex: 1; background: var(--bg-3); border-radius: 3px 3px 0 0; }
+.mock-bar.on { background: var(--lime); }
+.mock-chart-months { display: flex; gap: 5px; }
+.mock-chart-months span { flex: 1; font-family: var(--font-mono); font-size: 0.52rem; color: var(--faint); text-align: center; }
+
+/* ---- product grid ---- */
+.saas-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+.saas-card { display: flex; flex-direction: column; gap: 0.9rem; padding: 1.7rem; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: var(--radius-xl); transition: border-color 0.4s var(--ease), background 0.4s var(--ease), transform 0.4s var(--ease); }
+.saas-card:hover { border-color: var(--line-strong); background: var(--bg-2); transform: translateY(-4px); }
+.saas-card-head { display: flex; align-items: center; justify-content: space-between; }
+.saas-card-icon { width: 44px; height: 44px; border-radius: var(--radius-lg); border: 1px solid var(--line); display: grid; place-items: center; color: var(--lime); flex-shrink: 0; }
+.saas-card-icon svg { width: 20px; height: 20px; }
+.saas-status { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.3em 0.75em; border-radius: var(--radius-full); border: 1px solid; white-space: nowrap; }
+.saas-status.live { color: var(--lime); border-color: oklch(0.88 0.205 124 / 0.3); background: oklch(0.88 0.205 124 / 0.08); }
+.saas-status.beta { color: var(--coral); border-color: oklch(0.74 0.16 42 / 0.3); background: oklch(0.74 0.16 42 / 0.08); }
+.saas-status.wip { color: var(--muted); border-color: var(--line); }
+.saas-card-name { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; letter-spacing: -0.02em; transition: color 0.3s; }
+.saas-card:hover .saas-card-name { color: var(--lime); }
+.saas-card-desc { color: var(--muted); font-size: 0.95rem; line-height: 1.55; flex-grow: 1; }
+.saas-card-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.saas-card-foot { display: flex; align-items: center; justify-content: space-between; padding-top: 0.8rem; border-top: 1px solid var(--line-soft); margin-top: auto; }
+.saas-mrr { font-family: var(--font-display); font-weight: 600; font-size: 1rem; }
+.saas-mrr b { color: var(--lime); }
+.saas-mrr-soon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.08em; color: var(--faint); }
+.saas-arrow { width: 32px; height: 32px; border-radius: var(--radius-full); border: 1px solid var(--line); display: grid; place-items: center; color: var(--muted); opacity: 0; transform: translateX(-6px); transition: all 0.4s var(--ease); flex-shrink: 0; }
+.saas-arrow svg { width: 14px; height: 14px; }
+.saas-card:hover .saas-arrow { opacity: 1; transform: translateX(0); color: var(--lime); border-color: oklch(0.88 0.205 124 / 0.4); }
+@media (max-width: 960px) { .saas-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .saas-grid { grid-template-columns: 1fr; } }
+
+/* ---- MRR breakdown bar ---- */
+.mrrbar-wrap { max-width: 560px; }
+.mrrbar { display: flex; height: 12px; border-radius: var(--radius-full); overflow: hidden; border: 1px solid var(--line-soft); }
+.mrrbar i { height: 100%; }
+.mrrbar-key { display: flex; flex-wrap: wrap; gap: 1.1rem; margin-top: 1.1rem; }
+.mrrbar-key span { display: inline-flex; align-items: center; gap: 0.45em; font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); }
+.mrrbar-key .ldot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+/* ---- principles (shared with oss) ---- */
+.principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+.principle { padding: 1.8rem; border: 1px solid var(--line-soft); border-radius: 18px; background: var(--bg-1); }
+.principle .pn { font-family: var(--font-mono); color: var(--lime); font-size: 0.72rem; letter-spacing: 0.06em; }
+.principle h4 { font-size: 1.3rem; margin: 0.9rem 0 0.6rem; }
+.principle p { color: var(--muted); font-size: 0.96rem; }
+@media (max-width: 860px) { .principles { grid-template-columns: 1fr; } }
+
+/* ---- footer grid (shared) ---- */
+.footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: clamp(2rem, 5vw, 4rem); padding-bottom: clamp(3rem, 6vw, 5rem); border-bottom: 1px solid var(--line-soft); margin-bottom: 2rem; }
+.footer-col { display: flex; flex-direction: column; gap: 0.9rem; }
+.footer-col .mono { margin-bottom: 0.3rem; }
+.footer-brand p { color: var(--faint); font-size: 0.96rem; margin-top: 0.7rem; }
+.footer-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+@media (max-width: 880px) { .footer-grid { grid-template-columns: 1fr 1fr; row-gap: 3rem; } }
+@media (max-width: 520px) { .footer-grid { grid-template-columns: 1fr; } }
