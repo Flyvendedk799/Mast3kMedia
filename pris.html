@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="da" class="no-js">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prisberegner — Mast3kMedia</title>
+<meta name="description" content="Få et øjeblikkeligt prisestimat på dit digitale projekt. Svar på fem hurtige spørgsmål — så regner vi." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="assets/base.css" />
+<link rel="stylesheet" href="assets/sub.css" />
+<link rel="stylesheet" href="assets/pris.css" />
+</head>
+<body>
+
+<div class="preloader">
+  <div class="preloader__word">Mast3kMedia® — prisberegner</div>
+  <div class="preloader__count">00</div>
+  <div class="preloader__bar"></div>
+</div>
+<div class="grain"></div>
+<div class="scroll-prog"></div>
+
+<nav class="nav">
+  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
+  <div class="nav-links">
+    <a href="ydelser.html">Ydelser</a>
+    <a href="pris.html" class="active">Priser</a>
+    <a href="arbejde.html">Arbejde</a>
+    <a href="oss.html">Open Source</a>
+    <a href="saas.html">SaaS</a>
+    <a href="om.html">Om os</a>
+    <a href="kontakt.html">Kontakt</a>
+  </div>
+  <div class="nav-cta">
+    <a href="kontakt.html" class="btn" data-magnetic="0.3"><span class="btn-label">Start projekt
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+    <button class="nav-burger" aria-label="Menu"><span></span><span></span></button>
+  </div>
+</nav>
+<div class="menu">
+  <a href="ydelser.html">Ydelser</a>
+  <a href="pris.html">Priser</a>
+  <a href="arbejde.html">Arbejde</a>
+    <a href="oss.html">Open Source</a>
+    <a href="saas.html">SaaS</a>
+  <a href="om.html">Om os</a>
+  <a href="kontakt.html">Kontakt</a>
+  <div class="menu-meta"><span class="mono">hej@mast3kmedia.dk</span><span class="mono">København · DK</span></div>
+</div>
+
+<main>
+
+<section class="page-hero" style="padding-bottom:clamp(1.5rem,3vw,2.5rem)">
+  <div class="hero-glow"></div>
+  <div class="shell">
+    <span class="crumb mono"><a href="index.html">Forside</a> / Prisberegner</span>
+    <h1 class="page-title display" data-reveal="lines">
+      <span class="line-wrap"><span class="line-inner">Hvad koster</span></span>
+      <span class="line-wrap"><span class="line-inner">dit <span class="lime">projekt</span>?</span></span>
+    </h1>
+    <p class="page-intro" data-reveal="up">Svar på fem hurtige spørgsmål, så regner vi et realistisk estimat med det samme. Uforpligtende — og du bestemmer selv om vi skal tage kontakt.</p>
+  </div>
+</section>
+
+<section class="section-pad" style="padding-top:clamp(1rem,3vw,2rem)">
+  <div class="shell">
+    <div class="calc" id="calc" data-reveal="up">
+
+      <!-- progress -->
+      <div class="calc-head">
+        <div class="calc-progress" id="calcProgress">
+          <span class="seg active"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>
+        </div>
+        <div class="calc-steplabel mono"><span id="stepNum">01</span> / 05 — <span id="stepName">Type</span></div>
+      </div>
+
+      <!-- steps -->
+      <div class="calc-body" id="calcBody">
+
+        <!-- 1 -->
+        <div class="step active" data-step="1" data-kind="base" data-select="multi" data-name="Type">
+          <h2 class="step-q">Hvad skal vi bygge?</h2>
+          <p class="step-help">Vælg en eller flere. Du kan altid justere undervejs.</p>
+          <div class="opt-grid">
+            <button class="opt" data-cost="6000" type="button"><span class="opt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg></span><span class="opt-name">Website / Landing</span><span class="opt-meta">fra €6.000</span><span class="opt-check"></span></button>
+            <button class="opt" data-cost="18000" type="button"><span class="opt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span><span class="opt-name">Webapp / SaaS</span><span class="opt-meta">fra €18.000</span><span class="opt-check"></span></button>
+            <button class="opt" data-cost="16000" type="button"><span class="opt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span><span class="opt-name">Mobilapp</span><span class="opt-meta">fra €16.000</span><span class="opt-check"></span></button>
+            <button class="opt" data-cost="14000" type="button"><span class="opt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2"/></svg></span><span class="opt-name">AI / Automatisering</span><span class="opt-meta">fra €14.000</span><span class="opt-check"></span></button>
+            <button class="opt" data-cost="12000" type="button"><span class="opt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 13h11"/><path d="M6 7h15l-2 7H7"/></svg></span><span class="opt-name">E-commerce</span><span class="opt-meta">fra €12.000</span><span class="opt-check"></span></button>
+            <button class="opt" data-cost="5000" type="button"><span class="opt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 17l5-5 4 4 8-9M21 7v5M21 7h-5"/></svg></span><span class="opt-name">Marketing / SEO</span><span class="opt-meta">fra €5.000</span><span class="opt-check"></span></button>
+          </div>
+        </div>
+
+        <!-- 2 -->
+        <div class="step" data-step="2" data-kind="mult" data-select="single" data-name="Omfang">
+          <h2 class="step-q">Hvor stort er omfanget?</h2>
+          <p class="step-help">Et fingerpeg om kompleksiteten — vi finjusterer sammen.</p>
+          <div class="opt-grid cols-2">
+            <button class="opt" data-mult="0.7" type="button"><span class="opt-name">Lille / MVP</span><span class="opt-desc">Én flade, kernefunktioner, hurtigt i luften.</span><span class="opt-meta">−30%</span><span class="opt-check"></span></button>
+            <button class="opt" data-mult="1" type="button"><span class="opt-name">Mellem</span><span class="opt-desc">Flere flader, integrationer, brugerroller.</span><span class="opt-meta">basis</span><span class="opt-check"></span></button>
+            <button class="opt" data-mult="1.6" type="button"><span class="opt-name">Stort</span><span class="opt-desc">Komplet produkt med data, roller og admin.</span><span class="opt-meta">+60%</span><span class="opt-check"></span></button>
+            <button class="opt" data-mult="2.6" type="button"><span class="opt-name">Enterprise</span><span class="opt-desc">Skala, compliance, SLA og dyb integration.</span><span class="opt-meta">+160%</span><span class="opt-check"></span></button>
+          </div>
+        </div>
+
+        <!-- 3 -->
+        <div class="step" data-step="3" data-kind="mult" data-select="single" data-name="Design">
+          <h2 class="step-q">Hvilket design-niveau?</h2>
+          <p class="step-help">Det er her vi adskiller os — vælg hvor langt vi skal gå.</p>
+          <div class="opt-grid cols-3">
+            <button class="opt" data-mult="1" type="button"><span class="opt-name">Standard</span><span class="opt-desc">Rent, solidt og hurtigt på vores systemer.</span><span class="opt-meta">basis</span><span class="opt-check"></span></button>
+            <button class="opt" data-mult="1.25" type="button"><span class="opt-name">Custom</span><span class="opt-desc">Skræddersyet designsystem til dit brand.</span><span class="opt-meta">+25%</span><span class="opt-check"></span></button>
+            <button class="opt" data-mult="1.5" type="button"><span class="opt-name">Premium / motion</span><span class="opt-desc">Award-niveau med animation og polish.</span><span class="opt-meta">+50%</span><span class="opt-check"></span></button>
+          </div>
+        </div>
+
+        <!-- 4 -->
+        <div class="step" data-step="4" data-kind="mult" data-select="single" data-name="Tidslinje">
+          <h2 class="step-q">Hvad er din tidslinje?</h2>
+          <p class="step-help">Jo mere fleksibel, jo bedre pris.</p>
+          <div class="opt-grid cols-3">
+            <button class="opt" data-mult="0.95" type="button"><span class="opt-name">Fleksibel</span><span class="opt-desc">Vi passer det ind — du får rabat.</span><span class="opt-meta">−5%</span><span class="opt-check"></span></button>
+            <button class="opt" data-mult="1" type="button"><span class="opt-name">1–3 måneder</span><span class="opt-desc">Den typiske, sunde kadence.</span><span class="opt-meta">basis</span><span class="opt-check"></span></button>
+            <button class="opt" data-mult="1.3" type="button"><span class="opt-name">ASAP / haster</span><span class="opt-desc">Vi rydder kalenderen og rykker nu.</span><span class="opt-meta">+30%</span><span class="opt-check"></span></button>
+          </div>
+        </div>
+
+        <!-- 5 -->
+        <div class="step" data-step="5" data-kind="add" data-select="multi" data-name="Tillæg">
+          <h2 class="step-q">Skal vi tilføje noget?</h2>
+          <p class="step-help">Valgfrit — vælg det der giver mening for jer.</p>
+          <div class="opt-grid cols-3">
+            <button class="opt" data-cost="2500" type="button"><span class="opt-name">SEO &amp; vækst</span><span class="opt-meta">+€2.500</span><span class="opt-check"></span></button>
+            <button class="opt" data-cost="4000" type="button"><span class="opt-name">Vedligehold (årligt)</span><span class="opt-meta">+€4.000</span><span class="opt-check"></span></button>
+            <button class="opt" data-cost="3500" type="button"><span class="opt-name">Branding &amp; identitet</span><span class="opt-meta">+€3.500</span><span class="opt-check"></span></button>
+            <button class="opt" data-cost="3000" type="button"><span class="opt-name">Integrationer</span><span class="opt-meta">+€3.000</span><span class="opt-check"></span></button>
+            <button class="opt" data-cost="5000" type="button"><span class="opt-name">AI-funktioner</span><span class="opt-meta">+€5.000</span><span class="opt-check"></span></button>
+            <button class="opt" data-cost="2000" type="button"><span class="opt-name">Content &amp; SoMe</span><span class="opt-meta">+€2.000</span><span class="opt-check"></span></button>
+          </div>
+        </div>
+
+        <!-- RESULT -->
+        <div class="step result" data-step="6" data-name="Estimat">
+          <div class="result-top">
+            <span class="eyebrow">Dit estimat</span>
+            <h2 class="result-range display"><span id="resLow">€0</span> <span class="dash">–</span> <span id="resHigh">€0</span></h2>
+            <p class="result-note">Et vejledende interval baseret på dine valg. Den endelige pris fastlægger vi sammen efter en kort samtale — uden overraskelser.</p>
+          </div>
+          <div class="result-grid">
+            <div class="breakdown" id="breakdown"></div>
+            <div class="result-contact">
+              <form class="rc-form" id="rcForm" onsubmit="return prisContact(event)">
+                <h3 class="rc-title">Vil du have et fast tilbud?</h3>
+                <p class="rc-sub">Læg din mail — så sender vi en detaljeret pris og en plan inden for én arbejdsdag.</p>
+                <div class="rc-field"><input type="email" id="rcEmail" required placeholder="dig@firma.dk" aria-label="Din e-mail" /></div>
+                <button type="submit" class="hcta-send rc-send"><span>Send mit estimat</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+                <span class="rc-foot mono">Uforpligtende · ingen spam</span>
+              </form>
+              <div class="rc-done" id="rcDone" hidden>
+                <div class="hcta-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg></div>
+                <h3 class="rc-title">Sendt — tak!</h3>
+                <p class="rc-sub">Vi vender tilbage med et fast tilbud inden for én arbejdsdag.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- footer: estimate + nav -->
+      <div class="calc-foot" id="calcFoot">
+        <div class="estimate">
+          <span class="est-hint mono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Dit estimat afsløres til sidst</span>
+        </div>
+        <div class="calc-nav">
+          <button class="cbtn cbtn-back" id="btnBack" type="button" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Tilbage</button>
+          <button class="cbtn cbtn-next" id="btnNext" type="button">Videre
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="calc-disclaimer mono" data-reveal="up">Estimaterne er vejledende og uforpligtende. Endelig pris aftales efter en kort behovsafklaring.</p>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <span class="brand"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
+        <p class="faint">Digitalt bureau for software, SaaS, AI &amp; vækst. Bygget i Danmark, sendt til hele verden.</p>
+      </div>
+      <div class="footer-col"><span class="mono">Sitemap</span><a href="ydelser.html" class="ulink">Ydelser</a><a href="pris.html" class="ulink">Priser</a><a href="arbejde.html" class="ulink">Arbejde</a><a href="oss.html" class="ulink">Open Source</a><a href="saas.html" class="ulink">SaaS</a><a href="om.html" class="ulink">Om os</a><a href="kontakt.html" class="ulink">Kontakt</a></div>
+      <div class="footer-col"><span class="mono">Social</span><a href="#" class="ulink">LinkedIn</a><a href="#" class="ulink">GitHub</a><a href="#" class="ulink">Instagram</a><a href="#" class="ulink">Dribbble</a></div>
+      <div class="footer-col"><span class="mono">Kontor</span><span class="faint">København · DK</span><span class="faint">hej@mast3kmedia.dk</span><span class="faint">+45 00 00 00 00</span></div>
+    </div>
+    <div class="footer-bottom"><span class="mono">© 2026 Mast3kMedia ApS</span><span class="mono">Designet &amp; kodet i København</span></div>
+  </div>
+</footer>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+<script src="assets/anim.js"></script>
+<script src="assets/pris.js"></script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+/* ============================================================
+   Case study — rich interactive visualizations
+   ============================================================ */
+
+/* ---------- Browser / device mockups ---------- */
+.mock {
+  position: relative; border-radius: 16px; overflow: hidden;
+  background: var(--bg-2); border: 1px solid var(--line);
+  box-shadow: 0 40px 80px -40px rgba(0,0,0,0.75);
+}
+.mock-bar {
+  display: flex; align-items: center; gap: 0.7rem;
+  padding: 0.8rem 1rem; border-bottom: 1px solid var(--line-soft);
+  background: var(--bg-1);
+}
+.mock-dots { display: flex; gap: 0.4rem; }
+.mock-dots span { width: 11px; height: 11px; border-radius: 50%; background: var(--bg-3); }
+.mock-url {
+  flex: 1; height: 26px; border-radius: 7px; background: var(--bg); border: 1px solid var(--line-soft);
+  display: flex; align-items: center; gap: 0.5em; padding: 0 0.8em;
+  font-family: var(--font-mono); font-size: 0.66rem; color: var(--faint); letter-spacing: 0.03em;
+}
+.mock-url svg { width: 12px; height: 12px; color: var(--lime); }
+.mock-screen { position: relative; aspect-ratio: 16/10; }
+
+/* abstract product skeleton (placeholder, swap for real screenshot) */
+.skel { position: absolute; inset: 0; padding: 1.1rem; display: grid; gap: 0.7rem; grid-template-rows: auto 1fr; background:
+  repeating-linear-gradient(135deg, rgba(255,255,255,0.014) 0 2px, transparent 2px 11px), var(--bg-2); }
+.skel-top { display: flex; gap: 0.6rem; align-items: center; }
+.skel-pill { height: 18px; border-radius: 6px; background: var(--bg-3); }
+.skel-pill.w1 { width: 90px; } .skel-pill.w2 { width: 54px; } .skel-pill.grow { flex: 1; max-width: 140px; background: var(--lime-dim); }
+.skel-body { display: grid; grid-template-columns: 1.4fr 1fr; gap: 0.7rem; }
+.skel-card { border-radius: 10px; background: var(--bg-1); border: 1px solid var(--line-soft); padding: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.skel-bars { display: flex; align-items: flex-end; gap: 5px; flex: 1; min-height: 60px; }
+.skel-bars i { flex: 1; background: linear-gradient(180deg, var(--lime), var(--lime-deep)); border-radius: 3px 3px 0 0; opacity: 0.85; }
+.skel-line { height: 9px; border-radius: 5px; background: var(--bg-3); }
+.skel-line.s { width: 60%; } .skel-line.m { width: 80%; }
+.mock-label {
+  position: absolute; left: 1rem; bottom: 1rem; z-index: 3;
+  font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--paper); background: var(--bg); border: 1px solid var(--line); border-radius: 100px; padding: 0.45em 0.9em;
+}
+
+/* ---------- Interactive feature showcase ---------- */
+.showcase { display: grid; grid-template-columns: 0.82fr 1.18fr; gap: clamp(1.5rem, 4vw, 3.5rem); align-items: center; }
+.feat-tabs { display: flex; flex-direction: column; gap: 0.6rem; }
+.feat-tab {
+  position: relative; text-align: left; display: flex; gap: 1rem; align-items: flex-start;
+  padding: 1.2rem 1.3rem; border-radius: 15px; border: 1px solid transparent; background: transparent;
+  color: var(--paper); transition: all 0.4s var(--ease); cursor: pointer; overflow: hidden;
+}
+.feat-tab::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--lime); transform: scaleY(0); transform-origin: top; transition: transform 0.4s var(--ease); }
+.feat-tab:hover { background: var(--bg-1); }
+.feat-tab.active { background: var(--bg-1); border-color: var(--line-soft); }
+.feat-tab.active::before { transform: scaleY(1); }
+.feat-tab .ft-ic { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); display: grid; place-items: center; color: var(--muted); flex-shrink: 0; transition: color 0.4s, border-color 0.4s; }
+.feat-tab.active .ft-ic { color: var(--lime); border-color: var(--lime); }
+.feat-tab .ft-ic svg { width: 19px; height: 19px; }
+.feat-tab h4 { font-size: 1.12rem; margin-bottom: 0.25rem; }
+.feat-tab p { color: var(--muted); font-size: 0.88rem; line-height: 1.45; max-height: 0; opacity: 0; overflow: hidden; transition: all 0.45s var(--ease); }
+.feat-tab.active p { max-height: 80px; opacity: 1; margin-top: 0.3rem; }
+.showcase-stage { position: relative; }
+.showcase-progress { position: absolute; top: 0; left: 0; height: 2px; background: var(--lime); width: 0; z-index: 5; }
+@media (max-width: 900px) { .showcase { grid-template-columns: 1fr; } .feat-tab p { max-height: 80px; opacity: 1; margin-top: 0.3rem; } }
+
+/* ---------- Before / After slider ---------- */
+.ba { position: relative; aspect-ratio: 16/9; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); user-select: none; touch-action: none; cursor: ew-resize; }
+.ba-layer { position: absolute; inset: 0; display: grid; place-items: center; }
+.ba-before { background:
+  repeating-linear-gradient(135deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 10px), oklch(0.21 0.006 75); }
+.ba-after { background:
+  repeating-linear-gradient(135deg, var(--lime-dim) 0 2px, transparent 2px 10px), var(--bg-2);
+  clip-path: inset(0 0 0 50%); }
+.ba-tag { position: absolute; top: 1rem; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.45em 0.9em; border-radius: 100px; background: var(--bg); border: 1px solid var(--line); }
+.ba-before .ba-tag { left: 1rem; color: var(--faint); }
+.ba-after .ba-tag { right: 1rem; color: var(--lime); border-color: var(--lime); }
+.ba-content { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+.ba-handle { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: var(--lime); transform: translateX(-50%); z-index: 4; }
+.ba-knob { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 46px; height: 46px; border-radius: 50%; background: var(--lime); color: #14130f; display: grid; place-items: center; box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+.ba-knob svg { width: 22px; height: 22px; }
+
+/* ---------- Animated results chart ---------- */
+.chartwrap { display: grid; grid-template-columns: 1fr 1.3fr; gap: clamp(1.5rem,4vw,4rem); align-items: center; }
+.chart { position: relative; padding: 1.6rem 0 0; }
+.chart-area { position: relative; }
+.chart-plot { position: relative; height: 280px; display: flex; align-items: flex-end; gap: clamp(0.5rem, 2vw, 1.4rem); padding-left: 2.6rem; z-index: 1; }
+.chart-yline { position: absolute; left: 2.6rem; right: 0; border-top: 1px dashed var(--line-soft); z-index: 0; }
+.chart-ylabel { position: absolute; left: 0; transform: translateY(-50%); font-family: var(--font-mono); font-size: 0.6rem; color: var(--faint); z-index: 0; }
+.chart-bar { position: relative; flex: 1; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--bg-3), var(--bg-2)); transform: scaleY(0); transform-origin: bottom; transition: transform 0.9s var(--ease); }
+.chart-bar.lit { background: linear-gradient(180deg, var(--lime), var(--lime-deep)); }
+.chart.in .chart-bar { transform: scaleY(1); }
+.chart-bar .bv { position: absolute; top: -1.4rem; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 0.62rem; color: var(--muted); white-space: nowrap; opacity: 0; transition: opacity 0.4s 0.5s; }
+.chart.in .chart-bar .bv { opacity: 1; }
+.chart-bar.lit .bv { color: var(--lime); }
+.chart-xaxis { display: flex; gap: clamp(0.5rem, 2vw, 1.4rem); padding-left: 2.6rem; margin-top: 0.7rem; }
+.chart-xaxis span { flex: 1; text-align: center; font-family: var(--font-mono); font-size: 0.6rem; color: var(--faint); }
+.chart-cap { display: inline-flex; align-items: baseline; gap: 0.5rem; margin-top: 1.2rem; }
+@media (max-width: 820px) { .chartwrap { grid-template-columns: 1fr; } .chart-plot { height: 220px; } }
+
+/* ---------- Device showcase ---------- */
+.devices { display: grid; grid-template-columns: 1.5fr 0.62fr; gap: clamp(1.2rem, 3vw, 2.5rem); align-items: end; }
+.phone-mock { border-radius: 30px; border: 1px solid var(--line); background: var(--bg-1); padding: 0.5rem; box-shadow: 0 40px 80px -40px rgba(0,0,0,0.75); }
+.phone-mock .phone-screen { border-radius: 24px; overflow: hidden; aspect-ratio: 9/19; position: relative; }
+.phone-notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 38%; height: 18px; background: var(--bg-1); border-radius: 0 0 12px 12px; z-index: 3; }
+@media (max-width: 760px) { .devices { grid-template-columns: 1fr; } .phone-mock { max-width: 240px; } }

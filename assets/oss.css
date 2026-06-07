@@ -1,0 +1,69 @@
+/* ============================================================
+   Open Source page
+   ============================================================ */
+
+/* ---- featured repo ---- */
+.oss-feature { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(1.5rem, 4vw, 3.5rem); align-items: center; }
+.oss-feature-card { background: var(--bg-1); border: 1px solid var(--line); border-radius: 22px; padding: clamp(1.6rem, 3vw, 2.4rem); }
+.oss-feature-badge { display: inline-flex; align-items: center; gap: 0.5em; font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lime); margin-bottom: 1.2rem; }
+.oss-feature-card h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); display: flex; align-items: center; gap: 0.6rem; }
+.oss-feature-card h2 svg { width: 0.85em; height: 0.85em; color: var(--muted); }
+.oss-feature-card .lede { color: var(--muted); font-size: 1.08rem; margin: 1rem 0 1.6rem; max-width: 46ch; }
+.oss-feature-stats { display: flex; gap: 1.8rem; flex-wrap: wrap; margin-bottom: 1.8rem; }
+.ofs { display: flex; flex-direction: column; gap: 0.2rem; }
+.ofs b { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; }
+.ofs span { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+@media (max-width: 880px) { .oss-feature { grid-template-columns: 1fr; } }
+
+/* ---- terminal ---- */
+.terminal { background: oklch(0.135 0.005 75); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 40px 80px -45px rgba(0,0,0,0.8); }
+.terminal-bar { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1rem; border-bottom: 1px solid var(--line-soft); }
+.terminal-bar .dots { display: flex; gap: 0.4rem; }
+.terminal-bar .dots span { width: 11px; height: 11px; border-radius: 50%; background: var(--bg-3); }
+.terminal-bar .ttitle { font-family: var(--font-mono); font-size: 0.66rem; color: var(--faint); letter-spacing: 0.06em; margin-left: 0.4rem; }
+.terminal-bar .tcopy { margin-left: auto; font-family: var(--font-mono); font-size: 0.62rem; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0.3em 0.7em; cursor: pointer; transition: all 0.3s; }
+.terminal-bar .tcopy:hover { color: #14130f; background: var(--lime); border-color: var(--lime); }
+.terminal-body { padding: 1.3rem 1.4rem; font-family: var(--font-mono); font-size: 0.84rem; line-height: 1.9; }
+.terminal-body .tl { display: block; white-space: pre-wrap; }
+.terminal-body .tprompt { color: var(--lime); }
+.terminal-body .tdim { color: var(--faint); }
+.terminal-body .tok { color: var(--lime); }
+.terminal-body .tstr { color: oklch(0.82 0.1 90); }
+.terminal-body .tcaret { display: inline-block; width: 8px; height: 1.05em; background: var(--lime); vertical-align: -2px; animation: tcaret 1s steps(2) infinite; }
+@keyframes tcaret { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ---- repo grid ---- */
+.repo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.1rem; }
+.repo { display: flex; flex-direction: column; gap: 0.9rem; padding: 1.6rem 1.7rem; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 18px; transition: border-color 0.4s var(--ease), background 0.4s var(--ease), transform 0.4s var(--ease); }
+.repo:hover { border-color: var(--line-strong); background: var(--bg-2); transform: translateY(-4px); }
+.repo-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.repo-name { display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--font-display); font-weight: 600; font-size: 1.18rem; letter-spacing: -0.01em; }
+.repo-name svg { width: 17px; height: 17px; color: var(--muted); }
+.repo:hover .repo-name { color: var(--lime); }
+.repo-stars { display: inline-flex; align-items: center; gap: 0.35em; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+.repo-stars svg { width: 14px; height: 14px; }
+.repo-desc { color: var(--muted); font-size: 0.95rem; line-height: 1.5; flex-grow: 1; }
+.repo-meta { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; padding-top: 0.3rem; }
+.repo-lang { display: inline-flex; align-items: center; gap: 0.45em; font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); white-space: nowrap; }
+.repo-lang .ldot { width: 9px; height: 9px; border-radius: 50%; background: var(--lime); }
+.repo-fork { display: inline-flex; align-items: center; gap: 0.35em; font-family: var(--font-mono); font-size: 0.68rem; color: var(--faint); }
+.repo-fork svg { width: 13px; height: 13px; }
+.repo-lic { font-family: var(--font-mono); font-size: 0.64rem; color: var(--faint); border: 1px solid var(--line); border-radius: 100px; padding: 0.25em 0.7em; white-space: nowrap; }
+.repo-upd { font-family: var(--font-mono); font-size: 0.64rem; color: var(--faint); margin-left: auto; white-space: nowrap; }
+@media (max-width: 680px) { .repo-grid { grid-template-columns: 1fr; } }
+
+/* ---- language breakdown bar ---- */
+.langbar-wrap { max-width: 560px; }
+.langbar { display: flex; height: 12px; border-radius: 100px; overflow: hidden; border: 1px solid var(--line-soft); }
+.langbar i { height: 100%; }
+.langbar-key { display: flex; flex-wrap: wrap; gap: 1.1rem; margin-top: 1.1rem; }
+.langbar-key span { display: inline-flex; align-items: center; gap: 0.45em; font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); }
+.langbar-key .ldot { width: 9px; height: 9px; border-radius: 50%; }
+
+/* ---- principles ---- */
+.principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+.principle { padding: 1.8rem; border: 1px solid var(--line-soft); border-radius: 18px; background: var(--bg-1); }
+.principle .pn { font-family: var(--font-mono); color: var(--lime); font-size: 0.72rem; letter-spacing: 0.06em; }
+.principle h4 { font-size: 1.3rem; margin: 0.9rem 0 0.6rem; }
+.principle p { color: var(--muted); font-size: 0.96rem; }
+@media (max-width: 860px) { .principles { grid-template-columns: 1fr; } }

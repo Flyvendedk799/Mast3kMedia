@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="da" class="no-js">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SaaS — Mast3kMedia</title>
+<meta name="description" content="SaaS-produkter fra Mast3kMedia. Software vi bygger, ejer og sælger — bootstrapped og profitable." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+<!-- ── Mast3kMedia Design System tokens ── -->
+<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/fonts.css" />
+<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/colors.css" />
+<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/typography.css" />
+<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/spacing.css" />
+<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/effects.css" />
+<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/base.css" />
+
+<!-- ── Site base + page styles ── -->
+<link rel="stylesheet" href="assets/base.css" />
+<link rel="stylesheet" href="assets/sub.css" />
+<link rel="stylesheet" href="assets/saas.css" />
+
+<style>
+/* ══════════════════════════════════════════════════════════
+   DS BRIDGE — map base.css vars → official DS token values
+   ══════════════════════════════════════════════════════════ */
+:root {
+  /* Surfaces */
+  --bg:          var(--color-void);        /* #07070A */
+  --bg-1:        var(--color-surface);     /* #0E0E14 */
+  --bg-2:        var(--color-surface-2);   /* #16161E */
+  --bg-3:        var(--color-surface-3);   /* #1E1E28 */
+
+  /* Text */
+  --paper:       var(--color-white);       /* #FFFFFF */
+  --muted:       var(--color-muted);       /* #6A6A82 */
+  --faint:       #3A3A52;
+
+  /* Borders — DS uses #28283A (cool-tinted) */
+  --line:        var(--color-border);
+  --line-soft:   rgba(40, 40, 58, 0.55);
+  --line-strong: rgba(255, 255, 255, 0.16);
+
+  /* Accents */
+  --lime:        var(--color-green);       /* #00FF88 */
+  --lime-deep:   var(--color-green-dim);   /* #00CC6A */
+  --lime-dim:    rgba(0, 255, 136, 0.10);
+  --coral:       var(--color-error);       /* #FF5060 */
+}
+
+/* ── Body text → DM Sans per DS spec ─────────────────── */
+body {
+  font-family: var(--font-body);
+  background: var(--color-void);
+}
+p, .lede, .page-intro, .ih-sub,
+.saas-card-desc, .principle p,
+.footer-brand p { font-family: var(--font-body); }
+
+/* ── Headings stay Space Grotesk ─────────────────────── */
+h1, h2, h3, h4, .display { font-family: var(--font-display); }
+
+/* ── Scroll progress → DS green + glow ──────────────── */
+.scroll-prog { background: var(--color-green); box-shadow: 0 0 10px var(--color-green); }
+
+/* ── Nav brand: dot glow ─────────────────────────────── */
+.brand .dot { background: var(--color-green); box-shadow: 0 0 14px rgba(0,255,136,.7); }
+
+/* ── Hero: DS dot-grid pattern ───────────────────────── */
+.page-hero { overflow: hidden; }
+.page-hero::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0;
+  background-image: var(--pattern-dots);
+  background-size: var(--pattern-dots-size);
+  opacity: 0.3;
+  pointer-events: none;
+}
+.page-hero .shell,
+.page-hero .hero-glow { position: relative; z-index: 1; }
+
+/* ── Primary CTA → neon glow ─────────────────────────── */
+.btn-solid {
+  background: var(--color-green);
+  border-color: var(--color-green);
+  box-shadow: var(--shadow-green);
+}
+.btn-solid:hover { box-shadow: 0 0 40px rgba(0,255,136,.45); }
+
+/* ── Featured card: DS accent gradient top border ────── */
+.saas-feature-card {
+  position: relative;
+  border-top: 2px solid transparent;
+  background-clip: padding-box;
+  box-shadow: var(--shadow-green);
+}
+.saas-feature-card::before {
+  content: '';
+  position: absolute; top: -2px; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--color-green), var(--color-cyan));
+  border-radius: 22px 22px 0 0;
+  z-index: 1;
+}
+
+/* ── Featured badge glow dot ─────────────────────────── */
+.saas-feature-badge span {
+  background: var(--color-green) !important;
+  box-shadow: 0 0 10px var(--color-green), 0 0 20px rgba(0,255,136,.4);
+}
+
+/* ── Status badges → DS semantic colors ──────────────── */
+.saas-status.live {
+  color: var(--color-success);
+  border-color: rgba(0, 255, 136, 0.28);
+  background: rgba(0, 255, 136, 0.07);
+}
+.saas-status.beta {
+  color: var(--color-warning);
+  border-color: rgba(255, 181, 71, 0.28);
+  background: rgba(255, 181, 71, 0.07);
+}
+.saas-status.wip {
+  color: var(--color-muted);
+  border-color: var(--color-border);
+  background: transparent;
+}
+
+/* ── Product cards → DS hover glow ───────────────────── */
+.saas-card { border-color: var(--color-border); }
+.saas-card:hover {
+  border-color: rgba(0, 255, 136, 0.22);
+  background: var(--color-surface-2);
+  box-shadow: 0 8px 48px rgba(0,255,136,.07);
+}
+.saas-card:hover .saas-card-name { color: var(--color-green); }
+.saas-card:hover .saas-arrow {
+  opacity: 1; transform: translateX(0);
+  color: var(--color-green);
+  border-color: rgba(0,255,136,.35);
+}
+
+/* ── Tags → DS border ────────────────────────────────── */
+.tag { border-color: var(--color-border); color: var(--color-muted); }
+
+/* ── Browser mock → DS surfaces ─────────────────────── */
+.browser-mock { background: var(--color-surface); border-color: var(--color-border); }
+.browser-bar  { border-color: var(--color-border); }
+.mock-sidebar { background: var(--color-void); border-color: var(--color-border); }
+.mock-kpi     { background: var(--color-void); border-color: var(--color-border); }
+.mock-kpi-val { color: var(--color-white); }
+.mock-kpi-delta.up { color: var(--color-green); }
+.mock-nav-item.active { background: var(--color-surface-3); }
+.mock-bar.on  { background: var(--color-green); }
+.mock-logo    { color: var(--color-green); border-color: var(--color-border); }
+
+/* ── MRR bar → DS palette ────────────────────────────── */
+.mrrbar { border-color: var(--color-border); }
+
+/* ── Principle cards → DS border ─────────────────────── */
+.principle { border-color: var(--color-border); background: var(--color-surface); }
+.principle .pn { color: var(--color-green); }
+
+/* ── Brand lockup — M mark + wordmark ───────────────── */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-white);
+  text-decoration: none;
+}
+.brand .dot { display: none; } /* replaced by M mark */
+.brand b { color: inherit; }   /* wordmark stays white; 3 handled inline */
+.brand .m-mark { flex-shrink: 0; }
+.brand .wm-accent { color: var(--color-green); }
+
+/* ── Divider accent line ──────────────────────────────── */
+.m3k-divider-accent {
+  height: 1px;
+  background: linear-gradient(to right, var(--color-green), var(--color-cyan), transparent);
+  border: none;
+  margin-block: 0;
+}
+</style>
+</head>
+<body>
+
+<div class="preloader">
+  <div class="preloader__word">Mast3kMedia® — SaaS</div>
+  <div class="preloader__count">00</div>
+  <div class="preloader__bar"></div>
+</div>
+<div class="grain"></div>
+<div class="scroll-prog"></div>
+
+<nav class="nav">
+  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
+  <div class="nav-links">
+    <a href="ydelser.html">Ydelser</a>
+    <a href="pris.html">Priser</a>
+    <a href="arbejde.html">Arbejde</a>
+    <a href="oss.html">Open Source</a>
+    <a href="saas.html" class="active">SaaS</a>
+    <a href="om.html">Om os</a>
+    <a href="kontakt.html">Kontakt</a>
+  </div>
+  <div class="nav-cta">
+    <a href="kontakt.html" class="btn" data-magnetic="0.3"><span class="btn-label">Start projekt
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+    <button class="nav-burger" aria-label="Menu"><span></span><span></span></button>
+  </div>
+</nav>
+<div class="menu">
+  <a href="ydelser.html">Ydelser</a>
+  <a href="pris.html">Priser</a>
+  <a href="arbejde.html">Arbejde</a>
+  <a href="oss.html">Open Source</a>
+  <a href="saas.html">SaaS</a>
+  <a href="om.html">Om os</a>
+  <a href="kontakt.html">Kontakt</a>
+  <div class="menu-meta"><span class="mono">hej@mast3kmedia.dk</span><span class="mono">København · DK</span></div>
+</div>
+
+<main>
+
+<!-- HERO -->
+<section class="page-hero">
+  <div class="hero-glow"></div>
+  <div class="shell">
+    <span class="crumb mono"><a href="index.html">Forside</a> / SaaS</span>
+    <h1 class="page-title display" data-reveal="lines">
+      <span class="line-wrap"><span class="line-inner">Software vi</span></span>
+      <span class="line-wrap"><span class="line-inner"><span class="lime">ejer selv</span>.</span></span>
+    </h1>
+    <p class="page-intro" data-reveal="up">Vi er et bureau, der også ejer sine egne produkter. Hvert produkt startede som et problem vi ikke fandt en ordentlig løsning på. Nu kører de med betalende kunder — ingen ekstern kapital, ingen exit-plan.</p>
+    <div class="hero-actions" style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-top:2rem" data-reveal="up">
+      <a href="#produkter" class="btn btn-solid" data-magnetic="0.25"><span class="btn-label">Se produkter
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span></a>
+      <a href="kontakt.html" class="btn" data-magnetic="0.25"><span class="btn-label">Samarbejd med os
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="section-pad" style="padding-block:clamp(3rem,5vw,4rem);border-block:1px solid var(--color-border);background:var(--color-surface)">
+  <div class="shell">
+    <div class="metric-band" data-reveal="stagger">
+      <div class="metric">
+        <div class="metric-n"><span data-count="148">0</span>k</div>
+        <div class="metric-l">MRR (DKK)</div>
+      </div>
+      <div class="metric">
+        <div class="metric-n"><span data-count="3241">0</span></div>
+        <div class="metric-l">Betalende brugere</div>
+      </div>
+      <div class="metric">
+        <div class="metric-n"><span data-count="6">0</span></div>
+        <div class="metric-l">Live produkter</div>
+      </div>
+      <div class="metric">
+        <div class="metric-n">&lt; <span data-count="2">0</span>%</div>
+        <div class="metric-l">Månedlig churn</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURED -->
+<section class="section-pad">
+  <div class="shell">
+    <div class="ih" data-reveal="up">
+      <span class="eyebrow">01 — Flagskib</span>
+      <h2 class="ih-title display">Det produkt vi er mest stolte af.</h2>
+    </div>
+    <div class="saas-feature" data-reveal="up">
+
+      <div class="saas-feature-card">
+        <span class="saas-feature-badge">
+          <span style="width:7px;height:7px;border-radius:50%;display:inline-block"></span>
+          Bedst sælgende
+        </span>
+        <h2>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          Fakturo
+        </h2>
+        <p class="lede">Smart fakturering til danske freelancere og bureauer. CVR-opslag, automatisk momsberegning, PDF-eksport og betalingsopfølgning — alt på ét sted.</p>
+        <div class="saas-feature-stats">
+          <div class="sfs"><b>1.240</b><span>Kunder</span></div>
+          <div class="sfs"><b>82k</b><span>Fakturaer sendt</span></div>
+          <div class="sfs"><b>4.8/5</b><span>Anmeldelser</span></div>
+          <div class="sfs"><b>149 kr</b><span>Startpris/md</span></div>
+        </div>
+        <a href="#" class="btn btn-solid" data-magnetic="0.2"><span class="btn-label">Prøv gratis
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+      </div>
+
+      <!-- App mock -->
+      <div class="browser-mock">
+        <div class="browser-bar">
+          <div class="browser-dots"><span></span><span></span><span></span></div>
+          <div class="browser-url">app.fakturo.dk/oversigt</div>
+        </div>
+        <div class="browser-body">
+          <div class="mock-sidebar">
+            <div class="mock-logo">fakturo</div>
+            <div class="mock-nav">
+              <span class="mock-nav-item active">Oversigt</span>
+              <span class="mock-nav-item">Fakturaer</span>
+              <span class="mock-nav-item">Kunder</span>
+              <span class="mock-nav-item">Rapporter</span>
+              <span class="mock-nav-item">Indstillinger</span>
+            </div>
+          </div>
+          <div class="mock-main">
+            <div class="mock-header">
+              <span class="mock-title">Oversigt</span>
+              <span class="mock-date">7. jun 2026</span>
+            </div>
+            <div class="mock-kpis">
+              <div class="mock-kpi">
+                <span class="mock-kpi-label">Månedlig omsætning</span>
+                <span class="mock-kpi-val">38.400 kr</span>
+                <span class="mock-kpi-delta up">+12% vs. forrige md.</span>
+              </div>
+              <div class="mock-kpi">
+                <span class="mock-kpi-label">Udestående</span>
+                <span class="mock-kpi-val">12.000 kr</span>
+                <span class="mock-kpi-delta">4 fakturaer afventer</span>
+              </div>
+            </div>
+            <div class="mock-chart-label">Omsætning — seneste 6 mdr.</div>
+            <div class="mock-chart">
+              <div class="mock-bar" style="height:40%"></div>
+              <div class="mock-bar" style="height:56%"></div>
+              <div class="mock-bar" style="height:47%"></div>
+              <div class="mock-bar" style="height:71%"></div>
+              <div class="mock-bar" style="height:63%"></div>
+              <div class="mock-bar on" style="height:84%"></div>
+            </div>
+            <div class="mock-chart-months">
+              <span>jan</span><span>feb</span><span>mar</span><span>apr</span><span>maj</span><span>jun</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCT GRID -->
+<section class="section-pad" id="produkter" style="padding-top:0">
+  <div class="shell">
+    <div class="ih" data-reveal="up">
+      <span class="eyebrow">02 — Produkter</span>
+      <h2 class="ih-title display">Resten af porteføljen.</h2>
+      <p class="ih-sub">Fem produkter mere. Alle bootstrapped — fire i profit.</p>
+    </div>
+    <div class="saas-grid" data-reveal="stagger">
+
+      <a href="#" class="saas-card">
+        <div class="saas-card-head">
+          <div class="saas-card-icon" style="background:rgba(0,207,255,0.08);border-color:rgba(0,207,255,0.2)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-cyan)" stroke-width="1.7"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <span class="saas-status live">Live</span>
+        </div>
+        <h3 class="saas-card-name">Logtrace</h3>
+        <p class="saas-card-desc">Error- og performance-overvågning til Node.js og Python. Alerts, stack traces og deployment-tracking i realtid.</p>
+        <div class="saas-card-tags">
+          <span class="tag">Monitoring</span>
+          <span class="tag">DevOps</span>
+        </div>
+        <div class="saas-card-foot">
+          <span class="saas-mrr"><b>31k</b> MRR</span>
+          <span class="saas-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a href="#" class="saas-card">
+        <div class="saas-card-head">
+          <div class="saas-card-icon" style="background:rgba(0,255,136,0.07);border-color:rgba(0,255,136,0.18)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-green)" stroke-width="1.7"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <span class="saas-status live">Live</span>
+        </div>
+        <h3 class="saas-card-name">Tidsspor</h3>
+        <p class="saas-card-desc">Tidsregistrering og projektstyring til bureauer. Integrerer med Harvest, Jira og Notion. Automatisk klientrapportering.</p>
+        <div class="saas-card-tags">
+          <span class="tag">Projektstyring</span>
+          <span class="tag">Bureauer</span>
+        </div>
+        <div class="saas-card-foot">
+          <span class="saas-mrr"><b>22k</b> MRR</span>
+          <span class="saas-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a href="#" class="saas-card">
+        <div class="saas-card-head">
+          <div class="saas-card-icon" style="background:rgba(0,207,255,0.08);border-color:rgba(0,207,255,0.2)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-cyan)" stroke-width="1.7"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <span class="saas-status live">Live</span>
+        </div>
+        <h3 class="saas-card-name">Sendpost</h3>
+        <p class="saas-card-desc">Transaktionel e-mail API til udviklere. DKIM, SPF og suppression-lister ud af boksen — med fokus på deliverability.</p>
+        <div class="saas-card-tags">
+          <span class="tag">Email</span>
+          <span class="tag">Infrastruktur</span>
+        </div>
+        <div class="saas-card-foot">
+          <span class="saas-mrr"><b>18k</b> MRR</span>
+          <span class="saas-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a href="#" class="saas-card">
+        <div class="saas-card-head">
+          <div class="saas-card-icon" style="background:rgba(0,255,136,0.07);border-color:rgba(0,255,136,0.18)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-green)" stroke-width="1.7"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <span class="saas-status live">Live</span>
+        </div>
+        <h3 class="saas-card-name">Briefr</h3>
+        <p class="saas-card-desc">Strukturerede brief-flows og feedback-rounds. Klienten godkender skriftligt inden produktion starter — færre rundture, klarere leverancer.</p>
+        <div class="saas-card-tags">
+          <span class="tag">Klientstyring</span>
+          <span class="tag">Bureauer</span>
+        </div>
+        <div class="saas-card-foot">
+          <span class="saas-mrr"><b>9k</b> MRR</span>
+          <span class="saas-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a href="#" class="saas-card">
+        <div class="saas-card-head">
+          <div class="saas-card-icon" style="background:rgba(255,181,71,0.07);border-color:rgba(255,181,71,0.2)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="1.7"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <span class="saas-status beta">Beta</span>
+        </div>
+        <h3 class="saas-card-name">Kampanje</h3>
+        <p class="saas-card-desc">Dansk-fokuseret e-mailmarketing med GDPR-compliance fra dag ét. Segmentering, A/B-tests og landingsside-builder.</p>
+        <div class="saas-card-tags">
+          <span class="tag">Marketing</span>
+          <span class="tag">GDPR</span>
+        </div>
+        <div class="saas-card-foot">
+          <span class="saas-mrr-soon">Åben beta Q4</span>
+          <span class="saas-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a href="#" class="saas-card">
+        <div class="saas-card-head">
+          <div class="saas-card-icon" style="background:rgba(106,106,130,0.1);border-color:var(--color-border)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-muted)" stroke-width="1.7"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <span class="saas-status wip">Under udvikling</span>
+        </div>
+        <h3 class="saas-card-name">Sitewatch</h3>
+        <p class="saas-card-desc">Uptime- og Core Web Vitals-overvågning med SMS og Slack-alerts. Hold styr på alle dine sites fra ét dashboard.</p>
+        <div class="saas-card-tags">
+          <span class="tag">Monitoring</span>
+          <span class="tag">Performance</span>
+        </div>
+        <div class="saas-card-foot">
+          <span class="saas-mrr-soon">2026 Q3</span>
+          <span class="saas-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+          </span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- MRR BREAKDOWN -->
+<section class="section-pad" style="padding-top:0">
+  <div class="shell">
+    <div class="ih" data-reveal="up">
+      <span class="eyebrow">03 — Omsætning</span>
+      <h2 class="ih-title display">Hvad der driver MRR.</h2>
+    </div>
+    <div class="mrrbar-wrap" data-reveal="up">
+      <div class="mrrbar">
+        <i style="width:47%;background:#00FF88"></i>
+        <i style="width:21%;background:#00CFFF"></i>
+        <i style="width:15%;background:rgba(0,207,255,0.45)"></i>
+        <i style="width:12%;background:rgba(0,255,136,0.3)"></i>
+        <i style="width:5%;background:#3A3A52"></i>
+      </div>
+      <div class="mrrbar-key">
+        <span><span class="ldot" style="background:#00FF88"></span>Fakturo 47%</span>
+        <span><span class="ldot" style="background:#00CFFF"></span>Logtrace 21%</span>
+        <span><span class="ldot" style="background:rgba(0,207,255,0.45)"></span>Tidsspor 15%</span>
+        <span><span class="ldot" style="background:rgba(0,255,136,0.3)"></span>Sendpost 12%</span>
+        <span><span class="ldot" style="background:#3A3A52"></span>Briefr 5%</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DS DIVIDER -->
+<div class="shell"><hr class="m3k-divider-accent" /></div>
+
+<!-- PHILOSOPHY -->
+<section class="section-pad" style="background:var(--color-surface)">
+  <div class="shell">
+    <div class="ih" data-reveal="up">
+      <span class="eyebrow">04 — Tilgang</span>
+      <h2 class="ih-title display">Bootstrapped. Profitable. Tålmodige.</h2>
+    </div>
+    <div class="principles" data-reveal="stagger">
+      <div class="principle">
+        <span class="pn">/ 01</span>
+        <h4>Ingen VC-penge</h4>
+        <p>Vi vokser i det tempo vi selv sætter. Ingen investor fortæller os hvad vi skal bygge eller hvornår vi skal sælge. Det holder os fokuserede på brugerne — ikke en cap table.</p>
+      </div>
+      <div class="principle">
+        <span class="pn">/ 02</span>
+        <h4>Bureauet finansierer produkterne</h4>
+        <p>Kundeprojekter er motoren. SaaS er den langsigtede værdiskabelse. Det giver bureaukunder en partner, der faktisk ved hvad det koster at skalere software i produktion.</p>
+      </div>
+      <div class="principle">
+        <span class="pn">/ 03</span>
+        <h4>Vi bruger dem selv</h4>
+        <p>Alle produkter bruges internt inden lancering. Hvis vi ikke gider bruge det selv, sælger vi det ikke til andre.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="next-cta">
+  <div class="shell">
+    <span class="eyebrow">05 — Samarbejd</span>
+    <a href="kontakt.html" class="next-link">Kontakt os →</a>
+    <p class="mono" style="color:var(--faint);margin-top:1.4rem">Reseller-aftaler, OEM-licenser og API-adgang — skriv til hej@mast3kmedia.dk</p>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <span class="brand"><svg class="m-mark" width="20" height="20" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
+        <p class="faint">Kodebureau fra København. Software, SaaS, AI og marketing — uden varm luft.</p>
+        <p style="font-family:var(--font-mono);font-size:0.62rem;color:var(--faint);margin-top:0.85rem;letter-spacing:0.05em">55.6761° N · 12.5683° E — København, DK</p>
+      </div>
+      <div class="footer-col">
+        <span class="mono">Sitemap</span>
+        <a href="ydelser.html" class="ulink">Ydelser</a>
+        <a href="pris.html" class="ulink">Priser</a>
+        <a href="arbejde.html" class="ulink">Arbejde</a>
+        <a href="oss.html" class="ulink">Open Source</a>
+        <a href="saas.html" class="ulink">SaaS</a>
+        <a href="om.html" class="ulink">Om os</a>
+        <a href="kontakt.html" class="ulink">Kontakt</a>
+      </div>
+      <div class="footer-col">
+        <span class="mono">Social</span>
+        <a href="#" class="ulink">LinkedIn</a>
+        <a href="#" class="ulink">GitHub</a>
+        <a href="#" class="ulink">Instagram</a>
+        <a href="#" class="ulink">Dribbble</a>
+      </div>
+      <div class="footer-col">
+        <span class="mono">Kontor</span>
+        <span class="faint">København · DK</span>
+        <span class="faint">hej@mast3kmedia.dk</span>
+        <span class="faint">+45 00 00 00 00</span>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="mono">© 2026 Mast3kMedia ApS</span>
+      <span class="mono">Designet &amp; kodet i København</span>
+    </div>
+  </div>
+</footer>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+<script src="assets/anim.js"></script>
+
+</body>
+</html>
