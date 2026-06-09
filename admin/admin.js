@@ -29,10 +29,24 @@ const api = {
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
     const data = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      S.token = null;
+      localStorage.removeItem('m3k_token');
+      showLogin();
+    }
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     return data;
   },
-  login:       (u, p)     => fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username:u, password:p }) }).then(r => r.json()),
+  async login(u, p) {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Forkert brugernavn eller adgangskode');
+    return data;
+  },
   me:          ()         => api.req('GET',    '/api/auth/me'),
   getStats:    ()         => api.req('GET',    '/api/admin/stats'),
   getProjects: ()         => api.req('GET',    '/api/admin/projects'),
@@ -58,7 +72,12 @@ const slugify = (s) =>
     .replace(/æ/g,'ae').replace(/ø/g,'oe').replace(/å/g,'aa')
     .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
 
-const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc = (s) => String(s ?? '')
+  .replace(/&/g,'&amp;')
+  .replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;')
+  .replace(/'/g,'&#39;');
 
 const fmtDate = (iso) => {
   if (!iso) return '—';
@@ -142,7 +161,7 @@ $('#loginForm').addEventListener('submit', async (e) => {
   const password = $('#loginPass').value;
   try {
     const res = await api.login(username, password);
-    if (res.error) throw new Error(res.error);
+    if (!res.token) throw new Error('Login svarede uden adgangstoken');
     S.token = res.token;
     localStorage.setItem('m3k_token', res.token);
     showApp();
@@ -469,10 +488,6 @@ function loadForm() {
   // Add metric button
   $('#addMetricBtn').onclick = () => { S.metrics.push({ value:'', label:'' }); renderMetrics(); };
 
-  // Wire tag inputs
-  wireTagInput('tagsInput', 'tagsDisplay', S.tags, 'fieldTags');
-  wireTagInput('techInput',  'techDisplay',  S.tech,  'fieldTech');
-
   // Scroll form to top
   $('#formView').scrollTop = 0;
 }
@@ -489,13 +504,15 @@ function updateThumbPreview() {
 }
 
 // ── Tag input ──────────────────────────────────────────────────────────────────
-function wireTagInput(wrapId, displayId, arr, hiddenId) {
+function wireTagInput(wrapId, displayId, stateKey, hiddenId) {
   const wrap    = $(`#${wrapId}`);
   const display = $(`#${displayId}`);
   const input   = wrap.querySelector('.tag-text-input');
   const hidden  = $(`#${hiddenId}`);
+  const getValues = () => S[stateKey];
 
   function refresh() {
+    const arr = getValues();
     display.innerHTML = arr.map((t, i) =>
       `<span class="tag-chip">${esc(t)}<button type="button" data-i="${i}" aria-label="Fjern ${esc(t)}">×</button></span>`
     ).join('');
@@ -506,23 +523,28 @@ function wireTagInput(wrapId, displayId, arr, hiddenId) {
   }
 
   const add = () => {
+    const arr = getValues();
     const val = input.value.trim();
     if (val && !arr.includes(val)) { arr.push(val); refresh(); }
     input.value = '';
   };
 
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); }
-    if (e.key === 'Backspace' && !input.value && arr.length) { arr.pop(); refresh(); }
-  });
-  input.addEventListener('blur', add);
-  wrap.addEventListener('click', () => input.focus());
+  if (!wrap.dataset.wired) {
+    input.addEventListener('keydown', (e) => {
+      const arr = getValues();
+      if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); }
+      if (e.key === 'Backspace' && !input.value && arr.length) { arr.pop(); refresh(); }
+    });
+    input.addEventListener('blur', add);
+    wrap.addEventListener('click', () => input.focus());
+    wrap.dataset.wired = '1';
+  }
 
   refresh();
 }
 
-function renderTags() { wireTagInput('tagsInput', 'tagsDisplay', S.tags, 'fieldTags'); }
-function renderTech() { wireTagInput('techInput',  'techDisplay',  S.tech,  'fieldTech'); }
+function renderTags() { wireTagInput('tagsInput', 'tagsDisplay', 'tags', 'fieldTags'); }
+function renderTech() { wireTagInput('techInput',  'techDisplay',  'tech',  'fieldTech'); }
 
 // ── Metrics ────────────────────────────────────────────────────────────────────
 function renderMetrics() {
@@ -625,6 +647,11 @@ function debounce(fn, ms) {
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
+
+$('#projectForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  submitForm('published');
+});
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 checkAuth();

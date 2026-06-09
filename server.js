@@ -20,7 +20,7 @@ const bcrypt     = require('bcryptjs');
 const PORT       = process.env.PORT        || 3000;
 const JWT_SECRET = process.env.JWT_SECRET  || 'mast3k_dev_secret_CHANGE_ME';
 const ADMIN_USER = process.env.ADMIN_USER  || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS  || 'mast3k2026';
+const ADMIN_PASS = process.env.ADMIN_PASS  || 'abe12345';
 
 // ── Database ─────────────────────────────────────────────────────────────────
 const DB_DIR = path.join(__dirname, 'db');
