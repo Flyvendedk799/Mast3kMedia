@@ -186,8 +186,8 @@ const PROJECT_FIELDS = {
   testimonial_text:   z.string().optional().describe('Client quote'),
   testimonial_author: z.string().optional().describe('Quote author name'),
   testimonial_role:   z.string().optional().describe('Quote author role/title'),
-  thumbnail_url:      z.string().url().optional().describe('Cover image URL'),
-  case_url:           z.string().url().optional().describe('External case study or live URL'),
+  thumbnail_url:      z.string().optional().describe('Cover image URL, data URL, or empty string to clear'),
+  case_url:           z.string().optional().describe('External case study/live URL, repo URL, or empty string to clear'),
   media:              z.array(z.object({
     type:    z.enum(['image', 'video']).optional().describe('Media type. Defaults to image.'),
     url:     z.string().describe('Public URL or data URL for the screenshot/video asset'),

@@ -39,8 +39,8 @@ The MCP must support everything the admin UI can submit:
 | `testimonial_text` | `fieldTestiText` | optional quote |
 | `testimonial_author` | `fieldTestiAuthor` | optional quote attribution |
 | `testimonial_role` | `fieldTestiRole` | optional quote role |
-| `thumbnail_url` | `fieldThumb` | card media URL |
-| `case_url` | `fieldCaseUrl` | live app or repo URL |
+| `thumbnail_url` | `fieldThumb` | card media URL/data URL, or empty to clear |
+| `case_url` | `fieldCaseUrl` | live app/repo URL, or empty to clear |
 | `media` | `fieldMedia` | structured case-page screenshots/videos |
 
 ## Required Destination MCP Tools
@@ -80,5 +80,5 @@ A complete run should produce:
 - Real product screenshots should be used as `thumbnail_url` and `media` when the site payload can carry them.
 - If no live URL or repo screenshot assets exist, the runner may boot a recognizable frontend dev app and use screenshots/videos from that local app, as long as it is not just a login wall.
 - GitHub page screenshots are evidence only; they are not valid portfolio thumbnails or case media.
-- Videos may be embedded only when the `media` item is a real video URL or data URL and the case page renders it.
+- Videos may be embedded only when the `media` item is a real video URL or data URL and the case page renders it. Screenshot walkthrough videos are allowed only when clearly captioned as being generated from repo-provided product screenshots.
 - If no usable product media exists, keep the case as draft/unfeatured rather than publishing a weak public case.

@@ -285,15 +285,15 @@
   <div class="shell about-cols" style="align-items:center">
     <div data-reveal="up">
       <span class="eyebrow">Stack</span>
-      <h2 class="ih-title display" style="margin-bottom:1.6rem">Bygget på solid teknologi.</h2>
-      <p class="muted" style="margin-bottom:1.6rem">Hver del valgt for hastighed, sikkerhed og holdbarhed — og fuldt ejet af kunden.</p>
+      <h2 class="ih-title display" style="margin-bottom:1.6rem">Teknologi fra repoet.</h2>
+      <p class="muted" style="margin-bottom:1.6rem">Listen viser de teknologier, der er dokumenteret i projektdata og kildekode.</p>
       <div class="tech-list">
         <span class="tag">React</span><span class="tag">TypeScript</span><span class="tag">D3.js</span><span class="tag">WebSocket</span><span class="tag">Redis</span><span class="tag">Docker</span><span class="tag">PostgreSQL</span><span class="tag">Kubernetes</span>
       </div>
     </div>
-    <blockquote class="case-quote" data-reveal="up">
-      <p>“Mast3kMedia leverede ikke bare en platform — de gav os en helt ny måde at forstå vores forretning på.”</p>
-      <div class="by"><span class="ph"></span><div><strong>Mathilde Sørensen</strong><br><span class="mono">CEO · NordSync</span></div></div>
+    <blockquote class="case-quote" data-reveal="up" hidden>
+      <p></p>
+      <div class="by"><span class="ph"></span><div><strong></strong><br><span class="mono"></span></div></div>
     </blockquote>
   </div>
 </section>
@@ -339,6 +339,13 @@
   var isVideo = function(item){ return item && item.type === 'video'; };
   var isImage = function(item){ return item && item.url && !isVideo(item); };
   var mediaCaption = function(item, fb){ return ESC(item.caption || item.alt || fb || 'Produktvisning'); };
+  var hideDynamicDemoSections = function() {
+    ['[data-showcase]', '[data-ba]', '.chartwrap', '.devices', '.next-cta'].forEach(function(selector) {
+      var node = document.querySelector(selector);
+      var section = node ? node.closest('section') : null;
+      if (section) section.hidden = true;
+    });
+  };
   var imageMarkup = function(item, label) {
     var alt = ATTR(item.alt || item.caption || label || 'Produktscreenshot');
     return '<img class="case-media-img" src="' + ATTR(item.url) + '" alt="' + alt + '" loading="lazy" decoding="async">';
@@ -408,6 +415,8 @@
       return r.json();
     })
     .then(function(p) {
+      hideDynamicDemoSections();
+
       /* ── Document head ── */
       document.title = p.title + ' — Case · Mast3kMedia';
       var metaDesc = document.querySelector('meta[name="description"]');
@@ -489,17 +498,19 @@
       }
 
       /* ── Testimonial ── */
-      if (p.testimonial_text) {
-        var quoteP = document.querySelector('.case-quote > p');
-        if (quoteP) quoteP.textContent = '“' + p.testimonial_text + '”';
-      }
-      if (p.testimonial_author) {
-        var byStrong = document.querySelector('.case-quote .by strong');
-        if (byStrong) byStrong.textContent = p.testimonial_author;
-      }
-      if (p.testimonial_role) {
-        var byMono = document.querySelector('.case-quote .by .mono');
-        if (byMono) byMono.textContent = p.testimonial_role;
+      var quote = document.querySelector('.case-quote');
+      if (quote) {
+        if (p.testimonial_text) {
+          quote.hidden = false;
+          var quoteP = quote.querySelector('p');
+          if (quoteP) quoteP.textContent = '“' + p.testimonial_text + '”';
+          var byStrong = quote.querySelector('.by strong');
+          if (byStrong) byStrong.textContent = p.testimonial_author || '';
+          var byMono = quote.querySelector('.by .mono');
+          if (byMono) byMono.textContent = p.testimonial_role || '';
+        } else {
+          quote.hidden = true;
+        }
       }
 
       /* ── Mock URL bar ── */

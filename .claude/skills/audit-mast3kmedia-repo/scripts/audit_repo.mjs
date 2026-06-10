@@ -151,12 +151,74 @@ function isGithubPageUrl(value) {
     || /opengraph\.githubassets\.com/i.test(String(value || ''));
 }
 
-function mediaMimeFor(filePath) {
+function mediaMimeFor(filePath, buffer = null) {
+  if (buffer?.length >= 12) {
+    if (buffer[0] === 0xff && buffer[1] === 0xd8) return 'image/jpeg';
+    if (buffer[0] === 0x89 && buffer.toString('ascii', 1, 4) === 'PNG') return 'image/png';
+    if (buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
+  }
   const ext = path.extname(filePath).toLowerCase();
   if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
   if (ext === '.png') return 'image/png';
   if (ext === '.webp') return 'image/webp';
   return null;
+}
+
+function imageDimensions(buffer, mime) {
+  if (!buffer?.length) return null;
+  if (mime === 'image/png' && buffer.length >= 24) {
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  }
+  if (mime === 'image/jpeg' && buffer[0] === 0xff && buffer[1] === 0xd8) {
+    let offset = 2;
+    while (offset < buffer.length - 9) {
+      if (buffer[offset] !== 0xff) {
+        offset += 1;
+        continue;
+      }
+      const marker = buffer[offset + 1];
+      const length = buffer.readUInt16BE(offset + 2);
+      if (length < 2) break;
+      if ((marker >= 0xc0 && marker <= 0xc3) || (marker >= 0xc5 && marker <= 0xc7) || (marker >= 0xc9 && marker <= 0xcb) || (marker >= 0xcd && marker <= 0xcf)) {
+        return { height: buffer.readUInt16BE(offset + 5), width: buffer.readUInt16BE(offset + 7) };
+      }
+      offset += 2 + length;
+    }
+  }
+  if (mime === 'image/webp' && buffer.toString('ascii', 0, 4) === 'RIFF') {
+    const chunk = buffer.toString('ascii', 12, 16);
+    if (chunk === 'VP8X' && buffer.length >= 30) {
+      const width = 1 + buffer.readUIntLE(24, 3);
+      const height = 1 + buffer.readUIntLE(27, 3);
+      return { width, height };
+    }
+  }
+  return null;
+}
+
+function isUsefulImageSize(dimensions) {
+  if (!dimensions) return true;
+  const { width, height } = dimensions;
+  if (width < 700 || height < 380) return false;
+  const ratio = width / height;
+  if (ratio < 0.7 || ratio > 3.2) return false;
+  return true;
+}
+
+function limitPortfolioMedia(items, max = 5) {
+  const seen = new Set();
+  const clean = [];
+  for (const item of items.filter(Boolean)) {
+    if (!item.url) continue;
+    const key = `${item.type || 'image'}:${item.caption || ''}:${String(item.url).slice(0, 96)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    clean.push(item);
+  }
+  const images = clean.filter(item => item.type !== 'video');
+  const videos = clean.filter(item => item.type === 'video');
+  if (videos.length && max > 1) return [...images.slice(0, max - 1), videos[0]];
+  return images.slice(0, max);
 }
 
 function runCommand(command, args, options = {}) {
@@ -361,12 +423,422 @@ function captionForMedia(file, title) {
     .replace(/[-_]+/g, ' ')
     .replace(/\b\w/g, char => char.toUpperCase())
     .trim();
+  const lowerFile = file.toLowerCase();
+  const lowerBase = base.toLowerCase();
   if (/mobile|mobil/i.test(base)) return `${title} mobilvisning`;
   if (/admin/i.test(base)) return `${title} adminflow`;
+  if (/facts?|fakta|benefit|udbytte/.test(lowerFile)) return `${title} fakta- og udbyttesektion`;
+  if (/dates?|dato|calendar|kalender|booking|reservation/.test(lowerFile)) return `${title} dato- og reservationsflow`;
+  if (/^0?2\b/.test(lowerBase)) return `${title} detalje- og indholdsvisning`;
+  if (/^0?3\b/.test(lowerBase)) return `${title} kursus-/produktlandingsside`;
   if (/checkout|betaling/i.test(base)) return `${title} betalingsflow`;
   if (/dashboard|overview|overblik/i.test(base)) return `${title} overblik`;
   if (/hero|home|forside/i.test(base)) return `${title} forside`;
+  if (/full|page|screen/.test(lowerBase)) return `${title} fuld sidevisning`;
   return base ? `${title}: ${base}` : `${title} produktscreenshot`;
+}
+
+function safeFileStem(value) {
+  return slugify(String(value || 'view')).slice(0, 48) || 'view';
+}
+
+function captureTargetLabel(value) {
+  const clean = String(value || '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[#./-]+/, '')
+    .trim();
+  if (!clean) return 'forside';
+  return clean.length > 64 ? `${clean.slice(0, 61)}...` : clean;
+}
+
+function scoreCaptureTarget(target) {
+  const haystack = `${target.label || ''} ${target.href || ''}`.toLowerCase();
+  let score = 0;
+  const rules = [
+    [/booking|book|reservation|tilmelding|dato|calendar|kalender|rental|udlejning/, 120],
+    [/shop|produkt|product|catalog|katalog|course|kursus|services|ydelser|menu|collection/, 110],
+    [/checkout|betaling|payment|ordre|order/, 90],
+    [/dashboard|admin|portal|account|konto|overview|overblik/, 70],
+    [/case|portfolio|arbejde|project|projekter|gallery|galleri|demo/, 65],
+    [/pricing|pris|kontakt|contact/, 35],
+  ];
+  for (const [rule, value] of rules) if (rule.test(haystack)) score += value;
+  if (/cart|kurv|basket/i.test(haystack)) score -= 70;
+  if (/login|log-in|signin|sign-in|register|privacy|cookie|terms|betingelser|facebook|instagram|linkedin|mailto:|tel:/i.test(haystack)) score -= 180;
+  if (/\.pdf$|\.zip$|\.png$|\.jpe?g$|\.webp$|\.svg$/i.test(haystack)) score -= 120;
+  return score;
+}
+
+async function dismissObviousOverlays(page) {
+  const names = [/accept/i, /accepter/i, /tillad/i, /^ok$/i, /luk/i, /close/i, /fortsæt/i];
+  for (const name of names) {
+    const button = page.getByRole('button', { name }).first();
+    if (await button.isVisible({ timeout: 250 }).catch(() => false)) {
+      await button.click({ timeout: 800 }).catch(() => {});
+      await page.waitForTimeout(250).catch(() => {});
+      break;
+    }
+  }
+}
+
+async function gotoAndSettle(page, url) {
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForLoadState('networkidle', { timeout: 7000 }).catch(() => {});
+  await dismissObviousOverlays(page);
+  await page.waitForTimeout(700);
+}
+
+async function inspectPageState(page) {
+  return page.evaluate(() => {
+    const visible = element => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return rect.width > 8 && rect.height > 8 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+    const text = document.body?.innerText || '';
+    const h1 = [...document.querySelectorAll('h1,h2')]
+      .map(element => element.textContent.trim())
+      .find(Boolean) || document.title || '';
+    const images = [...document.images].filter(img => img.complete && img.naturalWidth >= 220 && img.naturalHeight >= 140).length;
+    const cards = [...document.querySelectorAll('[class*="card" i], article, li, [class*="product" i], [class*="course" i], [class*="item" i]')].filter(visible).length;
+    const controls = [...document.querySelectorAll('a,button,input,select,textarea')].filter(visible).length;
+    const hasPassword = [...document.querySelectorAll('input[type="password"]')].some(visible);
+    const loginOnly = hasPassword && /sign in|log in|login|adgangskode|password/i.test(text) && controls < 10;
+    const emptyCart = /kurv|cart|basket/i.test(h1) && /kurv er tom|tom kurv|cart is empty|empty cart|basket is empty|basket empty/i.test(text);
+    const accountOnly = hasPassword && /opret konto|create account|log ind|login|sign in/i.test(text) && controls < 14;
+    const blankish = text.trim().length < 90 && images < 2 && controls < 4;
+    return {
+      h1,
+      textLength: text.trim().length,
+      images,
+      cards,
+      controls,
+      scrollHeight: Math.max(document.body?.scrollHeight || 0, document.documentElement?.scrollHeight || 0),
+      viewportHeight: window.innerHeight,
+      loginOnly,
+      emptyCart,
+      accountOnly,
+      blankish,
+    };
+  });
+}
+
+async function discoverCaptureTargets(page, baseUrl, maxTargets = 6) {
+  const currentOrigin = new URL(baseUrl).origin;
+  const links = await page.evaluate(origin => {
+    const visible = element => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return rect.width > 8 && rect.height > 8 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+    return [...document.querySelectorAll('a[href]')]
+      .filter(visible)
+      .map(element => {
+        const href = element.getAttribute('href') || '';
+        let url = null;
+        try { url = new URL(href, window.location.href); } catch {}
+        return {
+          href,
+          url: url?.href || '',
+          sameOrigin: url?.origin === origin,
+          label: (element.innerText || element.getAttribute('aria-label') || element.getAttribute('title') || href).trim(),
+        };
+      });
+  }, currentOrigin);
+
+  const seen = new Set([baseUrl.replace(/\/$/, '')]);
+  return links
+    .filter(link => link.sameOrigin && link.url)
+    .map(link => ({
+      url: link.url,
+      label: captureTargetLabel(link.label || new URL(link.url).pathname),
+      href: link.href,
+      score: scoreCaptureTarget({ label: link.label, href: link.href || link.url }),
+    }))
+    .filter(link => link.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .filter(link => {
+      const key = link.url.replace(/\/$/, '');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, maxTargets);
+}
+
+async function scrollToUsefulSection(page) {
+  return page.evaluate(() => {
+    const viewport = window.innerHeight || 900;
+    const candidates = [...document.querySelectorAll('main section, section, [class*="grid" i], [class*="cards" i], [class*="product" i], [class*="course" i], [class*="booking" i], [class*="feature" i], [class*="gallery" i]')]
+      .map(element => {
+        const rect = element.getBoundingClientRect();
+        const y = rect.top + window.scrollY;
+        const text = element.textContent || '';
+        const score = (text.length > 80 ? 20 : 0)
+          + (element.querySelectorAll('img').length * 12)
+          + (element.querySelectorAll('a,button').length * 8)
+          + (/booking|produkt|product|kursus|course|pris|cart|kurv|checkout|feature|ydelser|services/i.test(`${element.className} ${text}`) ? 35 : 0)
+          - (y < viewport * 0.45 ? 25 : 0);
+        return { y, score };
+      })
+      .filter(item => item.y > viewport * 0.45);
+    candidates.sort((a, b) => b.score - a.score);
+    const y = candidates[0]?.y ?? Math.min(viewport * 0.75, Math.max(0, document.documentElement.scrollHeight - viewport));
+    window.scrollTo(0, Math.max(0, y - 90));
+    return window.scrollY;
+  });
+}
+
+async function currentViewportHeading(page, fallback) {
+  return page.evaluate(fb => {
+    const headings = [...document.querySelectorAll('h1,h2,h3,[aria-label]')]
+      .map(element => {
+        const rect = element.getBoundingClientRect();
+        const text = (element.textContent || element.getAttribute('aria-label') || '').trim();
+        return { text, top: rect.top, visible: rect.width > 8 && rect.height > 8 };
+      })
+      .filter(item => item.visible && item.text && item.top >= 70 && item.top < window.innerHeight * 0.82)
+      .sort((a, b) => a.top - b.top);
+    return headings[0]?.text || fb;
+  }, fallback).catch(() => fallback);
+}
+
+async function addViewportMedia(page, screenshotsDir, media, artifacts, fileStem, caption, alt, portfolioEligible) {
+  const filePath = path.join(screenshotsDir, `${safeFileStem(fileStem)}.jpg`);
+  await page.screenshot({ path: filePath, type: 'jpeg', quality: 74, fullPage: false, animations: 'disabled' });
+  artifacts.screenshots.push(filePath);
+  if (!portfolioEligible) return null;
+  let buffer = await fs.readFile(filePath);
+  if (buffer.length > 1_500_000) {
+    await page.screenshot({ path: filePath, type: 'jpeg', quality: 58, fullPage: false, animations: 'disabled' });
+    buffer = await fs.readFile(filePath);
+  }
+  if (buffer.length > 1_800_000) return null;
+  const item = {
+    type: 'image',
+    url: `data:image/jpeg;base64,${buffer.toString('base64')}`,
+    caption,
+    alt,
+  };
+  media.push(item);
+  return item;
+}
+
+async function compactVideoForEmbedding(inputPath, outputPath) {
+  const hasFfmpeg = await runCommand('ffmpeg', ['-version'], { allowFailure: true, timeoutMs: 5000 }).catch(() => null);
+  if (!hasFfmpeg || hasFfmpeg.code !== 0) return inputPath;
+  const result = await runCommand('ffmpeg', [
+    '-y',
+    '-i', inputPath,
+    '-t', '12',
+    '-vf', 'fps=10,scale=960:-2',
+    '-an',
+    '-c:v', 'libvpx-vp9',
+    '-deadline', 'realtime',
+    '-cpu-used', '8',
+    '-b:v', '0',
+    '-crf', '42',
+    outputPath,
+  ], { allowFailure: true, timeoutMs: 160000 }).catch(() => null);
+  if (result?.code === 0 && await exists(outputPath)) return outputPath;
+  return inputPath;
+}
+
+async function createScreenshotWalkthroughVideo(imageFiles, title, outputDir, checks, prefix = 'source-repo-screenshots') {
+  const usable = imageFiles.filter(Boolean).slice(0, 4);
+  const artifacts = { videos: [] };
+  if (usable.length < 2) return { media: [], artifacts };
+  const hasFfmpeg = await runCommand('ffmpeg', ['-version'], { allowFailure: true, timeoutMs: 5000 }).catch(() => null);
+  if (!hasFfmpeg || hasFfmpeg.code !== 0) {
+    makeCheck(checks, 'source.repo-screenshot-video', 'Repo screenshot walkthrough video skipped because ffmpeg is unavailable', false, {}, 'warn');
+    return { media: [], artifacts };
+  }
+
+  const videosDir = path.join(outputDir, 'videos');
+  await fs.mkdir(videosDir, { recursive: true });
+  const videoPath = path.join(videosDir, `${prefix}-walkthrough.webm`);
+  const args = ['-y'];
+  for (const file of usable) args.push('-loop', '1', '-t', '2.4', '-i', file);
+  const filters = usable
+    .map((_, index) => `[${index}:v]scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2:color=white,setsar=1,fade=t=in:st=0:d=0.18,fade=t=out:st=2.12:d=0.22[v${index}]`)
+    .join(';');
+  const concatInputs = usable.map((_, index) => `[v${index}]`).join('');
+  args.push(
+    '-filter_complex', `${filters};${concatInputs}concat=n=${usable.length}:v=1:a=0,format=yuv420p[v]`,
+    '-map', '[v]',
+    '-an',
+    '-c:v', 'libvpx-vp9',
+    '-deadline', 'realtime',
+    '-cpu-used', '8',
+    '-b:v', '0',
+    '-crf', '42',
+    videoPath,
+  );
+  const result = await runCommand('ffmpeg', args, { allowFailure: true, timeoutMs: 160000 }).catch(() => null);
+  if (!result || result.code !== 0 || !(await exists(videoPath))) {
+    makeCheck(checks, 'source.repo-screenshot-video', 'Repo screenshot walkthrough video generated from real screenshots', false, {
+      stderr: result?.stderr?.slice(-1200) || 'ffmpeg failed',
+    }, 'warn');
+    return { media: [], artifacts };
+  }
+
+  artifacts.videos.push(videoPath);
+  const stat = await fs.stat(videoPath).catch(() => null);
+  if (!stat || stat.size > 2_300_000) {
+    makeCheck(checks, 'source.repo-screenshot-video', 'Repo screenshot walkthrough video kept as artifact only because it is too large to embed', true, {
+      bytes: stat?.size || 0,
+    }, 'warn');
+    return { media: [], artifacts };
+  }
+
+  const buffer = await fs.readFile(videoPath);
+  const media = [{
+    type: 'video',
+    url: `data:video/webm;base64,${buffer.toString('base64')}`,
+    caption: `${title} visuel gennemgang af repoets produktskærme`,
+    alt: `${title} screenshotbaseret videogennemgang`,
+  }];
+  makeCheck(checks, 'source.repo-screenshot-video', 'Repo screenshot walkthrough video generated from real screenshots', true, {
+    images: usable.length,
+    bytes: stat.size,
+  });
+  return { media, artifacts };
+}
+
+async function performGuidedFlow(page, baseUrl, targets) {
+  await gotoAndSettle(page, baseUrl);
+  await page.mouse.move(720, 520).catch(() => {});
+  await page.waitForTimeout(400);
+  await scrollToUsefulSection(page).catch(() => {});
+  await page.waitForTimeout(900);
+  await page.mouse.wheel(0, 650).catch(() => {});
+  await page.waitForTimeout(700);
+  for (const target of targets.slice(0, 2)) {
+    await gotoAndSettle(page, target.url).catch(() => {});
+    await page.waitForTimeout(500);
+    await scrollToUsefulSection(page).catch(() => {});
+    await page.waitForTimeout(900);
+  }
+}
+
+async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, checks, options = {}) {
+  const {
+    prefix = 'source-product',
+    portfolioEligible = true,
+    maxImages = 4,
+  } = options;
+  const screenshotsDir = path.join(outputDir, 'screenshots');
+  const videosDir = path.join(outputDir, 'videos');
+  const rawVideoDir = path.join(videosDir, 'raw');
+  await fs.mkdir(screenshotsDir, { recursive: true });
+  await fs.mkdir(rawVideoDir, { recursive: true });
+
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    recordVideo: { dir: rawVideoDir, size: { width: 960, height: 600 } },
+  });
+  const page = await context.newPage();
+  const artifacts = { screenshots: [], videos: [], consoleErrors: [], pageErrors: [], sourceUrl };
+  const media = [];
+  let thumbnailDataUrl = null;
+  let targets = [];
+  let captured = false;
+  page.on('console', msg => {
+    if (msg.type() === 'error') artifacts.consoleErrors.push(msg.text());
+  });
+  page.on('pageerror', error => artifacts.pageErrors.push(error.message));
+
+  try {
+    await gotoAndSettle(page, sourceUrl);
+    let state = await inspectPageState(page);
+    if (state.loginOnly) {
+      makeCheck(checks, `browser.${prefix}.quality`, 'Source rendered only a login wall, not portfolio media', false, { sourceUrl }, 'warn');
+    } else if (state.blankish) {
+      makeCheck(checks, `browser.${prefix}.quality`, 'Source rendered too little visible product UI for portfolio media', false, { sourceUrl, state }, 'warn');
+    } else {
+      targets = await discoverCaptureTargets(page, sourceUrl, 6);
+      const orderedTargets = [
+        { url: sourceUrl, label: state.h1 || 'forside', score: 999 },
+        ...targets,
+      ];
+      const visited = new Set();
+      let shotIndex = 1;
+      for (const target of orderedTargets) {
+        if (media.length >= maxImages && portfolioEligible) break;
+        const key = target.url.replace(/\/$/, '');
+        if (visited.has(key)) continue;
+        visited.add(key);
+        await gotoAndSettle(page, target.url);
+        state = await inspectPageState(page);
+        if (state.loginOnly || state.emptyCart || state.accountOnly || state.blankish) continue;
+        const sourceKey = sourceUrl.replace(/[#?].*$/, '').replace(/\/$/, '');
+        const targetKey = target.url.replace(/[#?].*$/, '').replace(/\/$/, '');
+        const primaryView = sourceKey === targetKey;
+        const label = captureTargetLabel(primaryView ? (state.h1 || target.label || 'produktvisning') : (target.label || state.h1 || 'produktvisning'));
+        const firstItem = await addViewportMedia(
+          page,
+          screenshotsDir,
+          media,
+          artifacts,
+          `${prefix}-${shotIndex}-${label}`,
+          shotIndex === 1 ? `${title} forside / primær produktvisning` : `${title}: ${label}`,
+          `${title} ${label}`,
+          portfolioEligible,
+        );
+        if (firstItem && !thumbnailDataUrl) thumbnailDataUrl = firstItem.url;
+        captured = true;
+        shotIndex += 1;
+        if ((state.scrollHeight > state.viewportHeight * 1.45 || state.cards >= 3) && media.length < maxImages) {
+          await scrollToUsefulSection(page);
+          await page.waitForTimeout(500);
+          const detailLabel = captureTargetLabel(await currentViewportHeading(page, label));
+          await addViewportMedia(
+            page,
+            screenshotsDir,
+            media,
+            artifacts,
+            `${prefix}-${shotIndex}-${detailLabel}-detail`,
+            `${title}: ${detailLabel} med flere detaljer`,
+            `${title} detaljevisning`,
+            portfolioEligible,
+          );
+          shotIndex += 1;
+        }
+      }
+      await performGuidedFlow(page, sourceUrl, targets);
+      makeCheck(checks, `browser.${prefix}.media`, 'Relevant product screenshots and guided browser flow captured', captured, {
+        sourceUrl,
+        targets: targets.slice(0, 4).map(target => ({ url: target.url, label: target.label, score: target.score })),
+        screenshots: artifacts.screenshots.length,
+        embeddedMedia: media.length,
+      }, captured ? 'error' : 'warn');
+    }
+  } finally {
+    const video = page.video();
+    await context.close();
+    if (video) {
+      const rawPath = path.join(videosDir, `${prefix}-raw.webm`);
+      const compactPath = path.join(videosDir, `${prefix}-guided.webm`);
+      await video.saveAs(rawPath).catch(() => {});
+      if (await exists(rawPath)) {
+        artifacts.videos.push(rawPath);
+        const embedPath = await compactVideoForEmbedding(rawPath, compactPath);
+        if (embedPath !== rawPath) artifacts.videos.push(embedPath);
+        const stat = await fs.stat(embedPath).catch(() => null);
+        if (portfolioEligible && media.length && stat && stat.size <= 2_300_000) {
+          const buffer = await fs.readFile(embedPath);
+          media.push({
+            type: 'video',
+            url: `data:video/webm;base64,${buffer.toString('base64')}`,
+            caption: `${title} kort guidet browserflow`,
+            alt: `${title} demovideo`,
+          });
+        }
+      }
+    }
+  }
+
+  return { media, artifacts, thumbnailDataUrl, captured, targets };
 }
 
 async function collectRepoMedia(repoDir, title, checks) {
@@ -385,9 +857,11 @@ async function collectRepoMedia(repoDir, title, checks) {
   for (const { file } of candidates) {
     const absolute = path.join(repoDir, file);
     const stat = await fs.stat(absolute).catch(() => null);
-    const mime = mediaMimeFor(file);
-    if (!stat || !mime || stat.size < 8_000 || stat.size > 2_200_000) continue;
+    if (!stat || stat.size < 8_000 || stat.size > 2_200_000) continue;
     const buffer = await fs.readFile(absolute);
+    const mime = mediaMimeFor(file, buffer);
+    const dimensions = imageDimensions(buffer, mime);
+    if (!mime || !isUsefulImageSize(dimensions)) continue;
     media.push({
       type: 'image',
       url: `data:${mime};base64,${buffer.toString('base64')}`,
@@ -491,91 +965,32 @@ async function captureLocalRepoAppMedia(repoDir, title, outputDir, checks, heade
     return { media: [], artifacts: { screenshots: [], videos: [] } };
   }
 
-  const screenshotsDir = path.join(outputDir, 'screenshots');
-  const videosDir = path.join(outputDir, 'videos');
-  const rawVideoDir = path.join(videosDir, 'raw');
-  await fs.mkdir(screenshotsDir, { recursive: true });
-  await fs.mkdir(rawVideoDir, { recursive: true });
-
   const playwright = await ensurePlaywright(outputDir, checks);
   const browser = await launchChromium(playwright.chromium, outputDir, headed);
-  const context = await browser.newContext({
-    viewport: { width: 1440, height: 1000 },
-    recordVideo: { dir: rawVideoDir, size: { width: 1440, height: 1000 } },
-  });
-  const page = await context.newPage();
-  const artifacts = { screenshots: [], videos: [] };
-  const media = [];
   try {
-    await page.goto(baseUrl, { waitUntil: 'networkidle', timeout: 45000 });
-    await page.waitForTimeout(1000);
-    const loginOnly = await page.evaluate(() => {
-      const text = document.body?.innerText || '';
-      const hasPassword = Boolean(document.querySelector('input[type="password"]'));
-      const linkCount = document.querySelectorAll('a, button').length;
-      return hasPassword && /sign in|log in|login|adgangskode|password/i.test(text) && linkCount < 8;
+    const capture = await captureBrowserProductMedia(browser, baseUrl, title, outputDir, checks, {
+      prefix: 'source-local-app',
+      portfolioEligible: true,
+      maxImages: 4,
     });
-    if (loginOnly) {
-      makeCheck(checks, 'source.local-app-media', 'Local app rendered only a login wall, not portfolio media', false, { baseUrl, command: candidate.commandLabel }, 'warn');
-    } else {
-      const home = path.join(screenshotsDir, 'source-local-app-home.jpg');
-      await page.screenshot({ path: home, type: 'jpeg', quality: 72, fullPage: false });
-      const homeBuffer = await fs.readFile(home);
-      media.push({
-        type: 'image',
-        url: `data:image/jpeg;base64,${homeBuffer.toString('base64')}`,
-        caption: `${title} renderet lokalt fra repoet`,
-        alt: `${title} lokal produktskærm`,
-      });
-      artifacts.screenshots.push(home);
-      await page.mouse.wheel(0, 700);
-      await page.waitForTimeout(700);
-      const scroll = path.join(screenshotsDir, 'source-local-app-scroll.jpg');
-      await page.screenshot({ path: scroll, type: 'jpeg', quality: 72, fullPage: false });
-      const scrollBuffer = await fs.readFile(scroll);
-      media.push({
-        type: 'image',
-        url: `data:image/jpeg;base64,${scrollBuffer.toString('base64')}`,
-        caption: `${title} interaktiv visning fra repoet`,
-        alt: `${title} lokal produktskærm efter scroll`,
-      });
-      artifacts.screenshots.push(scroll);
-      makeCheck(checks, 'source.local-app-media', 'Runnable local frontend captured as real product media', true, {
-        baseUrl,
-        command: candidate.commandLabel,
-        media: media.length,
-      });
-    }
+    makeCheck(checks, 'source.local-app-media', 'Runnable local frontend captured as real product media', capture.media.length > 0, {
+      baseUrl,
+      command: candidate.commandLabel,
+      media: capture.media.length,
+      screenshots: capture.artifacts.screenshots.length,
+      videos: capture.artifacts.videos.length,
+    }, capture.media.length > 0 ? 'error' : 'warn');
+    return { media: capture.media, artifacts: capture.artifacts };
   } catch (error) {
     makeCheck(checks, 'source.local-app-media', 'Runnable local frontend captured as real product media', false, {
       error: error.message,
       baseUrl,
     }, 'warn');
+    return { media: [], artifacts: { screenshots: [], videos: [] } };
   } finally {
-    const video = page.video();
-    await context.close();
-    if (video) {
-      const videoPath = path.join(videosDir, 'source-local-app-flow.webm');
-      await video.saveAs(videoPath).catch(() => {});
-      if (await exists(videoPath)) {
-        artifacts.videos.push(videoPath);
-        const stat = await fs.stat(videoPath).catch(() => null);
-        if (media.length && stat && stat.size <= 1_800_000) {
-          const buffer = await fs.readFile(videoPath);
-          media.push({
-            type: 'video',
-            url: `data:video/webm;base64,${buffer.toString('base64')}`,
-            caption: `${title} kort browserflow fra lokal kørsel`,
-            alt: `${title} demovideo fra lokal kørsel`,
-          });
-        }
-      }
-    }
     await browser.close();
     await stopManaged(app);
   }
-
-  return { media, artifacts };
 }
 
 function isIgnoredRepoFile(file) {
@@ -1531,14 +1946,23 @@ async function screenshot(page, screenshotsDir, name, fullPage = true) {
   return filePath;
 }
 
-async function captureSourceMedia(sourceUrls, outputDir, checks, headed) {
-  sourceUrls = [...new Set([].concat(sourceUrls).filter(Boolean))];
-  const screenshotsDir = path.join(outputDir, 'screenshots');
-  const videosDir = path.join(outputDir, 'videos');
-  const rawVideoDir = path.join(videosDir, 'raw');
-  await fs.mkdir(screenshotsDir, { recursive: true });
-  await fs.mkdir(rawVideoDir, { recursive: true });
+async function warmLazyMedia(page) {
+  await page.evaluate(async () => {
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const height = Math.max(document.body?.scrollHeight || 0, document.documentElement?.scrollHeight || 0);
+    const step = Math.max(500, Math.floor(window.innerHeight * 0.78));
+    for (let y = 0; y <= height; y += step) {
+      window.scrollTo(0, y);
+      await sleep(180);
+    }
+    window.scrollTo(0, 0);
+  }).catch(() => {});
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(400).catch(() => {});
+}
 
+async function captureSourceMedia(sourceUrls, outputDir, checks, headed, title = 'Projekt') {
+  sourceUrls = [...new Set([].concat(sourceUrls).filter(Boolean))];
   const playwright = await ensurePlaywright(outputDir, checks);
   const browser = await launchChromium(playwright.chromium, outputDir, headed);
   const artifacts = { screenshots: [], videos: [], consoleErrors: [], pageErrors: [], sourceUrl: null };
@@ -1551,71 +1975,40 @@ async function captureSourceMedia(sourceUrls, outputDir, checks, headed) {
 
   for (const sourceUrl of sourceUrls) {
     const portfolioEligible = !isGithubPageUrl(sourceUrl);
-    const sourceContext = await browser.newContext({
-      viewport: { width: 1440, height: 900 },
-      recordVideo: { dir: rawVideoDir, size: { width: 1440, height: 900 } },
-    });
-    const sourcePage = await sourceContext.newPage();
-    sourcePage.on('console', msg => {
-      if (msg.type() === 'error') artifacts.consoleErrors.push(msg.text());
-    });
-    sourcePage.on('pageerror', error => artifacts.pageErrors.push(error.message));
     try {
-      await sourcePage.goto(sourceUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
-      await sourcePage.waitForTimeout(1200);
-      artifacts.screenshots.push(await screenshot(sourcePage, screenshotsDir, 'source-project'));
-      const thumbPath = path.join(screenshotsDir, 'source-thumbnail.jpg');
-      await sourcePage.screenshot({ path: thumbPath, type: 'jpeg', quality: 62, fullPage: false });
-      const thumb = await fs.readFile(thumbPath);
+      const capture = await captureBrowserProductMedia(browser, sourceUrl, title, outputDir, checks, {
+        prefix: `source-project-${artifacts.screenshots.length + 1}`,
+        portfolioEligible,
+        maxImages: 4,
+      });
+      for (const key of ['screenshots', 'videos', 'consoleErrors', 'pageErrors']) {
+        artifacts[key].push(...(capture.artifacts[key] || []));
+      }
       if (!portfolioEligible) {
         makeCheck(checks, 'browser.source-thumbnail', 'GitHub screenshots are source evidence only, not portfolio media', true, {
           sourceUrl,
         }, 'warn');
-      } else if (thumb.length <= 1_500_000) {
-        thumbnailDataUrl = `data:image/jpeg;base64,${thumb.toString('base64')}`;
-        media.push({
-          type: 'image',
-          url: thumbnailDataUrl,
-          caption: 'Live produktvisning',
-          alt: 'Screenshot af det live produkt',
-        });
-        artifacts.screenshots.push(thumbPath);
-        makeCheck(checks, 'browser.source-thumbnail', 'Live product screenshot embedded as project media', true, {
-          bytes: thumb.length,
+      } else if (capture.media.length) {
+        media.push(...capture.media);
+        thumbnailDataUrl = capture.thumbnailDataUrl || media.find(item => item.type !== 'video')?.url || null;
+        makeCheck(checks, 'browser.source-thumbnail', 'Live product screenshots/video embedded as project media', true, {
+          media: capture.media.length,
           sourceUrl,
         });
       } else {
-        makeCheck(checks, 'browser.source-thumbnail', 'Source screenshot too large for project thumbnail; kept as artifact only', true, {
-          bytes: thumb.length,
+        makeCheck(checks, 'browser.source-thumbnail', 'Live source captured but no embeddable product media was produced', false, {
           sourceUrl,
         }, 'warn');
       }
-      captured = true;
+      captured = Boolean(capture.captured);
       usedSourceUrl = sourceUrl;
-      makeCheck(checks, 'browser.source-evidence', 'Source project page screenshot captured', true, { sourceUrl });
+      makeCheck(checks, 'browser.source-evidence', 'Source project page screenshot/video evidence captured', captured, {
+        sourceUrl,
+        screenshots: capture.artifacts.screenshots.length,
+        videos: capture.artifacts.videos.length,
+      }, captured ? 'error' : 'warn');
     } catch (error) {
       lastError = error;
-    } finally {
-      const video = sourcePage.video();
-      await sourceContext.close();
-      if (video) {
-        const safeName = captured ? 'source-project.webm' : `source-attempt-${artifacts.videos.length + 1}.webm`;
-        const videoPath = path.join(videosDir, safeName);
-        await video.saveAs(videoPath).catch(() => {});
-        if (await exists(videoPath)) {
-          artifacts.videos.push(videoPath);
-          const stat = await fs.stat(videoPath).catch(() => null);
-          if (portfolioEligible && stat && stat.size <= 1_800_000) {
-            const buffer = await fs.readFile(videoPath);
-            media.push({
-              type: 'video',
-              url: `data:video/webm;base64,${buffer.toString('base64')}`,
-              caption: 'Kort demoflow fra det live produkt',
-              alt: 'Browseroptagelse af produktflow',
-            });
-          }
-        }
-      }
     }
     if (captured) break;
   }
@@ -1675,6 +2068,7 @@ async function runDestinationEvidence(baseUrl, project, outputDir, checks, admin
     if (project.status === 'published') {
       await page.goto(`${baseUrl}/case.html?slug=${encodeURIComponent(project.slug)}`, { waitUntil: 'networkidle' });
       await page.getByText(project.title).first().waitFor({ timeout: 10000 });
+      await warmLazyMedia(page);
       artifacts.screenshots.push(await screenshot(page, screenshotsDir, `${prefix}-public-case`));
     }
     makeCheck(checks, `browser.${prefix}.destination-evidence`, 'Mast3kMedia admin/public evidence captured', true, { baseUrl, slug: project.slug });
@@ -1722,26 +2116,29 @@ async function upsertProductionProject(productionUrl, project, checks, adminUser
     const saved = existing
       ? await jsonRequest(productionUrl, 'PUT', `/api/admin/projects/${existing.id}`, project, login.token)
       : await jsonRequest(productionUrl, 'POST', '/api/admin/projects', project, login.token);
-    const publicProject = await jsonRequest(productionUrl, 'GET', `/api/projects/${encodeURIComponent(project.slug)}`);
+    const readableProject = project.status === 'published'
+      ? await jsonRequest(productionUrl, 'GET', `/api/projects/${encodeURIComponent(project.slug)}`)
+      : saved;
     const badFields = PROJECT_FIELDS.filter(field => {
-      if (field === 'metrics' || field === 'media') return JSON.stringify(publicProject[field] || []) !== JSON.stringify(project[field] || []);
-      if (field === 'tags' || field === 'tech_stack') return JSON.stringify(publicProject[field] || []) !== JSON.stringify(project[field] || []);
-      return (publicProject[field] ?? '') !== (project[field] ?? '');
+      if (field === 'metrics' || field === 'media') return JSON.stringify(readableProject[field] || []) !== JSON.stringify(project[field] || []);
+      if (field === 'tags' || field === 'tech_stack') return JSON.stringify(readableProject[field] || []) !== JSON.stringify(project[field] || []);
+      return (readableProject[field] ?? '') !== (project[field] ?? '');
     });
-    makeCheck(checks, 'production.project-upsert', 'Production Mast3kMedia project created/updated and publicly readable', badFields.length === 0, {
+    makeCheck(checks, 'production.project-upsert', 'Production Mast3kMedia project created/updated and verified', badFields.length === 0, {
       action: existing ? 'update' : 'create',
       id: saved.id,
       slug: saved.slug,
       badFields,
       productionUrl,
+      visibility: project.status === 'published' ? 'public' : 'admin-only draft',
     });
     return {
       action: existing ? 'update' : 'create',
       saved: redactLargeDataUrls(saved),
-      publicProject: redactLargeDataUrls(publicProject),
+      publicProject: project.status === 'published' ? redactLargeDataUrls(readableProject) : null,
     };
   } catch (error) {
-    makeCheck(checks, 'production.project-upsert', 'Production Mast3kMedia project created/updated and publicly readable', false, {
+    makeCheck(checks, 'production.project-upsert', 'Production Mast3kMedia project created/updated and verified', false, {
       error: error.message,
       productionUrl,
     });
@@ -1857,17 +2254,25 @@ async function main() {
     const repoMedia = await collectRepoMedia(repoDir, analysis.project.title, checks);
     artifacts = mergeArtifacts(artifacts, repoMedia.artifacts);
     if (repoMedia.media.length) {
-      analysis.project.media = [...repoMedia.media];
+      analysis.project.media = limitPortfolioMedia(repoMedia.media);
       analysis.project.thumbnail_url = analysis.project.thumbnail_url || repoMedia.media[0].url;
+      const screenshotVideo = await createScreenshotWalkthroughVideo(repoMedia.artifacts.screenshots, analysis.project.title, outputDir, checks);
+      artifacts = mergeArtifacts(artifacts, screenshotVideo.artifacts);
+      if (screenshotVideo.media.length) {
+        analysis.project.media = limitPortfolioMedia([...(analysis.project.media || []), ...screenshotVideo.media]);
+      }
     }
 
     if (!args.noBrowser) {
-      if (!analysis.liveUrl && !analysis.project.media?.length) {
+      const mediaImages = (analysis.project.media || []).filter(item => item.type !== 'video').length;
+      const hasVideo = (analysis.project.media || []).some(item => item.type === 'video');
+      if (!analysis.liveUrl && (!analysis.project.media?.length || mediaImages < 3 || !hasVideo)) {
         const localCapture = await captureLocalRepoAppMedia(repoDir, analysis.project.title, outputDir, checks, args.headed);
         artifacts = mergeArtifacts(artifacts, localCapture.artifacts);
         if (localCapture.media?.length) {
-          analysis.project.media = [...localCapture.media].slice(0, 5);
-          analysis.project.thumbnail_url = analysis.project.thumbnail_url || localCapture.media[0].url;
+          analysis.project.media = limitPortfolioMedia([...localCapture.media, ...(analysis.project.media || [])]);
+          const firstLocalImage = localCapture.media.find(item => item.type !== 'video');
+          analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstLocalImage?.url || localCapture.media[0].url;
         }
       }
 
@@ -1877,10 +2282,11 @@ async function main() {
           outputDir,
           checks,
           args.headed,
+          analysis.project.title,
         );
         artifacts = mergeArtifacts(artifacts, sourceCapture.artifacts);
         if (sourceCapture.media?.length) {
-          analysis.project.media = [...sourceCapture.media, ...(analysis.project.media || [])].slice(0, 5);
+          analysis.project.media = limitPortfolioMedia([...sourceCapture.media, ...(analysis.project.media || [])]);
         }
         if (sourceCapture.thumbnailDataUrl) analysis.project.thumbnail_url = sourceCapture.thumbnailDataUrl;
       } else {
