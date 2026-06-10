@@ -39,7 +39,7 @@ The runner writes artifacts to `mast3kmedia-repo-case/<timestamp>/` by default:
 ## Default Behavior
 
 - Clones the target repo into the artifact folder.
-- Reads README/docs, manifests, routes, templates, tests, and assets.
+- Reads README/docs, GitHub repo metadata, nested package manifests, routes, templates, tests, and assets.
 - Detects stack, product category, feature set, live URL, and visible proof points.
 - Builds a Danish Mast3kMedia project payload:
   - `title`, `slug`, `category`, descriptions, challenge, approach
@@ -63,6 +63,7 @@ By default, cases are created as `published` and `featured` so the live homepage
 - Do not fabricate testimonials. Keep testimonial fields empty unless there is a real quote and attribution in source material.
 - Metrics must be factual and inspectable, such as documented integrations, test file counts, templates, modules, or live/deployment evidence. Do not invent percentage metrics.
 - Prefer the source live URL for `case_url`; use the GitHub repo URL only when no live URL is evidenced.
+- Reject placeholder/config URLs such as localhost, `api.openai.com`, `trello.com/app-key`, `yourdomain`, `your-host`, bare `http://`, webhook examples, and tokenized sample URLs.
 - Treat missing screenshots/video as a failed or incomplete run unless the user explicitly requested `--no-browser`.
 - After a run, inspect `project.json`, `report.md`, screenshots, and videos before telling the user the result is complete.
 

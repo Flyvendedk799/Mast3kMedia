@@ -220,9 +220,48 @@ const TAG_DA = new Map([
   ['Calendar', 'Kalender'],
   ['Delivery', 'Levering'],
   ['Email', 'E-mail'],
+  ['AI', 'AI'],
+  ['Dashboard', 'Dashboard'],
+  ['DevOps', 'DevOps'],
+  ['Trello', 'Trello'],
+  ['Prompt', 'Prompting'],
+  ['Leads', 'Leads'],
+  ['Export', 'Eksport'],
+  ['PDF', 'PDF'],
+  ['Screenshots', 'Screenshots'],
+  ['Portfolio', 'Portfolio'],
+  ['MCP', 'MCP'],
+  ['Kurser', 'Kurser'],
+  ['DevTools', 'DevTools'],
+  ['Next.js', 'Next.js'],
+  ['React', 'React'],
+  ['Flask', 'Flask'],
+  ['Express', 'Express'],
+  ['Fastify', 'Fastify'],
+  ['Prisma', 'Prisma'],
+  ['Supabase', 'Supabase'],
 ]);
 
 const FEATURE_DA = new Map([
+  ['Source Management', 'kildestyring med region, kategori, frekvens og status'],
+  ['Discovery engine', 'discovery-motor til offentlige kilder, parsering, deduplikering og scoring'],
+  ['Community import', 'manuel community-import med AI-udtræk og menneskelig bekræftelse'],
+  ['Lead scoring', 'forklarlig lead-scoring med justerbare vægte'],
+  ['Watchlists & lists', 'watchlists, lister, tags, gemte søgninger og reminders'],
+  ['Opportunity detail', 'detaljeside for muligheder med krav, kontaktdata, noter og aktivitet'],
+  ['Search & filtering', 'søgning og filtrering på budget, frister, status, kilde og score'],
+  ['AI suite', 'AI-assistance til resume, klassificering, matchforklaring og udkast'],
+  ['Exporting', 'eksport til CSV, XLSX, PDF, Markdown og Notion-klare formater'],
+  ['Alerts', 'reminders, digest-notifikationer og high-match alerts'],
+  ['Deploy', 'deploy-flow fra GitHub-repo til build, logs og runtime'],
+  ['Git', 'GitHub-integration med webhooks, polling, rollback og redeploy'],
+  ['Routing', 'host-baseret reverse proxy, SSL og tunnel-understøttelse'],
+  ['Runtime', 'proces- og Docker-services med auto-restart og healthchecks'],
+  ['Observability', 'live logs, metrics, health score og notifikationer'],
+  ['Databases', 'lokale database-containere, connection strings, backups og restore'],
+  ['Projects', 'projekter med miljøvariabler, tags og start/stop/deploy-handlinger'],
+  ['Security', 'krypterede secrets, sessions, rate limiting og audit log'],
+  ['UX', 'dashboard-UX med tema, sidebar, modals, toasts og responsivt layout'],
   ['Product Catalog', 'produktkatalog med kategorier, søgning og filtrering'],
   ['Product Details', 'produktsider med billeder og tilgængelighedstjek'],
   ['Availability Calendar', 'visuel kalender til ledighed og bookingperioder'],
@@ -243,6 +282,12 @@ const FEATURE_DA = new Map([
   ['Calendar Integration', 'kalendersynkronisering til Outlook eller Google Calendar'],
   ['Settings', 'indstillinger for levering, moms og CMS-indhold'],
   ['User Management', 'bruger- og rolleadministration'],
+  ['report.md', 'Markdown-rapport med koncept, vision, stack og nøglemoduler'],
+  ['deck.html', 'selvstændig HTML-præsentation bygget fra rapport og assets'],
+  ['deck.pdf', 'printklar PDF-rendering af præsentationen'],
+  ['GitHub URL', 'input-flow hvor et GitHub-repo bliver analyseret'],
+  ['Screenshots', 'automatiske screenshots som del af dokumentationen'],
+  ['Video walkthrough', 'kort browser-video af projektflowet'],
 ]);
 
 function translateTag(tag) {
@@ -277,11 +322,18 @@ async function resolveTarget(target, outputDir) {
 
 async function listRepoFiles(repoDir) {
   const git = await runCommand('git', ['ls-files'], { cwd: repoDir, allowFailure: true });
+  const clean = files => files.map(line => line.trim()).filter(Boolean).filter(file => !isIgnoredRepoFile(file));
   if (git.code === 0 && git.stdout.trim()) {
-    return git.stdout.split('\n').map(line => line.trim()).filter(Boolean);
+    return clean(git.stdout.split('\n'));
   }
   const find = await runCommand('find', ['.', '-type', 'f'], { cwd: repoDir, allowFailure: true });
-  return find.stdout.split('\n').map(line => line.replace(/^\.\//, '').trim()).filter(Boolean);
+  return clean(find.stdout.split('\n').map(line => line.replace(/^\.\//, '')));
+}
+
+function isIgnoredRepoFile(file) {
+  return /(^|\/)(node_modules|\.next|dist|build|coverage|\.git|__pycache__|venv|\.venv|vendor)\//.test(file)
+    || /(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?)$/.test(file)
+    || /\.(png|jpe?g|gif|webp|ico|mp4|webm|mov|pdf|zip)$/i.test(file);
 }
 
 async function readIfPresent(repoDir, relativePath) {
@@ -344,6 +396,18 @@ function extractBullets(text, max = 12) {
   return bullets;
 }
 
+function extractTableRows(text, max = 12) {
+  const rows = [];
+  for (const line of String(text).split(/\r?\n/)) {
+    if (!line.trim().startsWith('|') || /^ *\|? *-+/.test(line)) continue;
+    const cells = line.split('|').map(cell => cell.replace(/[*_`]/g, '').trim()).filter(Boolean);
+    if (cells.length >= 2 && !/^module|area|var|field$/i.test(cells[0]) && rows.length < max) {
+      rows.push(`${cells[0]}: ${cells.slice(1).join(' ')}`);
+    }
+  }
+  return rows;
+}
+
 function extractLiveUrl(text, target) {
   const { owner, repo } = repoParts(target);
   const repoNeedle = String(repo || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -351,11 +415,20 @@ function extractLiveUrl(text, target) {
     .map(match => match[0].replace(/[`.,;)\]]+$/, ''));
   const filtered = urls.filter(url => {
     const lower = url.toLowerCase();
-    return !lower.includes('github.com')
+    return validPublicUrl(url)
+      && !lower.includes('github.com')
       && !lower.includes('stripe.com')
+      && !lower.includes('api.openai.com')
+      && !lower.includes('trello.com/app-key')
       && !lower.includes('yourdomain.')
+      && !lower.includes('your-host')
+      && !lower.includes('your_token')
       && !lower.includes('example.')
       && !lower.includes('/stripe/webhook')
+      && !lower.includes('/.well-known/acme-challenge')
+      && !url.includes('${')
+      && !url.includes('<')
+      && !url.includes('>')
       && !lower.includes('pythonanywhere.com/user')
       && !lower.includes('localhost')
       && !lower.includes('127.0.0.1');
@@ -366,18 +439,100 @@ function extractLiveUrl(text, target) {
   return owner && repo ? `https://github.com/${owner}/${repo}` : null;
 }
 
-function detectTechStack(files, docs, requirements, packageJson) {
+async function fetchRepoMetadata(target) {
+  const { owner, repo } = repoParts(target);
+  if (!owner || !repo) return null;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+      headers: { 'User-Agent': 'mast3kmedia-repo-case' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      owner,
+      repo,
+      description: data.description || '',
+      homepage: data.homepage || '',
+      language: data.language || '',
+      htmlUrl: data.html_url || `https://github.com/${owner}/${repo}`,
+      topics: data.topics || [],
+      pushedAt: data.pushed_at || '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+function validPublicUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    return ['http:', 'https:'].includes(url.protocol)
+      && Boolean(url.hostname)
+      && !/localhost|127\.0\.0\.1|example\.|yourdomain\.|your-host|your_token|api\.openai\.com|trello\.com\/app-key|\.well-known\/acme-challenge|<|>|\$\{|`/i.test(String(value));
+  } catch {
+    return false;
+  }
+}
+
+function displayPackageName(name) {
+  const map = new Map([
+    ['next', 'Next.js'],
+    ['react', 'React'],
+    ['react-dom', 'React'],
+    ['vite', 'Vite'],
+    ['typescript', 'TypeScript'],
+    ['tailwindcss', 'Tailwind CSS'],
+    ['@tailwindcss/vite', 'Tailwind CSS'],
+    ['@prisma/client', 'Prisma'],
+    ['prisma', 'Prisma'],
+    ['pg', 'PostgreSQL'],
+    ['postgres', 'PostgreSQL'],
+    ['sqlite', 'SQLite'],
+    ['sqlite3', 'SQLite'],
+    ['better-sqlite3', 'SQLite'],
+    ['express', 'Express'],
+    ['fastify', 'Fastify'],
+    ['bullmq', 'BullMQ'],
+    ['redis', 'Redis'],
+    ['ioredis', 'Redis'],
+    ['playwright', 'Playwright'],
+    ['@playwright/test', 'Playwright'],
+    ['zod', 'Zod'],
+    ['@anthropic-ai/sdk', 'Anthropic SDK'],
+    ['openai', 'OpenAI API'],
+    ['ai', 'Vercel AI SDK'],
+    ['@ai-sdk/openai', 'Vercel AI SDK'],
+    ['@ai-sdk/anthropic', 'Vercel AI SDK'],
+    ['@supabase/supabase-js', 'Supabase'],
+    ['stripe', 'Stripe'],
+    ['exceljs', 'ExcelJS'],
+    ['pdf-lib', 'pdf-lib'],
+    ['@react-pdf/renderer', 'PDF rendering'],
+    ['lucide-react', 'Lucide React'],
+    ['framer-motion', 'Framer Motion'],
+    ['reveal.js', 'Reveal.js'],
+    ['@modelcontextprotocol/sdk', 'MCP SDK'],
+  ]);
+  return map.get(name) || null;
+}
+
+function detectTechStack(files, docs, requirements, packageJsonTexts, metadata) {
   const stack = new Set();
   const addIf = (needle, label) => {
     if (docs.toLowerCase().includes(needle.toLowerCase())) stack.add(label);
   };
 
+  if (metadata?.language) stack.add(metadata.language);
   if (files.some(file => file.endsWith('.py'))) stack.add('Python');
+  if (files.some(file => /\.(ts|tsx)$/i.test(file))) stack.add('TypeScript');
+  if (files.some(file => /\.(js|jsx|mjs)$/i.test(file))) stack.add('JavaScript');
   if (requirements.includes('Flask')) stack.add('Flask');
+  if (requirements.includes('Django')) stack.add('Django');
+  if (requirements.includes('FastAPI')) stack.add('FastAPI');
   if (requirements.includes('SQLAlchemy') || docs.includes('SQLAlchemy')) stack.add('SQLAlchemy');
   if (requirements.includes('stripe') || docs.toLowerCase().includes('stripe')) stack.add('Stripe');
   if (requirements.includes('Flask-Mail') || docs.includes('SMTP')) stack.add('Flask-Mail');
-  if (requirements.includes('reportlab') || docs.includes('PDF')) stack.add('ReportLab');
+  if (requirements.toLowerCase().includes('reportlab') || docs.includes('ReportLab')) stack.add('ReportLab');
   if (requirements.includes('pytest')) stack.add('pytest');
   if (docs.includes('MySQL')) stack.add('MySQL');
   if (docs.includes('SQLite')) stack.add('SQLite');
@@ -389,12 +544,20 @@ function detectTechStack(files, docs, requirements, packageJson) {
   addIf('Brevo', 'Brevo SMTP');
   addIf('Outlook', 'ICS Calendar');
   addIf('Google Calendar', 'ICS Calendar');
+  addIf('Cloudflare Tunnel', 'Cloudflare Tunnel');
+  addIf('GitHub webhooks', 'GitHub Webhooks');
+  addIf('Trello REST', 'Trello API');
+  addIf('Trello cards', 'Trello API');
+  addIf('MCP', 'MCP');
 
-  if (packageJson) {
+  for (const packageJson of packageJsonTexts) {
     try {
       const pkg = JSON.parse(packageJson);
       for (const deps of [pkg.dependencies, pkg.devDependencies]) {
-        for (const name of Object.keys(deps || {})) stack.add(name);
+        for (const name of Object.keys(deps || {})) {
+          const label = displayPackageName(name);
+          if (label) stack.add(label);
+        }
       }
     } catch {
       // Ignore malformed package.json.
@@ -406,10 +569,11 @@ function detectTechStack(files, docs, requirements, packageJson) {
 
 function detectCategory(docs, stack) {
   const lower = docs.toLowerCase();
-  if (lower.includes('stripe') || lower.includes('checkout') || lower.includes('cart') || lower.includes('webshop')) return 'E-commerce';
-  if (lower.includes('dashboard') || lower.includes('admin') || lower.includes('customer portal')) return 'SaaS';
+  if (lower.includes('self-hosted deploy') || lower.includes('hosting control plane') || lower.includes('reverse proxy')) return 'DevTools';
+  if (lower.includes('course marketplace') || lower.includes('kursus-webshop') || lower.includes('stripe') || lower.includes('checkout') || lower.includes('cart') || lower.includes('webshop')) return 'E-commerce';
+  if (lower.includes('lead-intelligence') || lower.includes('dashboard') || lower.includes('admin') || lower.includes('customer portal')) return 'SaaS';
   if (lower.includes('ai') || lower.includes('llm')) return 'AI';
-  if (stack.includes('React') || stack.includes('Vue') || stack.includes('Flask')) return 'Web';
+  if (stack.includes('React') || stack.includes('Next.js') || stack.includes('Vite') || stack.includes('Flask')) return 'Web';
   return 'Software';
 }
 
@@ -423,8 +587,198 @@ function detectTags(docs, stack, category) {
   if (lower.includes('calendar')) tags.add('Calendar');
   if (lower.includes('delivery')) tags.add('Delivery');
   if (lower.includes('email') || lower.includes('newsletter')) tags.add('Email');
-  for (const tech of stack.slice(0, 3)) tags.add(tech);
+  if (lower.includes('ai') || lower.includes('claude') || lower.includes('openai')) tags.add('AI');
+  if (lower.includes('dashboard')) tags.add('Dashboard');
+  if (lower.includes('deploy') || lower.includes('hosting') || lower.includes('reverse proxy')) tags.add('DevOps');
+  if (lower.includes('trello')) tags.add('Trello');
+  if (lower.includes('prompt')) tags.add('Prompt');
+  if (lower.includes('lead') || lower.includes('opportunit')) tags.add('Leads');
+  if (lower.includes('export')) tags.add('Export');
+  if (lower.includes('pdf')) tags.add('PDF');
+  if (lower.includes('screenshots') || lower.includes('screenshot')) tags.add('Screenshots');
+  if (lower.includes('portfolio')) tags.add('Portfolio');
+  if (lower.includes('mcp')) tags.add('MCP');
+  if (lower.includes('course') || lower.includes('kursus')) tags.add('Kurser');
+  for (const tech of stack.filter(item => ['Next.js', 'React', 'Flask', 'Express', 'Fastify', 'Prisma', 'Supabase'].includes(item)).slice(0, 3)) tags.add(tech);
   return [...tags].slice(0, 8).map(translateTag);
+}
+
+function classifyDomain(docs, title) {
+  const lower = `${title}\n${docs}`.toLowerCase();
+  if (lower.includes('github url') && lower.includes('report.md') && (lower.includes('deck.pdf') || lower.includes('screenshots'))) return 'repo-documentation';
+  if (lower.includes('lead-intelligence') || lower.includes('funded startup work') || lower.includes('opportunity detail')) return 'lead-intelligence';
+  if (lower.includes('self-hosted deploy') || lower.includes('hosting control plane') || lower.includes('reverse proxy')) return 'hosting-control-plane';
+  if (lower.includes('trello cards') || lower.includes('delegation prompts')) return 'trello-prompts';
+  if ((lower.includes('futurematch') || lower.includes('course marketplace')) && (lower.includes('course') || lower.includes('kursus'))) return 'course-marketplace';
+  if (lower.includes('mast3kmedia') && (lower.includes('portfolio') || lower.includes('admin ui') || lower.includes('mcp'))) return 'portfolio-cms';
+  if (lower.includes('robotklipper') || lower.includes('garden') || lower.includes('have') || lower.includes('webshop')) return 'garden-commerce';
+  if (lower.includes('hr') && (lower.includes('course_orders') || lower.includes('learning') || lower.includes('employee'))) return 'hr-learning';
+  if (lower.includes('rental') || lower.includes('udlejning')) return 'rental';
+  return 'generic';
+}
+
+function categoryForDomain(domain, fallback) {
+  const overrides = {
+    'repo-documentation': 'AI',
+    'lead-intelligence': 'SaaS',
+    'hosting-control-plane': 'DevTools',
+    'trello-prompts': 'AI',
+    'course-marketplace': 'E-commerce',
+    'portfolio-cms': 'Web',
+    'garden-commerce': 'E-commerce',
+    'hr-learning': 'SaaS',
+    rental: 'E-commerce',
+  };
+  return overrides[domain] || fallback;
+}
+
+function fallbackFeatureDaForDomain(domain) {
+  const map = {
+    'repo-documentation': [
+      'repo-analyse fra GitHub URL',
+      'Markdown-rapport med teknisk og produktmæssig opsummering',
+      'HTML-præsentation og PDF-export',
+      'Playwright-capture med screenshots og kort video',
+    ],
+    'lead-intelligence': [
+      'kildestyring for offentlige muligheder',
+      'discovery, deduplikering og scoring',
+      'watchlists, lister, tags og reminders',
+      'AI-assistance og eksport til arbejdsformater',
+    ],
+    'hosting-control-plane': [
+      'GitHub-deploy med build logs',
+      'reverse proxy, SSL og tunnel-understøttelse',
+      'proces- og Docker-runtime med healthchecks',
+      'databaser, secrets, backups og audit log',
+    ],
+    'trello-prompts': [
+      'Trello board-analyse på tværs af lister og labels',
+      'AI-vurdering af actionable cards',
+      'manuelle overrides gemt pr. board',
+      'prompt-generering pr. kort eller pr. liste',
+    ],
+    'course-marketplace': [
+      'kursussider med udbytte, pris og sessioner',
+      'dato- og lokationsvalg for kursusbooking',
+      'bookingflow til tilmelding og forespørgsler',
+      'adminstyring af kurser, kategorier, sessioner og bookinger',
+    ],
+    'portfolio-cms': [
+      'public company-site med ydelser og cases',
+      'projekt-API med publicering, featured-status og sortering',
+      'admin UI til casefelter, metrics og medier',
+      'MCP-værktøjer til at styre portfolioindhold',
+    ],
+    'garden-commerce': [
+      'havemåling og zoneværktøjer',
+      'webshop, kurv og checkout',
+      'AI-assistance til plantepleje og anbefalinger',
+      'adminområder for produkter, ordrer og indhold',
+    ],
+    'hr-learning': [
+      'kursusordrer og approval-flow',
+      'HR-dashboard og company analytics',
+      'GDPR, SSO og enterprise-konfiguration',
+      'AI-rådgiver og rapportering',
+    ],
+    rental: [
+      'produktkatalog og datobaseret booking',
+      'kurv, checkout og betaling',
+      'kundeportal og bookinghistorik',
+      'adminstyring af produkter, kunder og status',
+    ],
+  };
+  return map[domain] || [];
+}
+
+function narrativeForDomain(domain, title, category, stack, featuresDa, adminDa, integrationNames, testCount) {
+  const stackDa = stack.slice(0, 6).join(', ') || 'projektets eksisterende stack';
+  const featureText = daList(featuresDa.slice(0, 5), 'de centrale brugerflows');
+  const adminText = daList(adminDa.slice(0, 4), 'admin- og backofficefunktioner');
+  const integrations = daList(integrationNames, 'de dokumenterede integrationer');
+  const tests = testCount ? ` Der er ${testCount} testfiler i repoet for dele af forretningslogikken.` : '';
+
+  const narratives = {
+    'repo-documentation': {
+      description: `${title} er et værktøj, der omsætter et GitHub-repo til rapport, præsentation, PDF og browser-evidence med screenshots og video.`,
+      longIntro: `${title} automatiserer den tunge del af teknisk projektdokumentation: et repo analyseres, køres igennem en pipeline og bliver til konkrete artefakter, der kan deles eller afleveres.`,
+      challenge: 'Repo-dokumentation bliver hurtigt manuel, ujævn og svær at stole på, især når der både skal beskrives arkitektur, brugeroplevelse og faktisk browser-evidence.',
+      approachLead: `Løsningen er bygget som en pipeline omkring ${stackDa}, hvor web-UI, worker, kø, capture-lag og render-lag er skilt ad.`,
+    },
+    'lead-intelligence': {
+      description: `${title} er en lead-intelligence platform til at finde, vurdere, gemme og eksportere finansierede muligheder og relevante offentlige kilder.`,
+      longIntro: `${title} samler discovery, scoring, lister, AI-assistance og eksport i et arbejdsflow for en bruger, der løbende vurderer nye muligheder og frister.`,
+      challenge: 'Relevante leads ligger spredt på offentlige sider, feeds, portaler og manuelle community-kilder. Uden scoring, deduplikering og struktur bliver hver vurdering tidskrævende og svær at gentage.',
+      approachLead: `Løsningen er bygget med ${stackDa} og organiserer kilder, ingestion, scoring, AI-lag, eksport og dashboard som separate moduler.`,
+    },
+    'hosting-control-plane': {
+      description: `${title} er en self-hosted deploy- og hostingplatform til egne maskiner med dashboard, GitHub-deploys, logs, routing og driftsoverblik.`,
+      longIntro: `${title} giver en lokal maskine eller server et PaaS-lignende kontrolpanel, hvor projekter kan deployes, overvåges og routes uden at flytte driften til en ekstern hostingplatform.`,
+      challenge: 'Egen hosting kræver normalt mange spredte beslutninger om Git, builds, processer, reverse proxy, SSL, logs, secrets og databaser. Projektet samler de dele i et operatørflow.',
+      approachLead: `Løsningen er bygget med ${stackDa} og deler dashboard, API, runtime, routing, secrets, logs og databasefunktioner op i tydelige moduler.`,
+    },
+    'trello-prompts': {
+      description: `${title} er en workflow-app, der omsætter Trello-kort til rene delegation prompts til agentiske coding tools.`,
+      longIntro: `${title} hjælper med at gøre Trello-arbejde klar til AI-agentværktøjer ved at analysere board-struktur, finde actionable cards og generere prompts, der kan kopieres direkte videre.`,
+      challenge: 'Trello-boards bruger forskellige lister, labels og arbejdsgange. Uden en oversættelse til klare prompts bliver delegation til coding agents manuel og let inkonsistent.',
+      approachLead: `Løsningen er bygget med ${stackDa} og holder Trello-adgang, AI-providerlag, struktureret output, lokale overrides og UI adskilt.`,
+    },
+    'course-marketplace': {
+      description: `${title} er en dansk kursus-webshop med kursussider, datoer/lokationer, bookingflow, admin og backend til kurser, sessioner og forespørgsler.`,
+      longIntro: `${title} omsætter kursussalg til en digital købsoplevelse, hvor indhold, udbytte, datoer, lokationer, pladser og booking skal præsenteres anderledes end fysiske produkter.`,
+      challenge: 'Et kursus er ikke en almindelig vare. Brugeren skal forstå udbytte, underviser, lokation, dato, pris og tilmelding, mens administratorer skal kunne håndtere katalog, sessioner og bookinger.',
+      approachLead: `Løsningen kombinerer frontend-prototyper, admin UI og en backend omkring ${stackDa}, så kursuskatalog og bookingdata kan hænge sammen.`,
+    },
+    'portfolio-cms': {
+      description: `${title} er et portfolio- og company-site med admin UI, projekt-API og MCP-understøttelse til at publicere cases og styre indhold.`,
+      longIntro: `${title} samler brandsite, cases, admin, SQLite-backed API og MCP-workflow i en publicerbar platform til et digitalt bureau.`,
+      challenge: 'Et professionelt bureau-site skal både sælge ydelser, vise cases og kunne opdateres hurtigt uden at miste kontrol over felter, publicering og kvalitet.',
+      approachLead: `Løsningen er bygget med ${stackDa} og forbinder statiske frontend-sider, Express API, SQLite, admin UI og MCP-værktøjer.`,
+    },
+    'garden-commerce': {
+      description: `${title} er en have- og webshopplatform med værktøjer til havemåling, robotklippervalg, plantepleje og ordreflow.`,
+      longIntro: `${title} kombinerer e-commerce med interaktive haveværktøjer, så brugeren kan gå fra opmåling og anbefaling til produkter, kurv og checkout.`,
+      challenge: 'Haveprodukter og robotklippere kræver mere kontekst end almindelige webshopvarer: areal, zoner, billeder, anbefalinger, pleje og valg skal hænge sammen.',
+      approachLead: `Løsningen er bygget med ${stackDa} og samler produktflows, haveværktøjer, AI-assistance, checkout og admin i én frontend-kodebase.`,
+    },
+    'hr-learning': {
+      description: `${title} er en HR- og læringsplatform med kursusordrer, AI-rådgiver, compliance, rapportering og enterprise-funktioner.`,
+      longIntro: `${title} dokumenterer en omfattende backend til læring, HR-drift, ordreflow, dashboards, GDPR, notifikationer og AI-understøttet rådgivning.`,
+      challenge: 'HR- og læringsflows kræver tenant-sikkerhed, roller, approvals, rapportering, kursusdata og compliance uden at blokere den daglige drift.',
+      approachLead: `Løsningen er bygget med ${stackDa} og organiserer services for ordrer, dashboards, compliance, rapportering, AI og enterprise-konfiguration.`,
+    },
+    rental: {
+      description: `${title} er en webplatform til udlejning med katalog, datobaseret booking, betaling, kundeportal og adminstyring.`,
+      longIntro: `${title} samler en serviceforretning med udlejning, lager, datoer og betaling i et digitalt flow. Kunden kan gå fra produktvalg til booking, mens virksomheden får styr på drift, tilgængelighed og kommunikation.`,
+      challenge: 'En udlejningsforretning skal koordinere produkter, datoer, lager, levering, depositum, betaling og kundekommunikation på samme tid.',
+      approachLead: `Løsningen er bygget med ${stackDa} og opdeler public site, transaktionelle flows, kundeområde og admin i separate moduler.`,
+    },
+    generic: {
+      description: `${title} er et ${category.toLowerCase()}-projekt bygget med ${stack.slice(0, 4).join(', ') || 'en specialbygget webstack'}.`,
+      longIntro: `${title} omsætter et konkret produktbehov til en webbaseret løsning med tydelige brugerflows og vedligeholdbar kode.`,
+      challenge: 'Projektet skulle samle produktidé, brugerflow, datahåndtering og drift i en løsning, der kan forstås, vedligeholdes og videreudvikles.',
+      approachLead: `Løsningen er bygget med ${stack.slice(0, 8).join(', ') || 'en pragmatisk applikationsstack'} og organiseret omkring de dokumenterede brugerflows.`,
+    },
+  };
+
+  const chosen = narratives[domain] || narratives.generic;
+  const longDescription = [
+    chosen.longIntro,
+    `Repoet dokumenterer en løsning omkring ${stackDa}. Nøgleflows omfatter ${featureText}. På driftssiden dokumenterer repoet ${adminText}.`,
+  ].join('\n\n');
+  const approach = [
+    chosen.approachLead,
+    integrationNames.length ? `Dokumenterede integrationer eller centrale tekniske komponenter inkluderer ${integrations}.` : 'Kodebasen er organiseret omkring applikationsmoduler, services og dokumentation.',
+    tests.trim() || 'Repoet indeholder dokumentation til opsætning, drift eller videreudvikling.',
+  ].join(' ');
+
+  return {
+    description: chosen.description,
+    longDescription,
+    challenge: chosen.challenge,
+    approach,
+  };
 }
 
 async function analyzeRepo(repoDir, target, options) {
@@ -433,67 +787,77 @@ async function analyzeRepo(repoDir, target, options) {
     const remote = await runCommand('git', ['remote', 'get-url', 'origin'], { cwd: repoDir, allowFailure: true });
     if (remote.code === 0 && remote.stdout.trim()) parts = repoParts(remote.stdout.trim());
   }
+  const repoTarget = parts.owner && parts.repo ? `https://github.com/${parts.owner}/${parts.repo}` : target;
+  const metadata = await fetchRepoMetadata(repoTarget);
   const files = await listRepoFiles(repoDir);
   const readme = await readIfPresent(repoDir, 'README.md');
-  const explainerCandidates = files.filter(file => /explainer|project_status|status|deployment/i.test(file) && /\.(md|txt)$/i.test(file)).slice(0, 5);
+  const docCandidates = files.filter(file => /\.(md|txt)$/i.test(file)
+    && !/^chats\//i.test(file)
+    && (
+      /^README/i.test(file)
+      || /^docs\//i.test(file)
+      || /explainer|project_status|status|deployment|plan|architecture|compliance|roadmap|guide|whitelabel|value|audit|readiness/i.test(file)
+    )).slice(0, 10);
+  const explainerCandidates = docCandidates.filter(file => file !== 'README.md');
   const extraDocs = [];
-  for (const file of explainerCandidates) extraDocs.push(await readIfPresent(repoDir, file));
-  const docs = [readme, ...extraDocs].filter(Boolean).join('\n\n');
+  for (const file of explainerCandidates) extraDocs.push((await readIfPresent(repoDir, file)).slice(0, 24000));
+  const metadataDoc = metadata ? [
+    metadata.description ? `Repository description: ${metadata.description}` : '',
+    metadata.homepage ? `Repository homepage: ${metadata.homepage}` : '',
+    metadata.topics?.length ? `Repository topics: ${metadata.topics.join(', ')}` : '',
+  ].filter(Boolean).join('\n') : '';
+  const docs = [metadataDoc, readme.slice(0, 30000), ...extraDocs].filter(Boolean).join('\n\n');
   const requirements = await readIfPresent(repoDir, 'requirements.txt');
-  const packageJson = await readIfPresent(repoDir, 'package.json');
-  const stack = detectTechStack(files, docs, requirements, packageJson);
-  const category = detectCategory(docs, stack);
-  const tags = detectTags(docs, stack, category);
+  const packageFiles = files.filter(file => /(^|\/)package\.json$/i.test(file)).slice(0, 16);
+  const packageJsonTexts = [];
+  for (const file of packageFiles) packageJsonTexts.push(await readIfPresent(repoDir, file));
+  const stack = detectTechStack(files, docs, requirements, packageJsonTexts, metadata);
   const title = titleFromRepoName(parts.repo || path.basename(repoDir));
+  const domain = classifyDomain(docs, title);
+  const category = categoryForDomain(domain, detectCategory(docs, stack));
+  const tags = detectTags(docs, stack, category);
   const slug = slugify(title);
-  const liveUrl = extractLiveUrl(docs, target);
-  const repoUrl = parts.owner && parts.repo ? `https://github.com/${parts.owner}/${parts.repo}` : (isRepoUrl(target) ? target : null);
-  const features = extractBullets(`${extractSection(docs, 'Features')}\n${extractSection(docs, 'Key Features')}\n${extractSection(docs, 'Completed Features')}`, 10);
+  const repoUrl = metadata?.htmlUrl || (parts.owner && parts.repo ? `https://github.com/${parts.owner}/${parts.repo}` : (isRepoUrl(target) ? target : null));
+  const extractedUrl = extractLiveUrl(docs, target);
+  const liveUrl = validPublicUrl(metadata?.homepage) ? metadata.homepage : (validPublicUrl(extractedUrl) && !/github\.com/i.test(extractedUrl) ? extractedUrl : null);
+  const featuresSource = `${extractSection(docs, 'What it does')}\n${extractSection(docs, 'What It Covers')}\n${extractSection(docs, 'Features')}\n${extractSection(docs, 'Key Features')}\n${extractSection(docs, 'Completed Features')}`;
+  const features = [
+    ...extractTableRows(featuresSource, 10),
+    ...extractBullets(featuresSource, 10),
+  ].slice(0, 12);
   const publicFeatures = extractBullets(`${extractSection(docs, 'Public Features')}\n${extractSection(docs, 'Customer-Facing Features')}`, 6);
-  const adminFeatures = extractBullets(`${extractSection(docs, 'Admin Features')}\n${extractSection(docs, 'Admin Management System')}`, 6);
+  const adminFeatures = [
+    ...extractTableRows(`${extractSection(docs, 'Admin Features')}\n${extractSection(docs, 'Admin Management System')}`, 6),
+    ...extractBullets(`${extractSection(docs, 'Admin Features')}\n${extractSection(docs, 'Admin Management System')}`, 6),
+  ].slice(0, 6);
   const latestCommit = await runCommand('git', ['log', '-1', '--format=%cd', '--date=format:%Y'], { cwd: repoDir, allowFailure: true });
   const year = Number(latestCommit.stdout.trim()) || new Date().getFullYear();
   const routeCount = files.filter(file => /blueprints|routes|pages|app\/.*\.py|src\/.*\.(tsx|jsx|vue|svelte)$/i.test(file)).length;
   const templateCount = files.filter(file => /templates\/.*\.(html|jinja|jinja2)$/i.test(file)).length;
   const testCount = files.filter(file => /^tests\/|\.test\.|\.spec\./i.test(file)).length;
-  const integrationCount = ['Stripe', 'Flask-Mail', 'Brevo SMTP', 'ICS Calendar', 'DAWA', 'ReportLab']
-    .filter(name => stack.includes(name)).length;
+  const integrationNames = ['Stripe', 'Flask-Mail', 'Brevo SMTP', 'ICS Calendar', 'DAWA', 'ReportLab', 'GitHub Webhooks', 'Cloudflare Tunnel', 'Trello API', 'Anthropic SDK', 'OpenAI API', 'Vercel AI SDK', 'Supabase', 'Redis', 'Playwright', 'MCP', 'MCP SDK']
+    .filter(name => stack.includes(name));
+  const integrationCount = integrationNames.length;
 
-  const publicDa = publicFeatures.slice(0, 4).map(translateFeature);
+  const extractedFeatureDa = (features.length ? features : publicFeatures).slice(0, 6).map(translateFeature);
+  const fallbackFeatureDa = fallbackFeatureDaForDomain(domain);
+  const preferFallback = ['repo-documentation', 'trello-prompts', 'course-marketplace', 'portfolio-cms', 'garden-commerce', 'hr-learning'].includes(domain);
+  const featureDa = (preferFallback && fallbackFeatureDa.length) || !extractedFeatureDa.length
+    ? fallbackFeatureDa
+    : extractedFeatureDa;
   const adminDa = adminFeatures.slice(0, 4).map(translateFeature);
-  const stackDa = stack.slice(0, 6).join(', ') || 'projektets eksisterende stack';
-  const repoSaysProduction = /production deployment|successfully deployed|live at|produktion|deployed to/i.test(docs);
+  const repoSaysProduction = Boolean(liveUrl) && /production deployment|successfully deployed|live at|produktion|deployed to|domain configuration|live/i.test(docs);
   const repoSaysRental = /rental|udlejning/i.test(docs);
   const repoSaysPayment = /stripe|payment|checkout|betaling/i.test(docs);
-
-  const description = repoSaysRental
-    ? `${title} er en webplatform til udlejning af eventudstyr med katalog, datobaseret booking, betaling, kundeportal og adminstyring.`
-    : `${title} er et ${category.toLowerCase()}-projekt bygget med ${stack.slice(0, 4).join(', ') || 'en specialbygget webstack'}.`;
-
-  const longDescription = [
-    repoSaysRental
-      ? `${title} samler en serviceforretning med udlejning, lager, datoer og betaling i et digitalt flow. Kunden kan gå fra produktvalg til booking, mens virksomheden får styr på drift, tilgængelighed og kommunikation.`
-      : `${title} omsætter et konkret produktbehov til en webbaseret løsning med tydelige brugerflows og vedligeholdbar kode.`,
-    `Repoet dokumenterer en full-stack løsning omkring ${stackDa}. Kundevendte flows omfatter ${daList(publicDa, 'de centrale brugerflows')}. På driftssiden dokumenterer repoet ${daList(adminDa, 'admin- og backofficefunktioner')}.`,
-  ].join('\n\n');
-
-  const challenge = repoSaysRental
-    ? 'En udlejningsforretning skal koordinere produkter, datoer, lager, levering, depositum, betaling og kundekommunikation på samme tid. Hvis de dele ligger spredt, bliver hver booking tung at håndtere og svær at stole på.'
-    : 'Projektet skulle samle produktidé, brugerflow, datahåndtering og drift i en løsning, der kan forstås, vedligeholdes og videreudvikles.';
-
-  const approach = [
-    `Løsningen er bygget med ${stack.slice(0, 8).join(', ') || 'en pragmatisk applikationsstack'} og opdeler public site, transaktionelle flows, kundeområde og admin i separate moduler.`,
-    integrationCount
-      ? `Dokumenterede integrationer i repoet inkluderer ${stack.filter(item => ['Stripe', 'Flask-Mail', 'Brevo SMTP', 'ICS Calendar', 'DAWA', 'ReportLab'].includes(item)).join(', ')}.`
-      : 'Kodebasen er organiseret omkring applikationsmoduler, templates, services og dokumentation.',
-    testCount ? `Der er ${testCount} testfiler i repoet for dele af forretningslogikken.` : 'Repoet indeholder dokumentation til opsætning, drift eller deployment.',
-  ].join(' ');
+  const narrative = narrativeForDomain(domain, title, category, stack, featureDa, adminDa, integrationNames, testCount);
 
   const metrics = [];
   if (repoSaysProduction) metrics.push({ value: 'Live', label: 'produktion dokumenteret i repoet' });
-  if (integrationCount) metrics.push({ value: String(integrationCount), label: 'dokumenterede integrationer' });
+  if (integrationCount) metrics.push({ value: String(integrationCount), label: 'dokumenterede tekniske integrationer' });
   if (testCount) metrics.push({ value: String(testCount), label: 'testfiler i repoet' });
   if (templateCount) metrics.push({ value: String(templateCount), label: 'UI-templates kortlagt' });
+  else if (routeCount) metrics.push({ value: String(routeCount), label: 'appmoduler kortlagt' });
+  if (metrics.length < 4 && packageFiles.length) metrics.push({ value: String(packageFiles.length), label: 'package manifests kortlagt' });
   if (!metrics.length && routeCount) metrics.push({ value: String(routeCount), label: 'appmoduler kortlagt' });
 
   const thumbnailUrl = parts.owner && parts.repo
@@ -504,10 +868,10 @@ async function analyzeRepo(repoDir, target, options) {
     title,
     slug,
     category,
-    description,
-    long_description: longDescription,
-    challenge,
-    approach,
+    description: narrative.description,
+    long_description: narrative.longDescription,
+    challenge: narrative.challenge,
+    approach: narrative.approach,
     tags,
     tech_stack: stack,
     client: title,
@@ -525,8 +889,11 @@ async function analyzeRepo(repoDir, target, options) {
 
   return {
     parts,
+    metadata,
     files,
     docsUsed: ['README.md', ...explainerCandidates],
+    packageFiles,
+    domain,
     liveUrl,
     repoUrl,
     stack,
@@ -1024,9 +1391,14 @@ async function runDestinationEvidence(baseUrl, project, outputDir, checks, admin
     await page.locator('#appShell').waitFor({ state: 'visible', timeout: 10000 });
     await page.click('[data-view="projects"]');
     await page.locator('#projectSearch').fill(project.title);
-    await page.locator('#projectsTable').getByText(project.title).waitFor({ timeout: 10000 });
+    await page.waitForFunction(title => {
+      return [...document.querySelectorAll('#projectsTable tbody tr .td-title')]
+        .some(element => element.textContent.trim() === title);
+    }, project.title, { timeout: 10000 });
     artifacts.screenshots.push(await screenshot(page, screenshotsDir, `${prefix}-admin-projects`));
-    const row = page.locator('#projectsTable tbody tr').filter({ hasText: project.title }).first();
+    const row = page.locator('#projectsTable tbody tr').filter({
+      has: page.locator('.td-title').filter({ hasText: project.title }),
+    }).first();
     await row.locator('.edit-btn').click();
     await page.locator('#fieldTitle').waitFor({ timeout: 10000 });
     artifacts.screenshots.push(await screenshot(page, screenshotsDir, `${prefix}-admin-edit`));
