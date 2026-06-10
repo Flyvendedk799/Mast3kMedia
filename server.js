@@ -53,6 +53,7 @@ db.exec(`
     testimonial_role   TEXT,
     thumbnail_url      TEXT,
     case_url           TEXT,
+    media              TEXT    NOT NULL DEFAULT '[]',
     created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at         TEXT    NOT NULL DEFAULT (datetime('now'))
   );
@@ -62,6 +63,12 @@ db.exec(`
     UPDATE projects SET updated_at = datetime('now') WHERE id = NEW.id;
   END;
 `);
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN media TEXT NOT NULL DEFAULT '[]'").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const slugify = (s) =>
@@ -76,6 +83,7 @@ const fmt = (row) => ({
   tags:       safeJSON(row.tags,       []),
   tech_stack: safeJSON(row.tech_stack, []),
   metrics:    safeJSON(row.metrics,    []),
+  media:      safeJSON(row.media,      []),
   featured:   row.featured === 1,
 });
 
@@ -93,7 +101,7 @@ const requireAuth = (req, res, next) => {
 
 // ── App ───────────────────────────────────────────────────────────────────────
 const app = express();
-app.use(express.json({ limit: '4mb' }));
+app.use(express.json({ limit: '24mb' }));
 
 // Admin SPA — serve index.html for /admin and /admin/*
 app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin', 'index.html')));
@@ -174,8 +182,8 @@ app.post('/api/admin/projects', requireAuth, (req, res) => {
         (title,slug,category,description,long_description,challenge,approach,
          tags,tech_stack,client,year,status,featured,sort_order,
          metrics,testimonial_text,testimonial_author,testimonial_role,
-         thumbnail_url,case_url)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         thumbnail_url,case_url,media)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).run(
       b.title, slug,
       b.category || 'Software',
@@ -196,6 +204,7 @@ app.post('/api/admin/projects', requireAuth, (req, res) => {
       b.testimonial_role   || null,
       b.thumbnail_url      || null,
       b.case_url           || null,
+      JSON.stringify(Array.isArray(b.media) ? b.media : []),
     );
     res.status(201).json(
       fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(r.lastInsertRowid))
@@ -219,7 +228,7 @@ app.put('/api/admin/projects/:id', requireAuth, (req, res) => {
         challenge=?,approach=?,tags=?,tech_stack=?,client=?,year=?,
         status=?,featured=?,sort_order=?,metrics=?,
         testimonial_text=?,testimonial_author=?,testimonial_role=?,
-        thumbnail_url=?,case_url=?
+        thumbnail_url=?,case_url=?,media=?
       WHERE id=?
     `).run(
       b.title     ?? old.title,
@@ -242,6 +251,7 @@ app.put('/api/admin/projects/:id', requireAuth, (req, res) => {
       b.testimonial_role   !== undefined ? b.testimonial_role   : old.testimonial_role,
       b.thumbnail_url !== undefined ? b.thumbnail_url : old.thumbnail_url,
       b.case_url      !== undefined ? b.case_url      : old.case_url,
+      JSON.stringify(Array.isArray(b.media) ? b.media : safeJSON(old.media, [])),
       req.params.id,
     );
     res.json(fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(req.params.id)));

@@ -335,6 +335,72 @@
   if (!slug) return; // No slug → show static NordSync demo
 
   var ESC = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  var ATTR = function(s){ return ESC(s).replace(/"/g,'&quot;'); };
+  var isVideo = function(item){ return item && item.type === 'video'; };
+  var isImage = function(item){ return item && item.url && !isVideo(item); };
+  var mediaCaption = function(item, fb){ return ESC(item.caption || item.alt || fb || 'Produktvisning'); };
+  var imageMarkup = function(item, label) {
+    var alt = ATTR(item.alt || item.caption || label || 'Produktscreenshot');
+    return '<img class="case-media-img" src="' + ATTR(item.url) + '" alt="' + alt + '" loading="lazy" decoding="async">';
+  };
+  var applyMockImage = function(target, item, label) {
+    if (!target || !item) return;
+    target.classList.remove('ph');
+    target.innerHTML = imageMarkup(item, label) + '<span class="mock-label">' + mediaCaption(item, label) + '</span>';
+  };
+  var renderMedia = function(p) {
+    var media = Array.isArray(p.media) ? p.media.filter(function(item){ return item && item.url; }) : [];
+    if (!media.length && p.thumbnail_url) {
+      media = [{ type: 'image', url: p.thumbnail_url, caption: 'Projektvisning', alt: p.title }];
+    }
+    var images = media.filter(isImage);
+    var videos = media.filter(isVideo);
+    var first = images[0];
+
+    var hero = document.querySelector('.case-hero-media');
+    if (hero && first) {
+      hero.classList.remove('ph');
+      hero.innerHTML = imageMarkup(first, p.title) + '<div class="case-media-caption">' + mediaCaption(first, p.title) + '</div>';
+    }
+
+    var mockScreens = document.querySelectorAll('.mock-screen');
+    applyMockImage(mockScreens[0], first, 'Produkt');
+    applyMockImage(mockScreens[1], images[1] || first, 'Desktop');
+
+    var phoneScreen = document.querySelector('.phone-screen');
+    if (phoneScreen && (images[2] || first)) {
+      var phoneImage = images[2] || first;
+      phoneScreen.classList.remove('ph');
+      phoneScreen.innerHTML = '<span class="phone-notch"></span>' + imageMarkup(phoneImage, 'Mobilvisning');
+    }
+
+    var shots = document.querySelector('.shots');
+    if (shots && images.length) {
+      var classes = ['wide', 'tall', 'half', 'half', 'full'];
+      shots.innerHTML = images.slice(0, 5).map(function(item, i) {
+        return '<figure class="shot ' + classes[i] + '">' +
+          imageMarkup(item, item.caption || p.title) +
+          '<figcaption>' + mediaCaption(item, 'Produktscreenshot') + '</figcaption>' +
+        '</figure>';
+      }).join('');
+    }
+
+    var videoSection = document.querySelector('.vid-row')?.closest('section');
+    var videoRow = document.querySelector('.vid-row');
+    if (videoRow) {
+      if (videos.length) {
+        if (videoSection) videoSection.hidden = false;
+        videoRow.innerHTML = videos.slice(0, 3).map(function(item) {
+          return '<figure class="vid">' +
+            '<video src="' + ATTR(item.url) + '" controls muted playsinline preload="metadata"></video>' +
+            '<figcaption class="vid-cap">' + mediaCaption(item, 'Demovideo') + '</figcaption>' +
+          '</figure>';
+        }).join('');
+      } else if (videoSection) {
+        videoSection.hidden = true;
+      }
+    }
+  };
 
   fetch('/api/projects/' + encodeURIComponent(slug))
     .then(function(r) {
@@ -443,6 +509,8 @@
           el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' + ESC(domain);
         });
       }
+
+      renderMedia(p);
     })
     .catch(function() {
       /* Silently fall back to the static NordSync content */

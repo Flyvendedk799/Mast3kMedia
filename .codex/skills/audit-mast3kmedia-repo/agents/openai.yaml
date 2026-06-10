@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repo To Mast3kMedia Case"
+  short_description: "Publish Danish portfolio cases from repos"
+  default_prompt: "Use $audit-mast3kmedia-repo to analyze a public repo, create a Danish evidence-bound Mast3kMedia case, sync it live, and capture screenshots/videos."

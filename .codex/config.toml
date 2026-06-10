@@ -1,0 +1,3 @@
+[mcp_servers.mast3kmedia]
+command = "node"
+args = ["mcp-server.mjs"]

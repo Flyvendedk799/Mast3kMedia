@@ -12,6 +12,7 @@ const S = {
   tags:     [],
   tech:     [],
   metrics:  [],
+  media:    [],
   deleteTarget: null,
   filterStatus: '',
   filterQuery:  '',
@@ -423,6 +424,7 @@ function loadForm() {
   S.tags    = [];
   S.tech    = [];
   S.metrics = [];
+  S.media   = [];
 
   const project = S.editId ? S.projects.find(p => p.id === S.editId) : null;
 
@@ -445,16 +447,19 @@ function loadForm() {
     $('#fieldTestiRole').value     = project.testimonial_role || '';
     $('#fieldThumb').value         = project.thumbnail_url || '';
     $('#fieldCaseUrl').value       = project.case_url || '';
+    $('#fieldMedia').value         = JSON.stringify(Array.isArray(project.media) ? project.media : [], null, 2);
     S.tags    = Array.isArray(project.tags)       ? [...project.tags]       : [];
     S.tech    = Array.isArray(project.tech_stack) ? [...project.tech_stack] : [];
     S.metrics = Array.isArray(project.metrics)    ? project.metrics.map(m => ({...m})) : [];
+    S.media   = Array.isArray(project.media)      ? project.media.map(m => ({...m})) : [];
   } else {
     // Clear all fields
     $('#projectForm').reset();
     $('#fieldId').value = '';
-    S.tags = []; S.tech = []; S.metrics = [];
+    S.tags = []; S.tech = []; S.metrics = []; S.media = [];
     $('#fieldYear').value = new Date().getFullYear();
     $('#fieldSortOrder').value = 0;
+    $('#fieldMedia').value = '[]';
   }
 
   renderTags();
@@ -611,7 +616,10 @@ async function submitForm(status) {
     testimonial_role:   $('#fieldTestiRole').value.trim(),
     thumbnail_url:      $('#fieldThumb').value.trim(),
     case_url:           $('#fieldCaseUrl').value.trim(),
+    media:              parseMediaField(),
   };
+
+  if (!payload.media) return;
 
   // Disable buttons
   const btns = $$('#formView button[type=submit], #formView .btn-primary, #formView .btn-outline');
@@ -646,6 +654,29 @@ async function submitForm(status) {
 function debounce(fn, ms) {
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+function parseMediaField() {
+  const raw = $('#fieldMedia').value.trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('Case media skal være et JSON array');
+    $('#fieldMedia').classList.remove('error');
+    return parsed
+      .filter(item => item && item.url)
+      .map(item => ({
+        type: item.type === 'video' ? 'video' : 'image',
+        url: String(item.url),
+        caption: item.caption ? String(item.caption) : '',
+        alt: item.alt ? String(item.alt) : '',
+      }));
+  } catch (err) {
+    $('#fieldMedia').classList.add('error');
+    $('#fieldMedia').focus();
+    toast(err.message || 'Case media er ikke gyldig JSON', 'error');
+    return null;
+  }
 }
 
 $('#projectForm').addEventListener('submit', (e) => {
