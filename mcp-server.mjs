@@ -54,6 +54,7 @@ db.exec(`
     testimonial_role   TEXT,
     thumbnail_url      TEXT,
     case_url           TEXT,
+    media              TEXT    NOT NULL DEFAULT '[]',
     created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at         TEXT    NOT NULL DEFAULT (datetime('now'))
   );
@@ -63,6 +64,12 @@ db.exec(`
     UPDATE projects SET updated_at = datetime('now') WHERE id = NEW.id;
   END;
 `);
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN media TEXT NOT NULL DEFAULT '[]'").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const slugify = s =>
@@ -77,6 +84,7 @@ const fmt = row => ({
   tags:       safeJSON(row.tags,       []),
   tech_stack: safeJSON(row.tech_stack, []),
   metrics:    safeJSON(row.metrics,    []),
+  media:      safeJSON(row.media,      []),
   featured:   row.featured === 1,
 });
 
@@ -180,6 +188,12 @@ const PROJECT_FIELDS = {
   testimonial_role:   z.string().optional().describe('Quote author role/title'),
   thumbnail_url:      z.string().url().optional().describe('Cover image URL'),
   case_url:           z.string().url().optional().describe('External case study or live URL'),
+  media:              z.array(z.object({
+    type:    z.enum(['image', 'video']).optional().describe('Media type. Defaults to image.'),
+    url:     z.string().describe('Public URL or data URL for the screenshot/video asset'),
+    caption: z.string().optional().describe('Short Danish caption shown under the asset'),
+    alt:     z.string().optional().describe('Accessible alt text for images'),
+  })).optional().describe('Case-page media gallery. Use real product screenshots/video only.'),
 };
 
 server.tool(
@@ -194,8 +208,8 @@ server.tool(
           (title,slug,category,description,long_description,challenge,approach,
            tags,tech_stack,client,year,status,featured,sort_order,
            metrics,testimonial_text,testimonial_author,testimonial_role,
-           thumbnail_url,case_url)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+           thumbnail_url,case_url,media)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).run(
         b.title, slug,
         b.category        || 'Software',
@@ -216,6 +230,7 @@ server.tool(
         b.testimonial_role   || null,
         b.thumbnail_url      || null,
         b.case_url           || null,
+        JSON.stringify(b.media ?? []),
       );
       const created = fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(r.lastInsertRowid));
       return ok(`Created project "${created.title}" (slug: ${created.slug}, id: ${created.id})\n\n${JSON.stringify(created, null, 2)}`);
@@ -252,7 +267,7 @@ server.tool(
           challenge=?,approach=?,tags=?,tech_stack=?,client=?,year=?,
           status=?,featured=?,sort_order=?,metrics=?,
           testimonial_text=?,testimonial_author=?,testimonial_role=?,
-          thumbnail_url=?,case_url=?
+          thumbnail_url=?,case_url=?,media=?
         WHERE id=?
       `).run(
         b.title            ?? old.title,
@@ -275,6 +290,7 @@ server.tool(
         b.testimonial_role   !== undefined ? b.testimonial_role   : old.testimonial_role,
         b.thumbnail_url !== undefined ? b.thumbnail_url : old.thumbnail_url,
         b.case_url      !== undefined ? b.case_url      : old.case_url,
+        JSON.stringify(Array.isArray(b.media) ? b.media : safeJSON(old.media, [])),
         old.id,
       );
       const updated = fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(old.id));
@@ -399,6 +415,12 @@ server.tool(
       testimonial_role:   z.string().optional(),
       thumbnail_url:      z.string().optional(),
       case_url:           z.string().optional(),
+      media:              z.array(z.object({
+        type:    z.enum(['image', 'video']).optional(),
+        url:     z.string(),
+        caption: z.string().optional(),
+        alt:     z.string().optional(),
+      })).optional(),
     })).describe('Array of project objects to import'),
     default_status: z.enum(['draft', 'published']).optional()
                      .describe('Override status for all imports (default: draft)'),
@@ -409,8 +431,8 @@ server.tool(
         (title,slug,category,description,long_description,challenge,approach,
          tags,tech_stack,client,year,status,featured,sort_order,
          metrics,testimonial_text,testimonial_author,testimonial_role,
-         thumbnail_url,case_url)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         thumbnail_url,case_url,media)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `);
 
     const created = [], skipped = [];
@@ -438,6 +460,7 @@ server.tool(
           b.testimonial_role   || null,
           b.thumbnail_url      || null,
           b.case_url           || null,
+          JSON.stringify(b.media ?? []),
         );
         if (r.changes > 0) created.push(`${b.title} (${slug})`);
         else               skipped.push(`${b.title} (${slug}) — slug already exists`);

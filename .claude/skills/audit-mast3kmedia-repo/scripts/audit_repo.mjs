@@ -27,6 +27,7 @@ const PROJECT_FIELDS = [
   'testimonial_role',
   'thumbnail_url',
   'case_url',
+  'media',
 ];
 
 const REQUIRED_MCP_TOOLS = [
@@ -76,6 +77,7 @@ const ADMIN_FIELD_IDS = {
   testimonial_role: ['fieldTestiRole'],
   thumbnail_url: ['fieldThumb', 'thumbPreview'],
   case_url: ['fieldCaseUrl'],
+  media: ['fieldMedia'],
 };
 
 function parseArgs(argv) {
@@ -142,6 +144,19 @@ async function exists(filePath) {
 
 async function readText(filePath) {
   return fs.readFile(filePath, 'utf8');
+}
+
+function isGithubPageUrl(value) {
+  return /(^https?:\/\/)?(www\.)?github\.com\//i.test(String(value || ''))
+    || /opengraph\.githubassets\.com/i.test(String(value || ''));
+}
+
+function mediaMimeFor(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  if (ext === '.png') return 'image/png';
+  if (ext === '.webp') return 'image/webp';
+  return null;
 }
 
 function runCommand(command, args, options = {}) {
@@ -328,6 +343,239 @@ async function listRepoFiles(repoDir) {
   }
   const find = await runCommand('find', ['.', '-type', 'f'], { cwd: repoDir, allowFailure: true });
   return clean(find.stdout.split('\n').map(line => line.replace(/^\.\//, '')));
+}
+
+function scoreMediaCandidate(file) {
+  const lower = file.toLowerCase();
+  let score = 0;
+  if (/screenshots?|captures?|demo|preview|case|portfolio/.test(lower)) score += 80;
+  if (/full|hero|home|dashboard|admin|mobile|desktop|flow|checkout|builder|editor|overview|grid|product/.test(lower)) score += 35;
+  if (/public\/|assets\/|static\/|images?\//.test(lower)) score += 10;
+  if (/logo|icon|favicon|sprite|placeholder|mock|avatar|badge/.test(lower)) score -= 90;
+  if (/node_modules|\.next|dist|build|coverage|\.git/.test(lower)) score -= 200;
+  return score;
+}
+
+function captionForMedia(file, title) {
+  const base = path.basename(file, path.extname(file))
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase())
+    .trim();
+  if (/mobile|mobil/i.test(base)) return `${title} mobilvisning`;
+  if (/admin/i.test(base)) return `${title} adminflow`;
+  if (/checkout|betaling/i.test(base)) return `${title} betalingsflow`;
+  if (/dashboard|overview|overblik/i.test(base)) return `${title} overblik`;
+  if (/hero|home|forside/i.test(base)) return `${title} forside`;
+  return base ? `${title}: ${base}` : `${title} produktscreenshot`;
+}
+
+async function collectRepoMedia(repoDir, title, checks) {
+  const find = await runCommand('find', ['.', '-type', 'f'], { cwd: repoDir, allowFailure: true });
+  const candidates = find.stdout
+    .split('\n')
+    .map(line => line.trim().replace(/^\.\//, ''))
+    .filter(file => /\.(png|jpe?g|webp)$/i.test(file))
+    .map(file => ({ file, score: scoreMediaCandidate(file) }))
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+
+  const media = [];
+  const artifacts = { screenshots: [] };
+  for (const { file } of candidates) {
+    const absolute = path.join(repoDir, file);
+    const stat = await fs.stat(absolute).catch(() => null);
+    const mime = mediaMimeFor(file);
+    if (!stat || !mime || stat.size < 8_000 || stat.size > 2_200_000) continue;
+    const buffer = await fs.readFile(absolute);
+    media.push({
+      type: 'image',
+      url: `data:${mime};base64,${buffer.toString('base64')}`,
+      caption: captionForMedia(file, title),
+      alt: `${title} screenshot fra ${file}`,
+    });
+    artifacts.screenshots.push(absolute);
+    if (media.length >= 5) break;
+  }
+
+  makeCheck(checks, 'source.repo-media', 'Real screenshot/image assets discovered in repository', media.length > 0, {
+    count: media.length,
+    files: candidates.map(item => item.file).slice(0, 5),
+  }, media.length > 0 ? 'error' : 'warn');
+
+  return { media, artifacts };
+}
+
+async function findRunnableWebApp(repoDir) {
+  const find = await runCommand('find', ['.', '-path', '*/node_modules', '-prune', '-o', '-name', 'package.json', '-type', 'f', '-print'], { cwd: repoDir, allowFailure: true });
+  const packageFiles = find.stdout
+    .split('\n')
+    .map(line => line.trim().replace(/^\.\//, ''))
+    .filter(Boolean)
+    .sort((a, b) => {
+      const score = file => (file === 'package.json' ? 20 : 0) + (/apps\/web\/package\.json$/.test(file) ? 15 : 0) - file.split('/').length;
+      return score(b) - score(a);
+    });
+
+  for (const file of packageFiles) {
+    const json = JSON.parse(await readIfPresent(repoDir, file) || '{}');
+    const dev = json.scripts?.dev || '';
+    const start = json.scripts?.start || '';
+    const script = /vite|next|react-scripts|astro|svelte-kit/i.test(dev) ? 'dev' : (/vite|next|react-scripts|astro|svelte-kit/i.test(start) ? 'start' : null);
+    if (!script) continue;
+    return {
+      packageFile: file,
+      cwd: path.join(repoDir, path.dirname(file)),
+      workspaceName: json.name || null,
+      script,
+      commandLabel: `${json.name || path.dirname(file) || 'root'}:${script}`,
+    };
+  }
+  return null;
+}
+
+function spawnManaged(command, args, options = {}) {
+  const child = spawn(command, args, {
+    cwd: options.cwd,
+    env: { ...process.env, ...(options.env || {}) },
+    shell: false,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const state = { child, stdout: '', stderr: '', exited: false, code: null };
+  child.stdout.on('data', chunk => { state.stdout += chunk.toString(); });
+  child.stderr.on('data', chunk => { state.stderr += chunk.toString(); });
+  child.on('close', code => { state.exited = true; state.code = code; });
+  return state;
+}
+
+async function stopManaged(state) {
+  if (!state || state.exited) return;
+  state.child.kill('SIGTERM');
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  if (!state.exited) state.child.kill('SIGKILL');
+}
+
+async function captureLocalRepoAppMedia(repoDir, title, outputDir, checks, headed) {
+  const candidate = await findRunnableWebApp(repoDir);
+  if (!candidate) {
+    makeCheck(checks, 'source.local-app-detect', 'No recognizable runnable frontend app found for local capture', false, {}, 'warn');
+    return { media: [], artifacts: { screenshots: [], videos: [] } };
+  }
+
+  const rootPackage = path.join(repoDir, 'package.json');
+  const installCwd = await exists(rootPackage) ? repoDir : candidate.cwd;
+  const install = await runCommand('npm', ['install', '--silent', '--ignore-scripts'], { cwd: installCwd, timeoutMs: 240000, allowFailure: true });
+  makeCheck(checks, 'source.local-app-install', 'Runnable frontend dependencies installed for local capture', install.code === 0, {
+    cwd: installCwd,
+    stderr: install.stderr.slice(-1200),
+  }, install.code === 0 ? 'error' : 'warn');
+  if (install.code !== 0) return { media: [], artifacts: { screenshots: [], videos: [] } };
+
+  const port = await getFreePort();
+  const devArgs = candidate.cwd === repoDir || !(await exists(rootPackage))
+    ? ['run', candidate.script, '--', '--host', '127.0.0.1', '--port', String(port)]
+    : ['run', candidate.script, '-w', candidate.workspaceName || path.dirname(candidate.packageFile), '--', '--host', '127.0.0.1', '--port', String(port)];
+  const app = spawnManaged('npm', devArgs, { cwd: installCwd, env: { PORT: String(port) } });
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  try {
+    await waitForHttp(baseUrl, 45000, app);
+  } catch (error) {
+    makeCheck(checks, 'source.local-app-start', 'Runnable frontend app started for local capture', false, {
+      command: `npm ${devArgs.join(' ')}`,
+      stdout: app.stdout.slice(-1600),
+      stderr: app.stderr.slice(-1600),
+      error: error.message,
+    }, 'warn');
+    await stopManaged(app);
+    return { media: [], artifacts: { screenshots: [], videos: [] } };
+  }
+
+  const screenshotsDir = path.join(outputDir, 'screenshots');
+  const videosDir = path.join(outputDir, 'videos');
+  const rawVideoDir = path.join(videosDir, 'raw');
+  await fs.mkdir(screenshotsDir, { recursive: true });
+  await fs.mkdir(rawVideoDir, { recursive: true });
+
+  const playwright = await ensurePlaywright(outputDir, checks);
+  const browser = await launchChromium(playwright.chromium, outputDir, headed);
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    recordVideo: { dir: rawVideoDir, size: { width: 1440, height: 1000 } },
+  });
+  const page = await context.newPage();
+  const artifacts = { screenshots: [], videos: [] };
+  const media = [];
+  try {
+    await page.goto(baseUrl, { waitUntil: 'networkidle', timeout: 45000 });
+    await page.waitForTimeout(1000);
+    const loginOnly = await page.evaluate(() => {
+      const text = document.body?.innerText || '';
+      const hasPassword = Boolean(document.querySelector('input[type="password"]'));
+      const linkCount = document.querySelectorAll('a, button').length;
+      return hasPassword && /sign in|log in|login|adgangskode|password/i.test(text) && linkCount < 8;
+    });
+    if (loginOnly) {
+      makeCheck(checks, 'source.local-app-media', 'Local app rendered only a login wall, not portfolio media', false, { baseUrl, command: candidate.commandLabel }, 'warn');
+    } else {
+      const home = path.join(screenshotsDir, 'source-local-app-home.jpg');
+      await page.screenshot({ path: home, type: 'jpeg', quality: 72, fullPage: false });
+      const homeBuffer = await fs.readFile(home);
+      media.push({
+        type: 'image',
+        url: `data:image/jpeg;base64,${homeBuffer.toString('base64')}`,
+        caption: `${title} renderet lokalt fra repoet`,
+        alt: `${title} lokal produktskærm`,
+      });
+      artifacts.screenshots.push(home);
+      await page.mouse.wheel(0, 700);
+      await page.waitForTimeout(700);
+      const scroll = path.join(screenshotsDir, 'source-local-app-scroll.jpg');
+      await page.screenshot({ path: scroll, type: 'jpeg', quality: 72, fullPage: false });
+      const scrollBuffer = await fs.readFile(scroll);
+      media.push({
+        type: 'image',
+        url: `data:image/jpeg;base64,${scrollBuffer.toString('base64')}`,
+        caption: `${title} interaktiv visning fra repoet`,
+        alt: `${title} lokal produktskærm efter scroll`,
+      });
+      artifacts.screenshots.push(scroll);
+      makeCheck(checks, 'source.local-app-media', 'Runnable local frontend captured as real product media', true, {
+        baseUrl,
+        command: candidate.commandLabel,
+        media: media.length,
+      });
+    }
+  } catch (error) {
+    makeCheck(checks, 'source.local-app-media', 'Runnable local frontend captured as real product media', false, {
+      error: error.message,
+      baseUrl,
+    }, 'warn');
+  } finally {
+    const video = page.video();
+    await context.close();
+    if (video) {
+      const videoPath = path.join(videosDir, 'source-local-app-flow.webm');
+      await video.saveAs(videoPath).catch(() => {});
+      if (await exists(videoPath)) {
+        artifacts.videos.push(videoPath);
+        const stat = await fs.stat(videoPath).catch(() => null);
+        if (media.length && stat && stat.size <= 1_800_000) {
+          const buffer = await fs.readFile(videoPath);
+          media.push({
+            type: 'video',
+            url: `data:video/webm;base64,${buffer.toString('base64')}`,
+            caption: `${title} kort browserflow fra lokal kørsel`,
+            alt: `${title} demovideo fra lokal kørsel`,
+          });
+        }
+      }
+    }
+    await browser.close();
+    await stopManaged(app);
+  }
+
+  return { media, artifacts };
 }
 
 function isIgnoredRepoFile(file) {
@@ -860,10 +1108,6 @@ async function analyzeRepo(repoDir, target, options) {
   if (metrics.length < 4 && packageFiles.length) metrics.push({ value: String(packageFiles.length), label: 'package manifests kortlagt' });
   if (!metrics.length && routeCount) metrics.push({ value: String(routeCount), label: 'appmoduler kortlagt' });
 
-  const thumbnailUrl = parts.owner && parts.repo
-    ? `https://opengraph.githubassets.com/${Date.now()}/${parts.owner}/${parts.repo}`
-    : (liveUrl || repoUrl || 'https://github.com');
-
   const project = {
     title,
     slug,
@@ -883,8 +1127,9 @@ async function analyzeRepo(repoDir, target, options) {
     testimonial_text: '',
     testimonial_author: '',
     testimonial_role: '',
-    thumbnail_url: thumbnailUrl,
+    thumbnail_url: '',
     case_url: liveUrl || repoUrl || target,
+    media: [],
   };
 
   return {
@@ -1184,7 +1429,7 @@ async function upsertProjectThroughMcp(portfolioRoot, project, checks) {
     if (writeResult.isError) throw new Error(toolText(writeResult));
     const saved = parseToolJson(await callTool('get_project', { ref: project.slug }));
     const badFields = PROJECT_FIELDS.filter(field => {
-      if (field === 'metrics') return JSON.stringify(saved?.metrics || []) !== JSON.stringify(project.metrics || []);
+      if (field === 'metrics' || field === 'media') return JSON.stringify(saved?.[field] || []) !== JSON.stringify(project[field] || []);
       if (field === 'tags' || field === 'tech_stack') return JSON.stringify(saved?.[field] || []) !== JSON.stringify(project[field] || []);
       return (saved?.[field] ?? '') !== (project[field] ?? '');
     });
@@ -1299,11 +1544,13 @@ async function captureSourceMedia(sourceUrls, outputDir, checks, headed) {
   const artifacts = { screenshots: [], videos: [], consoleErrors: [], pageErrors: [], sourceUrl: null };
 
   let thumbnailDataUrl = null;
+  const media = [];
   let captured = false;
   let usedSourceUrl = null;
   let lastError = null;
 
   for (const sourceUrl of sourceUrls) {
+    const portfolioEligible = !isGithubPageUrl(sourceUrl);
     const sourceContext = await browser.newContext({
       viewport: { width: 1440, height: 900 },
       recordVideo: { dir: rawVideoDir, size: { width: 1440, height: 900 } },
@@ -1320,10 +1567,20 @@ async function captureSourceMedia(sourceUrls, outputDir, checks, headed) {
       const thumbPath = path.join(screenshotsDir, 'source-thumbnail.jpg');
       await sourcePage.screenshot({ path: thumbPath, type: 'jpeg', quality: 62, fullPage: false });
       const thumb = await fs.readFile(thumbPath);
-      if (thumb.length <= 1_500_000) {
+      if (!portfolioEligible) {
+        makeCheck(checks, 'browser.source-thumbnail', 'GitHub screenshots are source evidence only, not portfolio media', true, {
+          sourceUrl,
+        }, 'warn');
+      } else if (thumb.length <= 1_500_000) {
         thumbnailDataUrl = `data:image/jpeg;base64,${thumb.toString('base64')}`;
+        media.push({
+          type: 'image',
+          url: thumbnailDataUrl,
+          caption: 'Live produktvisning',
+          alt: 'Screenshot af det live produkt',
+        });
         artifacts.screenshots.push(thumbPath);
-        makeCheck(checks, 'browser.source-thumbnail', 'Source screenshot embedded as project thumbnail', true, {
+        makeCheck(checks, 'browser.source-thumbnail', 'Live product screenshot embedded as project media', true, {
           bytes: thumb.length,
           sourceUrl,
         });
@@ -1345,7 +1602,19 @@ async function captureSourceMedia(sourceUrls, outputDir, checks, headed) {
         const safeName = captured ? 'source-project.webm' : `source-attempt-${artifacts.videos.length + 1}.webm`;
         const videoPath = path.join(videosDir, safeName);
         await video.saveAs(videoPath).catch(() => {});
-        if (await exists(videoPath)) artifacts.videos.push(videoPath);
+        if (await exists(videoPath)) {
+          artifacts.videos.push(videoPath);
+          const stat = await fs.stat(videoPath).catch(() => null);
+          if (portfolioEligible && stat && stat.size <= 1_800_000) {
+            const buffer = await fs.readFile(videoPath);
+            media.push({
+              type: 'video',
+              url: `data:video/webm;base64,${buffer.toString('base64')}`,
+              caption: 'Kort demoflow fra det live produkt',
+              alt: 'Browseroptagelse af produktflow',
+            });
+          }
+        }
       }
     }
     if (captured) break;
@@ -1360,7 +1629,7 @@ async function captureSourceMedia(sourceUrls, outputDir, checks, headed) {
 
   await browser.close();
   artifacts.sourceUrl = usedSourceUrl || sourceUrls[0] || null;
-  return { artifacts, thumbnailDataUrl };
+  return { artifacts, thumbnailDataUrl, media };
 }
 
 async function runDestinationEvidence(baseUrl, project, outputDir, checks, adminUser, adminPass, headed, prefix = 'mast3kmedia') {
@@ -1455,7 +1724,7 @@ async function upsertProductionProject(productionUrl, project, checks, adminUser
       : await jsonRequest(productionUrl, 'POST', '/api/admin/projects', project, login.token);
     const publicProject = await jsonRequest(productionUrl, 'GET', `/api/projects/${encodeURIComponent(project.slug)}`);
     const badFields = PROJECT_FIELDS.filter(field => {
-      if (field === 'metrics') return JSON.stringify(publicProject.metrics || []) !== JSON.stringify(project.metrics || []);
+      if (field === 'metrics' || field === 'media') return JSON.stringify(publicProject[field] || []) !== JSON.stringify(project[field] || []);
       if (field === 'tags' || field === 'tech_stack') return JSON.stringify(publicProject[field] || []) !== JSON.stringify(project[field] || []);
       return (publicProject[field] ?? '') !== (project[field] ?? '');
     });
@@ -1585,19 +1854,56 @@ async function main() {
     });
     validateProjectTruthfulness(analysis, checks);
 
+    const repoMedia = await collectRepoMedia(repoDir, analysis.project.title, checks);
+    artifacts = mergeArtifacts(artifacts, repoMedia.artifacts);
+    if (repoMedia.media.length) {
+      analysis.project.media = [...repoMedia.media];
+      analysis.project.thumbnail_url = analysis.project.thumbnail_url || repoMedia.media[0].url;
+    }
+
     if (!args.noBrowser) {
-      const sourceCapture = await captureSourceMedia(
-        [analysis.liveUrl, analysis.repoUrl, args.target],
-        outputDir,
-        checks,
-        args.headed,
-      );
-      artifacts = mergeArtifacts(artifacts, sourceCapture.artifacts);
-      if (sourceCapture.thumbnailDataUrl) analysis.project.thumbnail_url = sourceCapture.thumbnailDataUrl;
+      if (!analysis.liveUrl && !analysis.project.media?.length) {
+        const localCapture = await captureLocalRepoAppMedia(repoDir, analysis.project.title, outputDir, checks, args.headed);
+        artifacts = mergeArtifacts(artifacts, localCapture.artifacts);
+        if (localCapture.media?.length) {
+          analysis.project.media = [...localCapture.media].slice(0, 5);
+          analysis.project.thumbnail_url = analysis.project.thumbnail_url || localCapture.media[0].url;
+        }
+      }
+
+      if (analysis.liveUrl) {
+        const sourceCapture = await captureSourceMedia(
+          [analysis.liveUrl],
+          outputDir,
+          checks,
+          args.headed,
+        );
+        artifacts = mergeArtifacts(artifacts, sourceCapture.artifacts);
+        if (sourceCapture.media?.length) {
+          analysis.project.media = [...sourceCapture.media, ...(analysis.project.media || [])].slice(0, 5);
+        }
+        if (sourceCapture.thumbnailDataUrl) analysis.project.thumbnail_url = sourceCapture.thumbnailDataUrl;
+      } else {
+        makeCheck(checks, 'browser.source-live-url', 'No live product URL found, so browser capture did not use GitHub as portfolio media', true, {
+          repoUrl: analysis.repoUrl,
+        }, 'warn');
+      }
+
+      if (!analysis.project.thumbnail_url && analysis.project.media?.length) {
+        analysis.project.thumbnail_url = analysis.project.media[0].url;
+      }
+
+      if (analysis.project.media?.length) {
+        makeCheck(checks, 'source.portfolio-media', 'Portfolio case has real non-GitHub media', true, {
+          count: analysis.project.media.length,
+        });
+      }
       else {
-        makeCheck(checks, 'browser.source-thumbnail-fallback', 'Project thumbnail uses non-screenshot fallback URL', true, {
+        makeCheck(checks, 'source.portfolio-media', 'No real product media found; project forced to draft and unfeatured', false, {
           thumbnail_url: analysis.project.thumbnail_url,
         }, 'warn');
+        analysis.project.status = 'draft';
+        analysis.project.featured = false;
       }
     } else {
       makeCheck(checks, 'browser.skip', 'Browser evidence skipped by flag', false, {}, 'warn');

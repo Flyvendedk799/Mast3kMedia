@@ -32,7 +32,7 @@ The runner writes artifacts to `mast3kmedia-repo-case/<timestamp>/` by default:
 - `report.md`: human-readable summary
 - `report.json`: machine-readable checks/evidence
 - `project.json`: exact payload sent through the MCP
-- `screenshots/`: source project/GitHub and Mast3kMedia admin/public case screenshots
+- `screenshots/`: source product/live page, repo-provided product assets, and Mast3kMedia admin/public case screenshots
 - `videos/`: recorded browser flows
 - `work/repo/`: cloned target repo
 
@@ -44,11 +44,13 @@ The runner writes artifacts to `mast3kmedia-repo-case/<timestamp>/` by default:
 - Builds a Danish Mast3kMedia project payload:
   - `title`, `slug`, `category`, descriptions, challenge, approach
   - `tags`, `tech_stack`, `client`, `year`, `status`, `featured`, `sort_order`
-  - `metrics`, testimonial fields, `thumbnail_url`, `case_url`
+  - `metrics`, testimonial fields, `thumbnail_url`, `case_url`, `media`
 - Leaves unsupported fields empty instead of inventing them, especially testimonials and client quotes.
 - Uses only evidence from repo files, public/live pages, and field-contract inspection.
-- Captures source screenshots/video before writing the case.
-- Uses the captured source screenshot as the project thumbnail when it fits the site payload; otherwise keeps the screenshot as an artifact and uses a conservative fallback URL.
+- Captures source product screenshots/video before writing the case.
+- Uses real product media from the live URL, repo screenshot assets, or a successfully booted local frontend app as `thumbnail_url` and `media`.
+- Boots recognizable frontend dev apps (Vite, Next, React Scripts, Astro, SvelteKit) only when no live URL or repo screenshot assets exist; login-only screens are kept as evidence, not portfolio media.
+- Treats GitHub page screenshots as evidence artifacts only; never use them as `thumbnail_url` or case-page `media` unless the user explicitly asks for a draft-only documentation case.
 - Uses the local Mast3kMedia MCP (`mcp-server.mjs`) to create or update the project.
 - Syncs the same project payload to the live Mast3kMedia production API at `https://mast3kmedia.dk` unless `--local-only` is passed.
 - Starts the local Mast3kMedia site and verifies the project in admin plus public case pages.
@@ -63,6 +65,7 @@ By default, cases are created as `published` and `featured` so the live homepage
 - Do not fabricate testimonials. Keep testimonial fields empty unless there is a real quote and attribution in source material.
 - Metrics must be factual and inspectable, such as documented integrations, test file counts, templates, modules, or live/deployment evidence. Do not invent percentage metrics.
 - Prefer the source live URL for `case_url`; use the GitHub repo URL only when no live URL is evidenced.
+- Publish only when the run has real product media from a live page or repo screenshot assets. If no product media exists, keep the project as draft and unfeatured.
 - Reject placeholder/config URLs such as localhost, `api.openai.com`, `trello.com/app-key`, `yourdomain`, `your-host`, bare `http://`, webhook examples, and tokenized sample URLs.
 - Treat missing screenshots/video as a failed or incomplete run unless the user explicitly requested `--no-browser`.
 - After a run, inspect `project.json`, `report.md`, screenshots, and videos before telling the user the result is complete.
@@ -114,7 +117,7 @@ If the runner cannot execute:
    - call `update_project` if it exists
 6. Sync the same payload to production unless the user asked for local-only.
 7. Capture evidence:
-   - source live URL or GitHub page screenshot/video
+   - source live URL screenshot/video or repo-provided product screenshots
    - Mast3kMedia admin edit form screenshot
    - local Mast3kMedia public case screenshot when published
    - live Mast3kMedia public case screenshot when production sync is enabled
