@@ -151,6 +151,23 @@ function isGithubPageUrl(value) {
     || /opengraph\.githubassets\.com/i.test(String(value || ''));
 }
 
+function isDeploymentManagementUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    const host = url.hostname.toLowerCase();
+    const pathName = url.pathname.toLowerCase();
+    return (
+      (/(\.|^)railway\.app$/.test(host) && /\/dashboard|\/project|\/account|\/login|\/settings/.test(pathName))
+      || (/(\.|^)vercel\.com$/.test(host) && /\/dashboard|\/account|\/login|\/settings/.test(pathName))
+      || (/(\.|^)netlify\.com$/.test(host) && /\/app|\/dashboard|\/account|\/login|\/settings/.test(pathName))
+      || (/(\.|^)render\.com$/.test(host) && /\/dashboard|\/account|\/login|\/settings/.test(pathName))
+      || (/(\.|^)cloudflare\.com$/.test(host) && /\/dash|\/dashboard|\/login/.test(pathName))
+    );
+  } catch {
+    return false;
+  }
+}
+
 function mediaMimeFor(filePath, buffer = null) {
   if (buffer?.length >= 12) {
     if (buffer[0] === 0xff && buffer[1] === 0xd8) return 'image/jpeg';
@@ -219,6 +236,25 @@ function limitPortfolioMedia(items, max = 5) {
   const videos = clean.filter(item => item.type === 'video');
   if (videos.length && max > 1) return [...images.slice(0, max - 1), videos[0]];
   return images.slice(0, max);
+}
+
+function portfolioMediaStats(items) {
+  const media = Array.isArray(items) ? items : [];
+  const images = media.filter(item => item?.type !== 'video' && item?.url && !isGithubPageUrl(item.url));
+  const videos = media.filter(item => item?.type === 'video' && item?.url && !isGithubPageUrl(item.url));
+  return {
+    imageCount: images.length,
+    videoCount: videos.length,
+    hasEnoughForPublishedCase: images.length >= 2 && videos.length >= 1,
+    firstImage: images[0] || null,
+  };
+}
+
+function ensureImageThumbnail(project) {
+  const stats = portfolioMediaStats(project.media);
+  if (stats.firstImage) project.thumbnail_url = stats.firstImage.url;
+  else if (!project.thumbnail_url && project.media?.length) project.thumbnail_url = project.media[0].url;
+  return stats;
 }
 
 function runCommand(command, args, options = {}) {
@@ -624,6 +660,35 @@ async function addViewportMedia(page, screenshotsDir, media, artifacts, fileStem
   return item;
 }
 
+async function fillPrimaryInputForCapture(page) {
+  return page.evaluate(() => {
+    const visible = element => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return rect.width > 40 && rect.height > 20 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+    const input = [...document.querySelectorAll('input, textarea')]
+      .find(element => {
+        const type = (element.getAttribute('type') || 'text').toLowerCase();
+        return visible(element)
+          && !element.disabled
+          && !element.readOnly
+          && !['password', 'hidden', 'checkbox', 'radio', 'file', 'submit', 'button'].includes(type);
+      });
+    if (!input) return null;
+    const type = (input.getAttribute('type') || 'text').toLowerCase();
+    const value = type === 'email' ? 'kontakt@mast3kmedia.dk' : 'https://github.com/Flyvendedk799/HighendEvent';
+    input.focus();
+    input.value = value;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return {
+      placeholder: input.getAttribute('placeholder') || '',
+      type,
+    };
+  }).catch(() => null);
+}
+
 async function compactVideoForEmbedding(inputPath, outputPath) {
   const hasFfmpeg = await runCommand('ffmpeg', ['-version'], { allowFailure: true, timeoutMs: 5000 }).catch(() => null);
   if (!hasFfmpeg || hasFfmpeg.code !== 0) return inputPath;
@@ -805,6 +870,23 @@ async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, 
           shotIndex += 1;
         }
       }
+      if (portfolioEligible && media.filter(item => item.type !== 'video').length < 2 && media.length < maxImages) {
+        const inputState = await fillPrimaryInputForCapture(page);
+        if (inputState) {
+          await page.waitForTimeout(300);
+          await addViewportMedia(
+            page,
+            screenshotsDir,
+            media,
+            artifacts,
+            `${prefix}-${shotIndex}-input-flow`,
+            `${title}: input-flow med udfyldt felt`,
+            `${title} input-flow`,
+            portfolioEligible,
+          );
+          shotIndex += 1;
+        }
+      }
       await performGuidedFlow(page, sourceUrl, targets);
       makeCheck(checks, `browser.${prefix}.media`, 'Relevant product screenshots and guided browser flow captured', captured, {
         sourceUrl,
@@ -895,13 +977,15 @@ async function findRunnableWebApp(repoDir) {
     const json = JSON.parse(await readIfPresent(repoDir, file) || '{}');
     const dev = json.scripts?.dev || '';
     const start = json.scripts?.start || '';
-    const script = /vite|next|react-scripts|astro|svelte-kit/i.test(dev) ? 'dev' : (/vite|next|react-scripts|astro|svelte-kit/i.test(start) ? 'start' : null);
+    const scriptText = /vite|next|react-scripts|astro|svelte-kit/i.test(dev) ? dev : (/vite|next|react-scripts|astro|svelte-kit/i.test(start) ? start : '');
+    const script = scriptText === dev && scriptText ? 'dev' : (scriptText ? 'start' : null);
     if (!script) continue;
     return {
       packageFile: file,
       cwd: path.join(repoDir, path.dirname(file)),
       workspaceName: json.name || null,
       script,
+      framework: /next/i.test(scriptText) ? 'next' : (/react-scripts/i.test(scriptText) ? 'react-scripts' : 'standard'),
       commandLabel: `${json.name || path.dirname(file) || 'root'}:${script}`,
     };
   }
@@ -912,6 +996,7 @@ function spawnManaged(command, args, options = {}) {
   const child = spawn(command, args, {
     cwd: options.cwd,
     env: { ...process.env, ...(options.env || {}) },
+    detached: true,
     shell: false,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -923,40 +1008,131 @@ function spawnManaged(command, args, options = {}) {
 }
 
 async function stopManaged(state) {
-  if (!state || state.exited) return;
-  state.child.kill('SIGTERM');
+  if (!state) return;
+  await signalManagedProcessGroup(state, 'SIGTERM');
   await new Promise(resolve => setTimeout(resolve, 1200));
-  if (!state.exited) state.child.kill('SIGKILL');
+  if (!state.exited) await signalManagedProcessGroup(state, 'SIGKILL');
+}
+
+async function signalManagedProcessGroup(state, signal) {
+  if (!state?.child?.pid) return;
+  try {
+    process.kill(-state.child.pid, signal);
+  } catch {
+    await killProcessTree(state.child.pid, signal);
+  }
+}
+
+async function killProcessTree(pid, signal) {
+  if (!pid) return;
+  const children = await runCommand('pgrep', ['-P', String(pid)], { allowFailure: true, timeoutMs: 5000 }).catch(() => null);
+  for (const child of (children?.stdout || '').split('\n').map(line => Number(line.trim())).filter(Boolean)) {
+    await killProcessTree(child, signal);
+  }
+  try {
+    process.kill(pid, signal);
+  } catch {}
+}
+
+function isSafeLocalDatabaseUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    return ['localhost', '127.0.0.1', '::1'].includes(url.hostname) || url.protocol === 'file:';
+  } catch {
+    return false;
+  }
+}
+
+async function runLocalSetupIfSafe(repoDir, candidate, packageManager, workspaceSelector, rootJson, checks) {
+  const dbUrl = process.env.DATABASE_URL || '';
+  if (!isSafeLocalDatabaseUrl(dbUrl)) return;
+  const candidateJson = JSON.parse(await readIfPresent(repoDir, candidate.packageFile) || '{}');
+  const target = rootJson.scripts?.setup
+    ? { cwd: repoDir, args: ['run', 'setup'], label: 'root setup' }
+    : (candidateJson.scripts?.setup
+      ? {
+        cwd: packageManager === 'npm' ? (rootJson.workspaces ? repoDir : candidate.cwd) : repoDir,
+        args: packageManager === 'pnpm'
+          ? ['--filter', workspaceSelector, 'run', 'setup']
+          : (packageManager === 'yarn'
+            ? ['workspace', workspaceSelector, 'run', 'setup']
+            : ['run', 'setup', ...(rootJson.workspaces ? ['-w', workspaceSelector] : [])]),
+        label: `${workspaceSelector} setup`,
+      }
+      : null);
+  if (!target) return;
+  const setup = await runCommand(packageManager, target.args, {
+    cwd: target.cwd,
+    timeoutMs: 240000,
+    allowFailure: true,
+  });
+  makeCheck(checks, 'source.local-app-setup', 'Local demo/setup script ran against a localhost database before capture', setup.code === 0, {
+    command: `${packageManager} ${target.args.join(' ')}`,
+    label: target.label,
+    stderr: setup.stderr.slice(-1400),
+    stdout: setup.stdout.slice(-1400),
+  }, setup.code === 0 ? 'error' : 'warn');
 }
 
 async function captureLocalRepoAppMedia(repoDir, title, outputDir, checks, headed) {
   const candidate = await findRunnableWebApp(repoDir);
   if (!candidate) {
     makeCheck(checks, 'source.local-app-detect', 'No recognizable runnable frontend app found for local capture', false, {}, 'warn');
-    return { media: [], artifacts: { screenshots: [], videos: [] } };
+    return captureLocalPythonRepoAppMedia(repoDir, title, outputDir, checks, headed);
   }
 
   const rootPackage = path.join(repoDir, 'package.json');
-  const installCwd = await exists(rootPackage) ? repoDir : candidate.cwd;
-  const install = await runCommand('npm', ['install', '--silent', '--ignore-scripts'], { cwd: installCwd, timeoutMs: 240000, allowFailure: true });
+  const rootJson = await exists(rootPackage) ? JSON.parse(await readIfPresent(repoDir, 'package.json') || '{}') : {};
+  const rootHasWorkspaces = Boolean(rootJson.workspaces);
+  const useWorkspace = rootHasWorkspaces && candidate.cwd !== repoDir;
+  const installCwd = (await exists(rootPackage)) && (rootHasWorkspaces || candidate.cwd === repoDir) ? repoDir : candidate.cwd;
+  const rootPackageManager = String(rootJson.packageManager || '');
+  const packageManager = rootPackageManager.startsWith('pnpm') || await exists(path.join(repoDir, 'pnpm-lock.yaml'))
+    ? 'pnpm'
+    : (rootPackageManager.startsWith('yarn') || await exists(path.join(repoDir, 'yarn.lock')) ? 'yarn' : 'npm');
+  const installArgs = packageManager === 'npm'
+    ? ['install', '--silent', '--ignore-scripts']
+    : (packageManager === 'pnpm' ? ['install', '--ignore-scripts'] : ['install', '--ignore-scripts']);
+  const install = await runCommand(packageManager, installArgs, { cwd: installCwd, timeoutMs: 240000, allowFailure: true });
   makeCheck(checks, 'source.local-app-install', 'Runnable frontend dependencies installed for local capture', install.code === 0, {
     cwd: installCwd,
+    packageManager,
     stderr: install.stderr.slice(-1200),
   }, install.code === 0 ? 'error' : 'warn');
   if (install.code !== 0) return { media: [], artifacts: { screenshots: [], videos: [] } };
 
   const port = await getFreePort();
-  const devArgs = candidate.cwd === repoDir || !(await exists(rootPackage))
-    ? ['run', candidate.script, '--', '--host', '127.0.0.1', '--port', String(port)]
-    : ['run', candidate.script, '-w', candidate.workspaceName || path.dirname(candidate.packageFile), '--', '--host', '127.0.0.1', '--port', String(port)];
-  const app = spawnManaged('npm', devArgs, { cwd: installCwd, env: { PORT: String(port) } });
+  const frameworkArgs = candidate.framework === 'next'
+    ? ['--hostname', '127.0.0.1', '--port', String(port)]
+    : (candidate.framework === 'react-scripts' ? [] : ['--host', '127.0.0.1', '--port', String(port)]);
+  const workspaceSelector = candidate.workspaceName || path.dirname(candidate.packageFile);
+  await runLocalSetupIfSafe(repoDir, candidate, packageManager, workspaceSelector, rootJson, checks);
+  const extraArgs = packageManager === 'npm'
+    ? (frameworkArgs.length ? ['--', ...frameworkArgs] : [])
+    : frameworkArgs;
+  const devArgs = (() => {
+    if (packageManager === 'pnpm' && useWorkspace) return ['--filter', workspaceSelector, 'run', candidate.script, ...extraArgs];
+    if (packageManager === 'yarn' && useWorkspace) return ['workspace', workspaceSelector, 'run', candidate.script, ...extraArgs];
+    if (useWorkspace) return ['run', candidate.script, '-w', workspaceSelector, ...extraArgs];
+    return ['run', candidate.script, ...extraArgs];
+  })();
+  const app = spawnManaged(packageManager, devArgs, {
+    cwd: useWorkspace ? repoDir : candidate.cwd,
+    env: {
+      HOST: '127.0.0.1',
+      PORT: String(port),
+      AUTH_SECRET: process.env.AUTH_SECRET || 'mast3kmedia-local-capture-secret',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || `http://127.0.0.1:${port}`,
+    },
+  });
   const baseUrl = `http://127.0.0.1:${port}`;
 
   try {
     await waitForHttp(baseUrl, 45000, app);
   } catch (error) {
     makeCheck(checks, 'source.local-app-start', 'Runnable frontend app started for local capture', false, {
-      command: `npm ${devArgs.join(' ')}`,
+      command: `${packageManager} ${devArgs.join(' ')}`,
+      packageManager,
       stdout: app.stdout.slice(-1600),
       stderr: app.stderr.slice(-1600),
       error: error.message,
@@ -989,6 +1165,105 @@ async function captureLocalRepoAppMedia(repoDir, title, outputDir, checks, heade
     return { media: [], artifacts: { screenshots: [], videos: [] } };
   } finally {
     await browser.close();
+    await stopManaged(app);
+  }
+}
+
+async function findRunnablePythonWebApp(repoDir) {
+  const files = await listRepoFiles(repoDir);
+  const candidates = ['run.py', 'app.py', 'main.py', 'wsgi.py'].filter(file => files.includes(file));
+  for (const file of candidates) {
+    const source = await readIfPresent(repoDir, file);
+    if (!/from flask import|import flask|Flask\(/i.test(source)) continue;
+    const hasFactory = /def\s+create_app\s*\(/.test(source);
+    return {
+      file,
+      appTarget: hasFactory ? `${file.replace(/\.py$/, '')}:create_app` : file.replace(/\.py$/, ''),
+      routes: [
+        '/app1/',
+        '/catalog',
+        '/chat',
+        '/about',
+        '/support',
+        '/min-laering',
+        '/',
+      ],
+    };
+  }
+  return null;
+}
+
+async function captureLocalPythonRepoAppMedia(repoDir, title, outputDir, checks, headed) {
+  const candidate = await findRunnablePythonWebApp(repoDir);
+  if (!candidate) {
+    makeCheck(checks, 'source.local-python-app-detect', 'No recognizable runnable Python/Flask app found for local capture', false, {}, 'warn');
+    return { media: [], artifacts: { screenshots: [], videos: [] } };
+  }
+
+  const venvDir = path.join(outputDir, 'tools', 'python-venv');
+  const python = process.platform === 'win32' ? path.join(venvDir, 'Scripts', 'python.exe') : path.join(venvDir, 'bin', 'python');
+  const pip = process.platform === 'win32' ? path.join(venvDir, 'Scripts', 'pip.exe') : path.join(venvDir, 'bin', 'pip');
+  const venv = await runCommand('python3', ['-m', 'venv', venvDir], { timeoutMs: 120000, allowFailure: true });
+  if (venv.code !== 0) {
+    makeCheck(checks, 'source.local-python-app-venv', 'Python virtualenv created for Flask capture', false, { stderr: venv.stderr.slice(-1200) }, 'warn');
+    return { media: [], artifacts: { screenshots: [], videos: [] } };
+  }
+
+  const requirements = path.join(repoDir, 'requirements.txt');
+  let install = await runCommand(pip, ['install', '-q', '-r', requirements], { cwd: repoDir, timeoutMs: 300000, allowFailure: true });
+  if (install.code !== 0) {
+    install = await runCommand(pip, [
+      'install', '-q',
+      'Flask', 'PyMySQL', 'python-dotenv', 'requests', 'openai',
+      'fuzzywuzzy', 'python-Levenshtein', 'bleach', 'PyJWT', 'redis',
+    ], { cwd: repoDir, timeoutMs: 240000, allowFailure: true });
+  }
+  makeCheck(checks, 'source.local-python-app-install', 'Python/Flask dependencies installed for local capture', install.code === 0, {
+    appTarget: candidate.appTarget,
+    stderr: install.stderr.slice(-1400),
+  }, install.code === 0 ? 'error' : 'warn');
+  if (install.code !== 0) return { media: [], artifacts: { screenshots: [], videos: [] } };
+
+  const port = await getFreePort();
+  const env = {
+    SANDBOX: '1',
+    SECRET_KEY: process.env.SECRET_KEY || 'mast3kmedia-local-capture-secret',
+    MYSQL_HOST: process.env.MYSQL_HOST || '127.0.0.1',
+    MYSQL_USER: process.env.MYSQL_USER || 'mast3kmedia',
+    MYSQL_PASSWORD: process.env.MYSQL_PASSWORD || 'mast3kmedia',
+    MYSQL_DB: process.env.MYSQL_DB || 'mast3kmedia',
+    FLASK_APP: candidate.appTarget,
+  };
+  const app = spawnManaged(python, ['-m', 'flask', 'run', '--host', '127.0.0.1', '--port', String(port)], {
+    cwd: repoDir,
+    env,
+  });
+  const baseUrl = `http://127.0.0.1:${port}`;
+  try {
+    await waitForHttp(baseUrl, 45000, app);
+  } catch (error) {
+    makeCheck(checks, 'source.local-python-app-start', 'Python/Flask app started for local capture', false, {
+      command: `${python} -m flask run --host 127.0.0.1 --port ${port}`,
+      stdout: app.stdout.slice(-1600),
+      stderr: app.stderr.slice(-1600),
+      error: error.message,
+    }, 'warn');
+    await stopManaged(app);
+    return { media: [], artifacts: { screenshots: [], videos: [] } };
+  }
+
+  try {
+    const routes = candidate.routes.map(route => `${baseUrl}${route}`);
+    const capture = await captureSourceMedia(routes, outputDir, checks, headed, title);
+    makeCheck(checks, 'source.local-python-app-media', 'Runnable Python/Flask app captured as real product media', capture.media.length > 0, {
+      baseUrl,
+      routes: candidate.routes,
+      media: capture.media.length,
+      screenshots: capture.artifacts.screenshots.length,
+      videos: capture.artifacts.videos.length,
+    }, capture.media.length > 0 ? 'error' : 'warn');
+    return { media: capture.media, artifacts: capture.artifacts };
+  } finally {
     await stopManaged(app);
   }
 }
@@ -1074,11 +1349,20 @@ function extractTableRows(text, max = 12) {
 function extractLiveUrl(text, target) {
   const { owner, repo } = repoParts(target);
   const repoNeedle = String(repo || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const urls = [...String(text).matchAll(/https?:\/\/[^\s)>"']+/g)]
-    .map(match => match[0].replace(/[`.,;)\]]+$/, ''));
-  const filtered = urls.filter(url => {
+  const ownerNeedle = String(owner || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const source = String(text);
+  const candidates = [...source.matchAll(/https?:\/\/[^\s)>"']+/g)]
+    .map(match => {
+      const url = match[0].replace(/[`.,;)\]]+$/, '');
+      const start = Math.max(0, match.index - 140);
+      const end = Math.min(source.length, match.index + url.length + 140);
+      return { url, context: source.slice(start, end) };
+    });
+  const filtered = candidates.filter(({ url, context }) => {
     const lower = url.toLowerCase();
+    const contextLower = context.toLowerCase();
     return validPublicUrl(url)
+      && !isDeploymentManagementUrl(url)
       && !lower.includes('github.com')
       && !lower.includes('stripe.com')
       && !lower.includes('api.openai.com')
@@ -1094,11 +1378,24 @@ function extractLiveUrl(text, target) {
       && !url.includes('>')
       && !lower.includes('pythonanywhere.com/user')
       && !lower.includes('localhost')
-      && !lower.includes('127.0.0.1');
+      && !lower.includes('127.0.0.1')
+      && !/(example|sample|mock|test url|testurl|target url|input url|e\.g\.|for example|placeholder|few-shot|minimal site)/i.test(contextLower);
   });
-  const preferred = filtered.find(url => url.toLowerCase().replace(/[^a-z0-9]/g, '').includes(repoNeedle));
-  if (preferred) return preferred;
-  if (filtered.length) return filtered[0];
+  const scored = filtered.map(({ url, context }) => {
+    const parsed = new URL(url);
+    const normalized = url.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const host = parsed.hostname.toLowerCase();
+    const contextLower = context.toLowerCase();
+    let score = 0;
+    if (repoNeedle && normalized.includes(repoNeedle)) score += 80;
+    if (ownerNeedle && normalized.includes(ownerNeedle)) score += 25;
+    if (/(^|\.)((vercel|netlify|railway|render|fly|pages|surge)\.(app|com|dev|sh)|pythonanywhere\.com)$/i.test(host)) score += 45;
+    if (/(live|production|deployed|deployment|homepage|frontend url|website|public url|site url|visit|open)/i.test(contextLower)) score += 45;
+    if (/(api endpoint|webhook|callback|asset url|image url|article url|product url|profile url|backend api|cors)/i.test(contextLower)) score -= 80;
+    return { url, score };
+  }).filter(item => item.score >= 55)
+    .sort((a, b) => b.score - a.score);
+  if (scored.length) return scored[0].url;
   return owner && repo ? `https://github.com/${owner}/${repo}` : null;
 }
 
@@ -1131,7 +1428,8 @@ function validPublicUrl(value) {
     const url = new URL(String(value || ''));
     return ['http:', 'https:'].includes(url.protocol)
       && Boolean(url.hostname)
-      && !/localhost|127\.0\.0\.1|example\.|yourdomain\.|your-host|your_token|api\.openai\.com|trello\.com\/app-key|\.well-known\/acme-challenge|<|>|\$\{|`/i.test(String(value));
+      && !isDeploymentManagementUrl(value)
+      && !/localhost|127\.0\.0\.1|example\.|yourdomain\.|your-host|your-|your_.*|your-railway-domain|railway-domain|your_token|api\.openai\.com|trello\.com\/app-key|\.well-known\/acme-challenge|<|>|\$\{|`/i.test(String(value));
   } catch {
     return false;
   }
@@ -1269,24 +1567,36 @@ function detectTags(docs, stack, category) {
 function classifyDomain(docs, title) {
   const lower = `${title}\n${docs}`.toLowerCase();
   if (lower.includes('github url') && lower.includes('report.md') && (lower.includes('deck.pdf') || lower.includes('screenshots'))) return 'repo-documentation';
+  if (/(godot|gdscript|firstp|fps|gameplay|split-screen|weapon|level editor|snake|platformer|campaign|enemy locomotion)/i.test(lower)) return 'game';
+  if (/(preview engine|demo preview|preview saas|mymetaview|multi-modal fusion|og meta|prerender)/i.test(lower)) return 'preview-engine';
   if (lower.includes('lead-intelligence') || lower.includes('funded startup work') || lower.includes('opportunity detail')) return 'lead-intelligence';
   if (lower.includes('self-hosted deploy') || lower.includes('hosting control plane') || lower.includes('reverse proxy')) return 'hosting-control-plane';
   if (lower.includes('trello cards') || lower.includes('delegation prompts')) return 'trello-prompts';
+  if (/\bhr\b/i.test(lower) && (lower.includes('course_orders') || lower.includes('learning') || lower.includes('employee'))) return 'hr-learning';
   if ((lower.includes('futurematch') || lower.includes('course marketplace')) && (lower.includes('course') || lower.includes('kursus'))) return 'course-marketplace';
   if (lower.includes('mast3kmedia') && (lower.includes('portfolio') || lower.includes('admin ui') || lower.includes('mcp'))) return 'portfolio-cms';
-  if (lower.includes('robotklipper') || lower.includes('garden') || lower.includes('have') || lower.includes('webshop')) return 'garden-commerce';
-  if (lower.includes('hr') && (lower.includes('course_orders') || lower.includes('learning') || lower.includes('employee'))) return 'hr-learning';
+  if (/(highendevent|eventudstyr|professionelt udstyr til fester|slush|popcorn|hoppeborg|udlejningsudstyr|lejeprodukter|borde og stole|foldestole)/i.test(lower)) return 'event-rental';
   if (lower.includes('rental') || lower.includes('udlejning')) return 'rental';
+  if (/(robotklipper|havekongen|havelandet|havemåling|havemaaling|havekompagnon|plantepleje|danske haver|frø og planter|jord og gødning)/i.test(lower)) return 'garden-commerce';
+  if (/(paperclipai|paperclip|agent adapter|adapter-claude|adapter-codex|agent control|control plane|task orchestration)/i.test(lower)) return 'agent-control-plane';
+  if (/(open-codesign|codesign|claude design|design prompt|canvas|artifact exporter|pptxgen)/i.test(lower)) return 'design-collaboration';
+  if (/(webshop|checkout|cart|kurv|payment|betaling|produktkatalog|products|e-commerce|ecommerce)/i.test(lower)) return 'ecommerce-platform';
   return 'generic';
 }
 
 function categoryForDomain(domain, fallback) {
   const overrides = {
     'repo-documentation': 'AI',
+    'agent-control-plane': 'AI',
+    'design-collaboration': 'AI',
+    'preview-engine': 'SaaS',
+    game: 'Game',
     'lead-intelligence': 'SaaS',
     'hosting-control-plane': 'DevTools',
     'trello-prompts': 'AI',
     'course-marketplace': 'E-commerce',
+    'event-rental': 'E-commerce',
+    'ecommerce-platform': 'E-commerce',
     'portfolio-cms': 'Web',
     'garden-commerce': 'E-commerce',
     'hr-learning': 'SaaS',
@@ -1302,6 +1612,30 @@ function fallbackFeatureDaForDomain(domain) {
       'Markdown-rapport med teknisk og produktmæssig opsummering',
       'HTML-præsentation og PDF-export',
       'Playwright-capture med screenshots og kort video',
+    ],
+    'agent-control-plane': [
+      'agent- og opgavestyring på tværs af coding tools',
+      'adaptere til lokale og eksterne agentmiljøer',
+      'server, CLI og web-UI omkring samme datamodel',
+      'konfiguration, status og eksekveringshistorik',
+    ],
+    'design-collaboration': [
+      'AI-understøttet design- og artifact-workflow',
+      'canvas, promptstruktur og eksportformater',
+      'pakker til providers, runtime og UI',
+      'dokumenteret designsystem og website',
+    ],
+    'preview-engine': [
+      'preview- og renderflow for webindhold',
+      'metadata, screenshots eller demo-output',
+      'frontend til inspektion og redigering',
+      'backend/API til generering eller prerendering',
+    ],
+    game: [
+      'interaktiv gameplay-loop',
+      'levels, assets og visuel feedback',
+      'kamera, fysik eller kontrolsystemer',
+      'test- eller valideringsscripts for spiloplevelsen',
     ],
     'lead-intelligence': [
       'kildestyring for offentlige muligheder',
@@ -1326,6 +1660,18 @@ function fallbackFeatureDaForDomain(domain) {
       'dato- og lokationsvalg for kursusbooking',
       'bookingflow til tilmelding og forespørgsler',
       'adminstyring af kurser, kategorier, sessioner og bookinger',
+    ],
+    'event-rental': [
+      'udstyrskatalog for events og fester',
+      'datobaseret leje- og bookingflow',
+      'kurv, betaling og kundeoplysninger',
+      'adminstyring af produkter, lager, bookinger og kalender',
+    ],
+    'ecommerce-platform': [
+      'produktkatalog og filtrering',
+      'kurv, checkout og ordreflow',
+      'adminstyring af produkter og indhold',
+      'kunde- eller forespørgselsflow',
     ],
     'portfolio-cms': [
       'public company-site med ydelser og cases',
@@ -1369,6 +1715,30 @@ function narrativeForDomain(domain, title, category, stack, featuresDa, adminDa,
       challenge: 'Repo-dokumentation bliver hurtigt manuel, ujævn og svær at stole på, især når der både skal beskrives arkitektur, brugeroplevelse og faktisk browser-evidence.',
       approachLead: `Løsningen er bygget som en pipeline omkring ${stackDa}, hvor web-UI, worker, kø, capture-lag og render-lag er skilt ad.`,
     },
+    'agent-control-plane': {
+      description: `${title} er en agent- og opgaveplatform til at styre coding tools, adaptere, serverflow og brugergrænseflade fra samme system.`,
+      longIntro: `${title} samler kontrolflade, server, CLI og adaptere omkring agentiske workflows, så forskellige coding tools kan håndteres mere ensartet.`,
+      challenge: 'Agentiske udviklingsværktøjer har forskellige processer, outputformater og konfigurationer. Projektet samler dem i et kontrollerbart workflow i stedet for løse terminalsessioner.',
+      approachLead: `Løsningen er bygget med ${stackDa} og organiserer UI, server, database, CLI, adaptere og delte typer i adskilte moduler.`,
+    },
+    'design-collaboration': {
+      description: `${title} er et AI-understøttet design- og artifact-workflow med website, pakker, runtime og eksportfunktioner.`,
+      longIntro: `${title} dokumenterer et system til at arbejde med prompts, canvas/artifacts, providers og eksportformater på tværs af en designorienteret kodebase.`,
+      challenge: 'AI-genereret designarbejde kræver struktur omkring prompt, rendering, eksport, versionsspor og UI, ellers bliver output svært at gentage eller videreudvikle.',
+      approachLead: `Løsningen er bygget med ${stackDa} og opdeler website, UI, core, providers, runtime og eksportører i separate pakker.`,
+    },
+    'preview-engine': {
+      description: `${title} er en preview- og renderplatform til at generere, inspicere eller prerenderere webbaseret indhold og metadata.`,
+      longIntro: `${title} arbejder med preview-kvalitet, renderede visninger, metadata og frontend/backend-flow omkring inspektion af webindhold.`,
+      challenge: 'Preview- og metadataflows bliver hurtigt upålidelige, når HTML, visuel rendering, billeder og kontekst skal tolkes sammen.',
+      approachLead: `Løsningen er bygget med ${stackDa} og organiserer preview-UI, API, renderlogik og dokumenterede kvalitetsforbedringer omkring samme pipeline.`,
+    },
+    game: {
+      description: `${title} er et spilprojekt med gameplay, levels, assets og tekniske systemer til rendering, input og visuel feedback.`,
+      longIntro: `${title} dokumenterer en spiloplevelse, hvor interaktion, baner, assets, kamera/fysik og performance skal fungere sammen i et samlet flow.`,
+      challenge: 'Spilprojekter kræver, at styring, feedback, leveldesign, assets og performance hænger sammen, ellers føles oplevelsen ufærdig uanset hvor meget kode der findes.',
+      approachLead: `Løsningen er bygget med ${stackDa} og organiserer gameplay, assets, levelstruktur, rendering og valideringsscripts omkring spillets kerneflow.`,
+    },
     'lead-intelligence': {
       description: `${title} er en lead-intelligence platform til at finde, vurdere, gemme og eksportere finansierede muligheder og relevante offentlige kilder.`,
       longIntro: `${title} samler discovery, scoring, lister, AI-assistance og eksport i et arbejdsflow for en bruger, der løbende vurderer nye muligheder og frister.`,
@@ -1392,6 +1762,18 @@ function narrativeForDomain(domain, title, category, stack, featuresDa, adminDa,
       longIntro: `${title} omsætter kursussalg til en digital købsoplevelse, hvor indhold, udbytte, datoer, lokationer, pladser og booking skal præsenteres anderledes end fysiske produkter.`,
       challenge: 'Et kursus er ikke en almindelig vare. Brugeren skal forstå udbytte, underviser, lokation, dato, pris og tilmelding, mens administratorer skal kunne håndtere katalog, sessioner og bookinger.',
       approachLead: `Løsningen kombinerer frontend-prototyper, admin UI og en backend omkring ${stackDa}, så kursuskatalog og bookingdata kan hænge sammen.`,
+    },
+    'event-rental': {
+      description: `${title} er en event- og udlejningsplatform med katalog, datoer, kurv, booking og adminstyring af udstyr.`,
+      longIntro: `${title} samler en udlejningsforretning for fest- og eventudstyr i et digitalt flow, hvor brugeren kan se udstyr, vælge produkter og gå videre mod booking.`,
+      challenge: 'Eventudlejning skal koordinere produkter, datoer, lager, priser, kundeoplysninger og praktisk levering uden at gøre bestillingen tung for kunden.',
+      approachLead: `Løsningen er bygget med ${stackDa} og opdeler public site, katalog, booking-/ordreflow, betaling og adminfunktioner i tydelige moduler.`,
+    },
+    'ecommerce-platform': {
+      description: `${title} er en e-commerce platform med produktvisning, brugerflow, ordrelogik og dokumenterede backend- eller adminfunktioner.`,
+      longIntro: `${title} omsætter et produkt- eller servicekatalog til en webbaseret købsoplevelse, hvor præsentation, filtrering, kurv og drift skal hænge sammen.`,
+      challenge: 'E-commerce-projekter skal forbinde brugeroplevelse, produktdata, lager/ordrelogik og administration uden at miste overblik i koden.',
+      approachLead: `Løsningen er bygget med ${stackDa} og organiserer produktflows, datahåndtering, admin eller backendlogik omkring de dokumenterede brugerrejser.`,
     },
     'portfolio-cms': {
       description: `${title} er et portfolio- og company-site med admin UI, projekt-API og MCP-understøttelse til at publicere cases og styre indhold.`,
@@ -1476,6 +1858,21 @@ async function analyzeRepo(repoDir, target, options) {
   for (const file of packageFiles) packageJsonTexts.push(await readIfPresent(repoDir, file));
   const stack = detectTechStack(files, docs, requirements, packageJsonTexts, metadata);
   const title = titleFromRepoName(parts.repo || path.basename(repoDir));
+  const evidenceText = `${title}\n${docs}`;
+  const evidenceFlags = {
+    agentControlPlane: /(paperclipai|paperclip|agent adapter|adapter-claude|adapter-codex|agent control|control plane|task orchestration)/i.test(evidenceText),
+    designCollaboration: /(open-codesign|codesign|claude design|design prompt|canvas|artifact exporter|pptxgen)/i.test(evidenceText),
+    previewEngine: /(preview engine|demo preview|preview saas|mymetaview|multi-modal fusion|og meta|prerender)/i.test(evidenceText),
+    game: /(godot|gdscript|firstp|fps|gameplay|split-screen|weapon|level editor|snake|platformer|campaign|enemy locomotion)/i.test(evidenceText),
+    eventRental: /(highendevent|eventudstyr|professionelt udstyr til fester|slush|popcorn|hoppeborg|udlejningsudstyr|lejeprodukter|borde og stole|foldestole|udlejning)/i.test(evidenceText),
+    gardenCommerce: /(robotklipper|havekongen|havelandet|havemåling|havemaaling|havekompagnon|plantepleje|danske haver|frø og planter|jord og gødning)/i.test(evidenceText),
+    courseMarketplace: /(futurematch|course marketplace|kursus|course|sessioner|tilmelding)/i.test(evidenceText),
+    hrLearning: /\bhr\b/i.test(evidenceText) && /(course_orders|learning|employee|compliance|rapportering)/i.test(evidenceText),
+    leadIntelligence: /(lead-intelligence|funded startup work|opportunity detail|discovery engine|lead scoring)/i.test(evidenceText),
+    hostingControlPlane: /(self-hosted deploy|hosting control plane|reverse proxy|cloudflare tunnel|deploy-flow)/i.test(evidenceText),
+    trelloPrompts: /(trello cards|delegation prompts|trello board|trello api)/i.test(evidenceText),
+    portfolioCms: /(mast3kmedia)/i.test(evidenceText) && /(portfolio|admin ui|mcp|project api|case)/i.test(evidenceText),
+  };
   const domain = classifyDomain(docs, title);
   const category = categoryForDomain(domain, detectCategory(docs, stack));
   const tags = detectTags(docs, stack, category);
@@ -1504,7 +1901,7 @@ async function analyzeRepo(repoDir, target, options) {
 
   const extractedFeatureDa = (features.length ? features : publicFeatures).slice(0, 6).map(translateFeature);
   const fallbackFeatureDa = fallbackFeatureDaForDomain(domain);
-  const preferFallback = ['repo-documentation', 'trello-prompts', 'course-marketplace', 'portfolio-cms', 'garden-commerce', 'hr-learning'].includes(domain);
+  const preferFallback = ['repo-documentation', 'agent-control-plane', 'design-collaboration', 'preview-engine', 'game', 'trello-prompts', 'course-marketplace', 'event-rental', 'portfolio-cms', 'garden-commerce', 'hr-learning'].includes(domain);
   const featureDa = (preferFallback && fallbackFeatureDa.length) || !extractedFeatureDa.length
     ? fallbackFeatureDa
     : extractedFeatureDa;
@@ -1562,6 +1959,7 @@ async function analyzeRepo(repoDir, target, options) {
     features,
     publicFeatures,
     adminFeatures,
+    evidenceFlags,
     routeCount,
     templateCount,
     testCount,
@@ -1622,6 +2020,37 @@ function validateProjectTruthfulness(analysis, checks) {
       note: analysis.claims.note,
     },
   );
+
+  const evidence = analysis.evidenceFlags || {};
+  const requiredDomainEvidence = {
+    'agent-control-plane': ['agentControlPlane'],
+    'design-collaboration': ['designCollaboration'],
+    'preview-engine': ['previewEngine'],
+    game: ['game'],
+    'lead-intelligence': ['leadIntelligence'],
+    'hosting-control-plane': ['hostingControlPlane'],
+    'trello-prompts': ['trelloPrompts'],
+    'course-marketplace': ['courseMarketplace'],
+    'event-rental': ['eventRental'],
+    'garden-commerce': ['gardenCommerce'],
+    'hr-learning': ['hrLearning'],
+    'portfolio-cms': ['portfolioCms'],
+  };
+  const requiredFlags = requiredDomainEvidence[analysis.domain] || [];
+  const missingDomainEvidence = requiredFlags.filter(flag => !evidence[flag]);
+  makeCheck(
+    checks,
+    'truth.copy-domain-fit',
+    'Project narrative domain is supported by repository evidence',
+    missingDomainEvidence.length === 0,
+    {
+      domain: analysis.domain,
+      missingDomainEvidence,
+      evidence,
+    },
+  );
+
+  return unsupportedClaims.length === 0 && missingDomainEvidence.length === 0;
 }
 
 function extractObjectKeys(source, objectName) {
@@ -2052,16 +2481,24 @@ async function runDestinationEvidence(baseUrl, project, outputDir, checks, admin
     await page.click('#loginBtn');
     await page.locator('#appShell').waitFor({ state: 'visible', timeout: 10000 });
     await page.click('[data-view="projects"]');
-    await page.locator('#projectSearch').fill(project.title);
-    await page.waitForFunction(title => {
-      return [...document.querySelectorAll('#projectsTable tbody tr .td-title')]
-        .some(element => element.textContent.trim() === title);
-    }, project.title, { timeout: 10000 });
+    await page.locator('#projectsTable').waitFor({ state: 'visible', timeout: 10000 });
+    await page.waitForFunction(() => {
+      const table = document.querySelector('#projectsTable');
+      return table && (table.querySelector('tbody tr') || table.querySelector('.table-empty'));
+    }, null, { timeout: 15000 });
+    const token = await page.evaluate(() => localStorage.getItem('m3k_token'));
+    const adminProjects = await jsonRequest(baseUrl, 'GET', '/api/admin/projects', undefined, token);
+    const adminProject = Array.isArray(adminProjects) ? adminProjects.find(item => item.slug === project.slug) || null : null;
+    if (!adminProject) throw new Error(`Project ${project.slug} not found in admin API`);
+    await page.locator('#projectSearch').fill(project.title).catch(() => {});
+    await page.waitForTimeout(700);
     artifacts.screenshots.push(await screenshot(page, screenshotsDir, `${prefix}-admin-projects`));
-    const row = page.locator('#projectsTable tbody tr').filter({
-      has: page.locator('.td-title').filter({ hasText: project.title }),
-    }).first();
-    await row.locator('.edit-btn').click();
+    const rowEdit = page.locator(`#projectsTable .edit-btn[data-id="${adminProject.id}"]`).first();
+    if (await rowEdit.count()) {
+      await rowEdit.click();
+    } else {
+      await page.evaluate(id => window.navigate('form', { editId: id }), adminProject.id);
+    }
     await page.locator('#fieldTitle').waitFor({ timeout: 10000 });
     artifacts.screenshots.push(await screenshot(page, screenshotsDir, `${prefix}-admin-edit`));
 
@@ -2249,7 +2686,15 @@ async function main() {
       stack: analysis.stack,
       liveUrl: analysis.liveUrl,
     });
-    validateProjectTruthfulness(analysis, checks);
+    const truthfulPayload = validateProjectTruthfulness(analysis, checks);
+    if (!truthfulPayload && !args.draft) {
+      analysis.project.status = 'draft';
+      analysis.project.featured = false;
+      analysis.project.sort_order = 0;
+      makeCheck(checks, 'truth.publish-gate', 'Project forced to draft because copy evidence checks failed', false, {
+        domain: analysis.domain,
+      }, 'warn');
+    }
 
     const repoMedia = await collectRepoMedia(repoDir, analysis.project.title, checks);
     artifacts = mergeArtifacts(artifacts, repoMedia.artifacts);
@@ -2295,21 +2740,24 @@ async function main() {
         }, 'warn');
       }
 
-      if (!analysis.project.thumbnail_url && analysis.project.media?.length) {
-        analysis.project.thumbnail_url = analysis.project.media[0].url;
-      }
-
-      if (analysis.project.media?.length) {
-        makeCheck(checks, 'source.portfolio-media', 'Portfolio case has real non-GitHub media', true, {
+      analysis.project.media = limitPortfolioMedia(analysis.project.media || []);
+      const mediaStats = ensureImageThumbnail(analysis.project);
+      if (mediaStats.hasEnoughForPublishedCase) {
+        makeCheck(checks, 'source.portfolio-media', 'Portfolio case has multiple screenshots plus a walkthrough video', true, {
           count: analysis.project.media.length,
+          imageCount: mediaStats.imageCount,
+          videoCount: mediaStats.videoCount,
         });
-      }
-      else {
-        makeCheck(checks, 'source.portfolio-media', 'No real product media found; project forced to draft and unfeatured', false, {
+      } else {
+        makeCheck(checks, 'source.portfolio-media', 'Not enough real product media for a published case; project forced to draft and unfeatured', false, {
+          count: analysis.project.media?.length || 0,
+          imageCount: mediaStats.imageCount,
+          videoCount: mediaStats.videoCount,
           thumbnail_url: analysis.project.thumbnail_url,
         }, 'warn');
         analysis.project.status = 'draft';
         analysis.project.featured = false;
+        analysis.project.sort_order = 0;
       }
     } else {
       makeCheck(checks, 'browser.skip', 'Browser evidence skipped by flag', false, {}, 'warn');

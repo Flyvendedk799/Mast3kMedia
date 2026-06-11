@@ -47,13 +47,16 @@ The runner writes artifacts to `mast3kmedia-repo-case/<timestamp>/` by default:
   - `metrics`, testimonial fields, `thumbnail_url`, `case_url`, `media`
 - Leaves unsupported fields empty instead of inventing them, especially testimonials and client quotes.
 - Uses only evidence from repo files, public/live pages, and field-contract inspection.
+- Checks that generated copy is repo-specific, not reused from another domain. A normal webshop must not receive garden, course, event, HR, or lead-intelligence language unless the repo itself contains that evidence.
 - Captures source product screenshots/video before writing the case.
 - Uses real product media from the live URL, repo screenshot assets, or a successfully booted local frontend app as `thumbnail_url` and `media`.
 - Captures multiple relevant product states where possible: homepage/primary view, useful scrolled detail, and strongest internal routes such as product, booking, checkout, dashboard, gallery, course, service, or case pages.
 - Records a short guided browser flow with deliberate scroll/navigation rather than a passive page-load video.
 - If no live/local app can be recorded but the repo contains real product screenshots, it may create a compact screenshot walkthrough video from those exact screenshots; caption it clearly as screenshot-based evidence.
 - Validates repo image bytes and dimensions before embedding them, so logos, icons, placeholders, tiny assets, and mismatched MIME types do not become portfolio media.
-- Boots recognizable frontend dev apps (Vite, Next, React Scripts, Astro, SvelteKit) only when no live URL or repo screenshot assets exist; login-only screens are kept as evidence, not portfolio media.
+- Boots recognizable frontend dev apps (Vite, Next, React Scripts, Astro, SvelteKit) only when no live URL or repo screenshot assets exist; supports npm/pnpm workspaces; login-only screens are kept as evidence, not portfolio media.
+- When a repo exposes a Flask app instead of a Node frontend, runs it in an isolated virtualenv with sandbox/local environment values and captures real public routes such as product, catalog, support, chat, or dashboard pages.
+- If a repo has a local setup script and `DATABASE_URL` points to localhost, runs that setup before browser capture so seeded demo apps can render without touching any remote database.
 - Treats GitHub page screenshots as evidence artifacts only; never use them as `thumbnail_url` or case-page `media` unless the user explicitly asks for a draft-only documentation case.
 - Uses the local Mast3kMedia MCP (`mcp-server.mjs`) to create or update the project.
 - Syncs the same project payload to the live Mast3kMedia production API at `https://mast3kmedia.dk` unless `--local-only` is passed.
@@ -65,11 +68,12 @@ By default, cases are created as `published` and `featured` so the live homepage
 ## Publishing Standards
 
 - Write all case copy in Danish. Keep technology names in their original form.
+- Before publishing, compare `description`, `long_description`, `challenge`, and `approach` against the repo evidence and against existing live cases. Rewrite any generic or cross-domain sentence that could plausibly belong to another repo.
 - Do not claim business results, growth, revenue, conversion, uptime, quality, awards, or client satisfaction unless the repo or public source explicitly documents it.
 - Do not fabricate testimonials. Keep testimonial fields empty unless there is a real quote and attribution in source material.
 - Metrics must be factual and inspectable, such as documented integrations, test file counts, templates, modules, or live/deployment evidence. Do not invent percentage metrics.
 - Prefer the source live URL for `case_url`; use the GitHub repo URL only when no live URL is evidenced.
-- Publish only when the run has real product media from a live page or repo screenshot assets. If no product media exists, keep the project as draft and unfeatured.
+- Publish only when the run has real product media from a live page, local product app, or repo screenshot assets: at least two useful screenshots/images and one walkthrough video. If that bar is not met, keep the project as draft and unfeatured.
 - Screenshots must be useful on the public case page: no GitHub repo views, no bare login screens, no tiny logo/asset crops, no placeholders, and no near-duplicate home-only captures when a product flow can be reached.
 - Videos should show an actual product walkthrough: visible landing state, scroll to useful details, and one or two meaningful internal screens when available.
 - Screenshot walkthrough videos are acceptable only as a fallback when a real browser flow cannot be captured, and the caption must say they are based on repo screenshots.
