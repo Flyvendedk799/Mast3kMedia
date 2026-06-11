@@ -57,6 +57,7 @@ The runner writes artifacts to `mast3kmedia-repo-case/<timestamp>/` by default:
 - Boots recognizable frontend dev apps (Vite, Next, React Scripts, Astro, SvelteKit) only when no live URL or repo screenshot assets exist; supports npm/pnpm workspaces; login-only screens are kept as evidence, not portfolio media.
 - When a repo exposes a Flask app instead of a Node frontend, runs it in an isolated virtualenv with sandbox/local environment values and captures real public routes such as product, catalog, support, chat, or dashboard pages.
 - If a repo has a local setup script and `DATABASE_URL` points to localhost, runs that setup before browser capture so seeded demo apps can render without touching any remote database.
+- If a runnable app is login-only or too thin but the repo contains a substantial static product/landing HTML page, captures that page as product evidence; bare framework shells still fail the media gate.
 - Treats GitHub page screenshots as evidence artifacts only; never use them as `thumbnail_url` or case-page `media` unless the user explicitly asks for a draft-only documentation case.
 - Uses the local Mast3kMedia MCP (`mcp-server.mjs`) to create or update the project.
 - Syncs the same project payload to the live Mast3kMedia production API at `https://mast3kmedia.dk` unless `--local-only` is passed.

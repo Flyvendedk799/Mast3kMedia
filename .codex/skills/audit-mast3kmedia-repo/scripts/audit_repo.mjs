@@ -4,7 +4,7 @@ import path from 'node:path';
 import net from 'node:net';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const PROJECT_FIELDS = [
   'title',
@@ -1268,6 +1268,69 @@ async function captureLocalPythonRepoAppMedia(repoDir, title, outputDir, checks,
   }
 }
 
+function htmlVisibleTextLength(html) {
+  return String(html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&[a-z0-9#]+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .length;
+}
+
+function scoreStaticHtmlCandidate(file, html) {
+  const lowerFile = file.toLowerCase();
+  const lowerHtml = String(html || '').toLowerCase();
+  if (/(^|\/)(node_modules|\.next|dist|build|coverage|vendor)\//.test(lowerFile)) return -100;
+  if (/(^|\/)(base|layout|partial|template|email|error|404)\.html?$/.test(lowerFile)) return -30;
+  if (/<div[^>]+id=["']root["'][^>]*>\s*<\/div>/i.test(html) && htmlVisibleTextLength(html) < 220) return -80;
+
+  let score = 0;
+  if (/landing|showcase|marketing|packaging|public|site|demo/.test(lowerFile)) score += 45;
+  if (/\/index\.html?$/.test(lowerFile)) score += 8;
+  if (/<main|<section|<article|<h1/i.test(html)) score += 20;
+  if (/deploy|dashboard|catalog|course|booking|preview|portfolio|agent|analytics|chat|support|pricing|features/i.test(lowerHtml)) score += 30;
+  const textLength = htmlVisibleTextLength(html);
+  if (textLength > 900) score += 35;
+  else if (textLength > 420) score += 18;
+  else score -= 20;
+  if ((lowerHtml.match(/<a\b/g) || []).length >= 2) score += 8;
+  if ((lowerHtml.match(/<section\b/g) || []).length >= 2) score += 8;
+  return score;
+}
+
+async function findStaticProductHtml(repoDir) {
+  const files = await listRepoFiles(repoDir);
+  const candidates = [];
+  for (const file of files.filter(item => /\.html?$/i.test(item)).slice(0, 80)) {
+    const html = await readIfPresent(repoDir, file);
+    const score = scoreStaticHtmlCandidate(file, html);
+    if (score > 45) candidates.push({ file, score });
+  }
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0] || null;
+}
+
+async function captureLocalStaticHtmlMedia(repoDir, title, outputDir, checks, headed) {
+  const candidate = await findStaticProductHtml(repoDir);
+  if (!candidate) {
+    makeCheck(checks, 'source.local-static-html-detect', 'No useful static product/landing HTML found for capture', false, {}, 'warn');
+    return { media: [], artifacts: { screenshots: [], videos: [] } };
+  }
+  const filePath = path.join(repoDir, candidate.file);
+  const sourceUrl = pathToFileURL(filePath).href;
+  const capture = await captureSourceMedia([sourceUrl], outputDir, checks, headed, title);
+  makeCheck(checks, 'source.local-static-html-media', 'Static product/landing HTML captured as real product media', capture.media.length > 0, {
+    file: candidate.file,
+    score: candidate.score,
+    media: capture.media.length,
+    screenshots: capture.artifacts.screenshots.length,
+    videos: capture.artifacts.videos.length,
+  }, capture.media.length > 0 ? 'error' : 'warn');
+  return { media: capture.media, artifacts: capture.artifacts };
+}
+
 function isIgnoredRepoFile(file) {
   return /(^|\/)(node_modules|\.next|dist|build|coverage|\.git|__pycache__|venv|\.venv|vendor)\//.test(file)
     || /(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?)$/.test(file)
@@ -1707,6 +1770,27 @@ function narrativeForDomain(domain, title, category, stack, featuresDa, adminDa,
   const adminText = daList(adminDa.slice(0, 4), 'admin- og backofficefunktioner');
   const integrations = daList(integrationNames, 'de dokumenterede integrationer');
   const tests = testCount ? ` Der er ${testCount} testfiler i repoet for dele af forretningslogikken.` : '';
+  const titleKey = title.toLowerCase();
+  const agentNarrative = titleKey.includes('paperlocal')
+    ? {
+      description: `${title} er en lokal Paperclip/PaperclipAI workspace med CLI, server, web-UI og adapterpakker til at køre coding agents fra egen maskine.`,
+      longIntro: `${title} dokumenterer den lokale udviklings- og driftspakke omkring Paperclip: adaptere, CLI, server, UI og shared packages samlet i en workspace, der kan køres uden at splitte workflowet på tværs af værktøjer.`,
+      challenge: 'Lokale agent-workflows bliver hurtigt svære at styre, når CLI, server, web-UI, adaptere og databasekontrakter udvikles hver for sig.',
+      approachLead: `Løsningen er bygget med ${stackDa} og organiserer lokale adaptere, CLI, server, UI, databasepakker og delte typer som en samlet workspace.`,
+    }
+    : (titleKey.includes('papersrrv')
+      ? {
+        description: `${title} er et Paperclip server- og control-plane projekt med opgaver, adaptere, database og web-UI til agentiske udviklingsflows.`,
+        longIntro: `${title} fokuserer på server- og kontrolfladen i Paperclip-universet, hvor agentopgaver, adaptere, API, datamodel og UI skal hænge sammen i et kontrollerbart flow.`,
+        challenge: 'Når agentiske udviklingsopgaver skal køre på tværs af værktøjer, kræver det en serverflade der kan samle status, historik, adapterkontrakter og brugerhandlinger uden løse terminalsessioner.',
+        approachLead: `Løsningen er bygget med ${stackDa} og samler server, database, adapterlag, web-UI og delte typer omkring opgaveflowet.`,
+      }
+      : {
+        description: `${title} er en agent- og opgaveplatform til at styre coding tools, adaptere, serverflow og brugergrænseflade fra samme system.`,
+        longIntro: `${title} samler kontrolflade, server, CLI og adaptere omkring agentiske workflows, så forskellige coding tools kan håndteres mere ensartet.`,
+        challenge: 'Agentiske udviklingsværktøjer har forskellige processer, outputformater og konfigurationer. Projektet samler dem i et kontrollerbart workflow i stedet for løse terminalsessioner.',
+        approachLead: `Løsningen er bygget med ${stackDa} og organiserer UI, server, database, CLI, adaptere og delte typer i adskilte moduler.`,
+      });
 
   const narratives = {
     'repo-documentation': {
@@ -1715,12 +1799,7 @@ function narrativeForDomain(domain, title, category, stack, featuresDa, adminDa,
       challenge: 'Repo-dokumentation bliver hurtigt manuel, ujævn og svær at stole på, især når der både skal beskrives arkitektur, brugeroplevelse og faktisk browser-evidence.',
       approachLead: `Løsningen er bygget som en pipeline omkring ${stackDa}, hvor web-UI, worker, kø, capture-lag og render-lag er skilt ad.`,
     },
-    'agent-control-plane': {
-      description: `${title} er en agent- og opgaveplatform til at styre coding tools, adaptere, serverflow og brugergrænseflade fra samme system.`,
-      longIntro: `${title} samler kontrolflade, server, CLI og adaptere omkring agentiske workflows, så forskellige coding tools kan håndteres mere ensartet.`,
-      challenge: 'Agentiske udviklingsværktøjer har forskellige processer, outputformater og konfigurationer. Projektet samler dem i et kontrollerbart workflow i stedet for løse terminalsessioner.',
-      approachLead: `Løsningen er bygget med ${stackDa} og organiserer UI, server, database, CLI, adaptere og delte typer i adskilte moduler.`,
-    },
+    'agent-control-plane': agentNarrative,
     'design-collaboration': {
       description: `${title} er et AI-understøttet design- og artifact-workflow med website, pakker, runtime og eksportfunktioner.`,
       longIntro: `${title} dokumenterer et system til at arbejde med prompts, canvas/artifacts, providers og eksportformater på tværs af en designorienteret kodebase.`,
@@ -2718,6 +2797,16 @@ async function main() {
           analysis.project.media = limitPortfolioMedia([...localCapture.media, ...(analysis.project.media || [])]);
           const firstLocalImage = localCapture.media.find(item => item.type !== 'video');
           analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstLocalImage?.url || localCapture.media[0].url;
+        }
+      }
+
+      if (!analysis.liveUrl && !portfolioMediaStats(analysis.project.media || []).hasEnoughForPublishedCase) {
+        const staticCapture = await captureLocalStaticHtmlMedia(repoDir, analysis.project.title, outputDir, checks, args.headed);
+        artifacts = mergeArtifacts(artifacts, staticCapture.artifacts);
+        if (staticCapture.media?.length) {
+          analysis.project.media = limitPortfolioMedia([...staticCapture.media, ...(analysis.project.media || [])]);
+          const firstStaticImage = staticCapture.media.find(item => item.type !== 'video');
+          analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstStaticImage?.url || staticCapture.media[0].url;
         }
       }
 
