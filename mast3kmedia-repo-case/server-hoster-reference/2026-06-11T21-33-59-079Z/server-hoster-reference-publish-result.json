@@ -1,0 +1,33 @@
+{
+  "localMcp": "updated",
+  "production": {
+    "id": 10,
+    "slug": "server-hoster",
+    "title": "Server Hoster (LocalSURV)",
+    "status": "published",
+    "featured": true,
+    "mediaCount": 9
+  },
+  "slimPayloadPath": "/Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/server-hoster-reference-payload.slim.json",
+  "screenshots": [
+    "mast3kmedia-live-serverhoster-case-final.jpg",
+    "mast3kmedia-live-serverhoster-video-polished.jpg",
+    "mast3kmedia-origin-serverhoster-case-scrolled-final.jpg",
+    "mast3kmedia-serverhoster-chart-live-final.jpg",
+    "mast3kmedia-serverhoster-chart-origin-final.jpg",
+    "mast3kmedia-serverhoster-chart-origin.jpg",
+    "serverhoster-01-dashboard-overview.jpg",
+    "serverhoster-02-dashboard-health-and-activity.jpg",
+    "serverhoster-03-service-control-plane.jpg",
+    "serverhoster-04-deployment-pipeline.jpg",
+    "serverhoster-05-terminal-logs.jpg",
+    "serverhoster-06-edge-ingress.jpg",
+    "serverhoster-07-database-operations.jpg",
+    "serverhoster-08-mobile-dashboard.jpg",
+    "serverhoster-09-mobile-services.jpg"
+  ],
+  "videos": [
+    "serverhoster-authenticated-control-plane-polished.webm",
+    "serverhoster-authenticated-control-plane.webm"
+  ]
+}

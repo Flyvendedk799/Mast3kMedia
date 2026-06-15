@@ -43,6 +43,24 @@ The MCP must support everything the admin UI can submit:
 | `case_url` | `fieldCaseUrl` | live app/repo URL, or empty to clear |
 | `media` | `fieldMedia` | structured case-page screenshots/videos |
 
+## Public Case Renderer Capabilities
+
+`case.html` may expose richer visual modules than the persisted MCP/admin fields. Prefer driving these modules from existing fields before changing the MCP schema:
+
+- `metrics` can feed the metric band and any factual numeric chart/graph.
+- `media` can feed the hero image, screenshot gallery, video gallery, interactive feature showcase, and device showcase.
+- `tech_stack` feeds the stack list.
+- `challenge` and `approach` feed the narrative columns.
+- testimonial fields feed the quote block only when a real quote exists.
+
+Use renderer modules only when evidence supports them:
+
+- Feature/showcase tabs should be based on real screenshots and documented workflows.
+- Device/mobile sections require a real narrow/mobile viewport screenshot, not a cropped desktop image.
+- Before/after sections may show an evidence-backed workflow contrast, but must not imply measured impact unless the source proves it.
+- Next-case CTAs should stay hidden unless a curated next case is explicitly defined.
+- Do not add a new MCP/admin field unless the existing fields cannot represent the needed published behavior cleanly.
+
 ## Required Destination MCP Tools
 
 - `list_projects`
@@ -69,6 +87,7 @@ A complete run should produce:
 - screenshots/videos for the source live URL, repo-provided product screenshots, or a booted local frontend app
 - screenshots/videos for local Mast3kMedia admin and public case rendering
 - screenshots/videos for live Mast3kMedia admin and public case rendering when production sync is enabled
+- desktop and mobile public-case verification for reference-grade cases, including lazy media, video readiness, console/page errors, and horizontal overflow checks
 
 ## Publishing Requirements
 
@@ -82,3 +101,4 @@ A complete run should produce:
 - GitHub page screenshots are evidence only; they are not valid portfolio thumbnails or case media.
 - Videos may be embedded only when the `media` item is a real video URL or data URL and the case page renders it. Screenshot walkthrough videos are allowed only when clearly captioned as being generated from repo-provided product screenshots.
 - If no usable product media exists, keep the case as draft/unfeatured rather than publishing a weak public case.
+- For flagship/reference cases, treat the automated case as a draft baseline until the public page uses every evidence-backed case capability available in the current Mast3kMedia template.

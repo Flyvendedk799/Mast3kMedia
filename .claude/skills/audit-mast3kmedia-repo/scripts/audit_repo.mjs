@@ -168,6 +168,38 @@ function isDeploymentManagementUrl(value) {
   }
 }
 
+function repoNeedlesFromTarget(target, metadata = null) {
+  const parts = repoParts(target);
+  const repo = metadata?.repo || parts.repo || '';
+  const owner = metadata?.owner || parts.owner || '';
+  return {
+    repoNeedle: String(repo).toLowerCase().replace(/[^a-z0-9]/g, ''),
+    ownerNeedle: String(owner).toLowerCase().replace(/[^a-z0-9]/g, ''),
+  };
+}
+
+function isProjectLiveUrl(value, target, metadata = null) {
+  if (!validPublicUrl(value) || isGithubPageUrl(value)) return false;
+  try {
+    const url = new URL(String(value));
+    const host = url.hostname.toLowerCase();
+    const pathName = url.pathname.toLowerCase();
+    const normalized = `${host}${pathName}`.replace(/[^a-z0-9]/g, '');
+    const { repoNeedle, ownerNeedle } = repoNeedlesFromTarget(target, metadata);
+    const namesProject = Boolean(
+      (repoNeedle && normalized.includes(repoNeedle))
+      || (ownerNeedle && normalized.includes(ownerNeedle)),
+    );
+    const referenceHost = /(^|\.)((godotengine|nodejs|npmjs|python)\.org|react\.dev|vitejs\.dev|nextjs\.org|docs\.github\.com|developer\.mozilla\.org)$/i.test(host);
+    const referencePath = /(^|\/)(docs?|documentation|manual|guide|api|download|archive|releases?|examples?)(\/|$|-)/i.test(pathName);
+    if (!namesProject && (referenceHost || referencePath || /^docs?\./i.test(host))) return false;
+    if (/\/download\/archive\//i.test(pathName)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function mediaMimeFor(filePath, buffer = null) {
   if (buffer?.length >= 12) {
     if (buffer[0] === 0xff && buffer[1] === 0xd8) return 'image/jpeg';
@@ -449,6 +481,8 @@ function scoreMediaCandidate(file) {
   if (/screenshots?|captures?|demo|preview|case|portfolio/.test(lower)) score += 80;
   if (/full|hero|home|dashboard|admin|mobile|desktop|flow|checkout|builder|editor|overview|grid|product/.test(lower)) score += 35;
   if (/public\/|assets\/|static\/|images?\//.test(lower)) score += 10;
+  if (/(^|\/)(header|footer|banner|cover)\.(png|jpe?g|webp)$/i.test(lower)) score -= 90;
+  if (/doc\/assets\//i.test(lower) && !/screenshots?|captures?|demo|preview|case|portfolio/i.test(lower)) score -= 45;
   if (/logo|icon|favicon|sprite|placeholder|mock|avatar|badge/.test(lower)) score -= 90;
   if (/node_modules|\.next|dist|build|coverage|\.git/.test(lower)) score -= 200;
   return score;
@@ -542,6 +576,7 @@ async function inspectPageState(page) {
     const loginOnly = hasPassword && /sign in|log in|login|adgangskode|password/i.test(text) && controls < 10;
     const emptyCart = /kurv|cart|basket/i.test(h1) && /kurv er tom|tom kurv|cart is empty|empty cart|basket is empty|basket empty/i.test(text);
     const accountOnly = hasPassword && /opret konto|create account|log ind|login|sign in/i.test(text) && controls < 14;
+    const errorPage = /something went wrong|application error|internal server error|runtime error|500\s+internal|server error|unexpected error/i.test(text) && images < 3 && controls < 10;
     const blankish = text.trim().length < 90 && images < 2 && controls < 4;
     return {
       h1,
@@ -554,6 +589,7 @@ async function inspectPageState(page) {
       loginOnly,
       emptyCart,
       accountOnly,
+      errorPage,
       blankish,
     };
   });
@@ -807,6 +843,7 @@ async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, 
   const media = [];
   let thumbnailDataUrl = null;
   let targets = [];
+  const capturedTargets = [];
   let captured = false;
   page.on('console', msg => {
     if (msg.type() === 'error') artifacts.consoleErrors.push(msg.text());
@@ -818,6 +855,8 @@ async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, 
     let state = await inspectPageState(page);
     if (state.loginOnly) {
       makeCheck(checks, `browser.${prefix}.quality`, 'Source rendered only a login wall, not portfolio media', false, { sourceUrl }, 'warn');
+    } else if (state.errorPage) {
+      makeCheck(checks, `browser.${prefix}.quality`, 'Source rendered an application error page, not portfolio media', false, { sourceUrl, state }, 'warn');
     } else if (state.blankish) {
       makeCheck(checks, `browser.${prefix}.quality`, 'Source rendered too little visible product UI for portfolio media', false, { sourceUrl, state }, 'warn');
     } else {
@@ -835,7 +874,7 @@ async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, 
         visited.add(key);
         await gotoAndSettle(page, target.url);
         state = await inspectPageState(page);
-        if (state.loginOnly || state.emptyCart || state.accountOnly || state.blankish) continue;
+        if (state.loginOnly || state.emptyCart || state.accountOnly || state.errorPage || state.blankish) continue;
         const sourceKey = sourceUrl.replace(/[#?].*$/, '').replace(/\/$/, '');
         const targetKey = target.url.replace(/[#?].*$/, '').replace(/\/$/, '');
         const primaryView = sourceKey === targetKey;
@@ -852,6 +891,7 @@ async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, 
         );
         if (firstItem && !thumbnailDataUrl) thumbnailDataUrl = firstItem.url;
         captured = true;
+        capturedTargets.push(target);
         shotIndex += 1;
         if ((state.scrollHeight > state.viewportHeight * 1.45 || state.cards >= 3) && media.length < maxImages) {
           await scrollToUsefulSection(page);
@@ -887,7 +927,10 @@ async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, 
           shotIndex += 1;
         }
       }
-      await performGuidedFlow(page, sourceUrl, targets);
+      const videoTargets = capturedTargets
+        .filter(target => target.url.replace(/[#?].*$/, '').replace(/\/$/, '') !== sourceUrl.replace(/[#?].*$/, '').replace(/\/$/, ''))
+        .slice(0, 3);
+      await performGuidedFlow(page, sourceUrl, videoTargets);
       makeCheck(checks, `browser.${prefix}.media`, 'Relevant product screenshots and guided browser flow captured', captured, {
         sourceUrl,
         targets: targets.slice(0, 4).map(target => ({ url: target.url, label: target.label, score: target.score })),
@@ -930,7 +973,7 @@ async function collectRepoMedia(repoDir, title, checks) {
     .map(line => line.trim().replace(/^\.\//, ''))
     .filter(file => /\.(png|jpe?g|webp)$/i.test(file))
     .map(file => ({ file, score: scoreMediaCandidate(file) }))
-    .filter(item => item.score > 0)
+    .filter(item => item.score >= 45)
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);
 
@@ -1282,16 +1325,17 @@ function htmlVisibleTextLength(html) {
 function scoreStaticHtmlCandidate(file, html) {
   const lowerFile = file.toLowerCase();
   const lowerHtml = String(html || '').toLowerCase();
+  const textLength = htmlVisibleTextLength(html);
   if (/(^|\/)(node_modules|\.next|dist|build|coverage|vendor)\//.test(lowerFile)) return -100;
   if (/(^|\/)(base|layout|partial|template|email|error|404)\.html?$/.test(lowerFile)) return -30;
   if (/<div[^>]+id=["']root["'][^>]*>\s*<\/div>/i.test(html) && htmlVisibleTextLength(html) < 220) return -80;
+  if (textLength < 220 && !/<(img|video)\b/i.test(html)) return -80;
 
   let score = 0;
   if (/landing|showcase|marketing|packaging|public|site|demo/.test(lowerFile)) score += 45;
   if (/\/index\.html?$/.test(lowerFile)) score += 8;
   if (/<main|<section|<article|<h1/i.test(html)) score += 20;
   if (/deploy|dashboard|catalog|course|booking|preview|portfolio|agent|analytics|chat|support|pricing|features/i.test(lowerHtml)) score += 30;
-  const textLength = htmlVisibleTextLength(html);
   if (textLength > 900) score += 35;
   else if (textLength > 420) score += 18;
   else score -= 20;
@@ -1887,9 +1931,12 @@ function narrativeForDomain(domain, title, category, stack, featuresDa, adminDa,
   };
 
   const chosen = narratives[domain] || narratives.generic;
+  const evidenceParagraph = adminDa.length
+    ? `Repoet dokumenterer en løsning omkring ${stackDa}. Nøgleflows omfatter ${featureText}. På driftssiden dokumenterer repoet ${adminText}.`
+    : `Repoet dokumenterer en løsning omkring ${stackDa}. Nøgleflows omfatter ${featureText}. Kodebase, routes, assets eller dokumentation er brugt som evidens for de viste flows.`;
   const longDescription = [
     chosen.longIntro,
-    `Repoet dokumenterer en løsning omkring ${stackDa}. Nøgleflows omfatter ${featureText}. På driftssiden dokumenterer repoet ${adminText}.`,
+    evidenceParagraph,
   ].join('\n\n');
   const approach = [
     chosen.approachLead,
@@ -1958,7 +2005,9 @@ async function analyzeRepo(repoDir, target, options) {
   const slug = slugify(title);
   const repoUrl = metadata?.htmlUrl || (parts.owner && parts.repo ? `https://github.com/${parts.owner}/${parts.repo}` : (isRepoUrl(target) ? target : null));
   const extractedUrl = extractLiveUrl(docs, target);
-  const liveUrl = validPublicUrl(metadata?.homepage) ? metadata.homepage : (validPublicUrl(extractedUrl) && !/github\.com/i.test(extractedUrl) ? extractedUrl : null);
+  const metadataHomepage = isProjectLiveUrl(metadata?.homepage, target, metadata) ? metadata.homepage : null;
+  const extractedLiveUrl = isProjectLiveUrl(extractedUrl, target, metadata) ? extractedUrl : null;
+  const liveUrl = metadataHomepage || extractedLiveUrl;
   const featuresSource = `${extractSection(docs, 'What it does')}\n${extractSection(docs, 'What It Covers')}\n${extractSection(docs, 'Features')}\n${extractSection(docs, 'Key Features')}\n${extractSection(docs, 'Completed Features')}`;
   const features = [
     ...extractTableRows(featuresSource, 10),
@@ -2525,7 +2574,7 @@ async function captureSourceMedia(sourceUrls, outputDir, checks, headed, title =
     makeCheck(checks, 'browser.source-evidence', 'Source project page screenshot captured', false, {
       sourceUrls,
       error: lastError?.message || 'No source URL available',
-    });
+    }, 'warn');
   }
 
   await browser.close();
@@ -2775,41 +2824,7 @@ async function main() {
       }, 'warn');
     }
 
-    const repoMedia = await collectRepoMedia(repoDir, analysis.project.title, checks);
-    artifacts = mergeArtifacts(artifacts, repoMedia.artifacts);
-    if (repoMedia.media.length) {
-      analysis.project.media = limitPortfolioMedia(repoMedia.media);
-      analysis.project.thumbnail_url = analysis.project.thumbnail_url || repoMedia.media[0].url;
-      const screenshotVideo = await createScreenshotWalkthroughVideo(repoMedia.artifacts.screenshots, analysis.project.title, outputDir, checks);
-      artifacts = mergeArtifacts(artifacts, screenshotVideo.artifacts);
-      if (screenshotVideo.media.length) {
-        analysis.project.media = limitPortfolioMedia([...(analysis.project.media || []), ...screenshotVideo.media]);
-      }
-    }
-
     if (!args.noBrowser) {
-      const mediaImages = (analysis.project.media || []).filter(item => item.type !== 'video').length;
-      const hasVideo = (analysis.project.media || []).some(item => item.type === 'video');
-      if (!analysis.liveUrl && (!analysis.project.media?.length || mediaImages < 3 || !hasVideo)) {
-        const localCapture = await captureLocalRepoAppMedia(repoDir, analysis.project.title, outputDir, checks, args.headed);
-        artifacts = mergeArtifacts(artifacts, localCapture.artifacts);
-        if (localCapture.media?.length) {
-          analysis.project.media = limitPortfolioMedia([...localCapture.media, ...(analysis.project.media || [])]);
-          const firstLocalImage = localCapture.media.find(item => item.type !== 'video');
-          analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstLocalImage?.url || localCapture.media[0].url;
-        }
-      }
-
-      if (!analysis.liveUrl && !portfolioMediaStats(analysis.project.media || []).hasEnoughForPublishedCase) {
-        const staticCapture = await captureLocalStaticHtmlMedia(repoDir, analysis.project.title, outputDir, checks, args.headed);
-        artifacts = mergeArtifacts(artifacts, staticCapture.artifacts);
-        if (staticCapture.media?.length) {
-          analysis.project.media = limitPortfolioMedia([...staticCapture.media, ...(analysis.project.media || [])]);
-          const firstStaticImage = staticCapture.media.find(item => item.type !== 'video');
-          analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstStaticImage?.url || staticCapture.media[0].url;
-        }
-      }
-
       if (analysis.liveUrl) {
         const sourceCapture = await captureSourceMedia(
           [analysis.liveUrl],
@@ -2827,6 +2842,38 @@ async function main() {
         makeCheck(checks, 'browser.source-live-url', 'No live product URL found, so browser capture did not use GitHub as portfolio media', true, {
           repoUrl: analysis.repoUrl,
         }, 'warn');
+        const localCapture = await captureLocalRepoAppMedia(repoDir, analysis.project.title, outputDir, checks, args.headed);
+        artifacts = mergeArtifacts(artifacts, localCapture.artifacts);
+        if (localCapture.media?.length) {
+          analysis.project.media = limitPortfolioMedia([...localCapture.media, ...(analysis.project.media || [])]);
+          const firstLocalImage = localCapture.media.find(item => item.type !== 'video');
+          analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstLocalImage?.url || localCapture.media[0].url;
+        }
+
+        if (!portfolioMediaStats(analysis.project.media || []).hasEnoughForPublishedCase) {
+          const staticCapture = await captureLocalStaticHtmlMedia(repoDir, analysis.project.title, outputDir, checks, args.headed);
+          artifacts = mergeArtifacts(artifacts, staticCapture.artifacts);
+          if (staticCapture.media?.length) {
+            analysis.project.media = limitPortfolioMedia([...staticCapture.media, ...(analysis.project.media || [])]);
+            const firstStaticImage = staticCapture.media.find(item => item.type !== 'video');
+            analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstStaticImage?.url || staticCapture.media[0].url;
+          }
+        }
+      }
+
+      if (!portfolioMediaStats(analysis.project.media || []).hasEnoughForPublishedCase) {
+        const repoMedia = await collectRepoMedia(repoDir, analysis.project.title, checks);
+        artifacts = mergeArtifacts(artifacts, repoMedia.artifacts);
+        if (repoMedia.media.length) {
+          analysis.project.media = limitPortfolioMedia([...(analysis.project.media || []), ...repoMedia.media]);
+          const firstRepoImage = repoMedia.media.find(item => item.type !== 'video');
+          analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstRepoImage?.url || repoMedia.media[0].url;
+          const screenshotVideo = await createScreenshotWalkthroughVideo(repoMedia.artifacts.screenshots, analysis.project.title, outputDir, checks);
+          artifacts = mergeArtifacts(artifacts, screenshotVideo.artifacts);
+          if (screenshotVideo.media.length) {
+            analysis.project.media = limitPortfolioMedia([...(analysis.project.media || []), ...screenshotVideo.media]);
+          }
+        }
       }
 
       analysis.project.media = limitPortfolioMedia(analysis.project.media || []);
@@ -2849,6 +2896,12 @@ async function main() {
         analysis.project.sort_order = 0;
       }
     } else {
+      const repoMedia = await collectRepoMedia(repoDir, analysis.project.title, checks);
+      artifacts = mergeArtifacts(artifacts, repoMedia.artifacts);
+      if (repoMedia.media.length) {
+        analysis.project.media = limitPortfolioMedia(repoMedia.media);
+        analysis.project.thumbnail_url = analysis.project.thumbnail_url || repoMedia.media[0].url;
+      }
       makeCheck(checks, 'browser.skip', 'Browser evidence skipped by flag', false, {}, 'warn');
     }
 

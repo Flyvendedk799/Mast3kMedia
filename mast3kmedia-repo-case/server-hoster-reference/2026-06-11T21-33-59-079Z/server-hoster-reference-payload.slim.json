@@ -1,0 +1,121 @@
+{
+  "title": "Server Hoster (LocalSURV)",
+  "slug": "server-hoster",
+  "category": "DevTools",
+  "description": "Server Hoster (LocalSURV) er et self-hosted PaaS-kontrolpanel til egne maskiner med GitHub deploys, live build logs, reverse proxy, Cloudflare Tunnel, managed databases, health checks og MCP-adgang.",
+  "long_description": "Server Hoster-casen bygger på LocalSURV-repoet: en single-machine deploy-platform, der giver en Mac mini, Linux-boks eller Windows-maskine et browserbaseret kontrolpanel til egne services. Dashboardet samler GitHub-deploys, buildhistorik, live logs, service health, domain routing, secrets og databasekoblinger i én lokal control plane.\n\nDet vigtige ved casen er ikke kun en pæn frontend, men at operatørflowet er samlet fra ende til ende: et projekt kan kobles til GitHub, bygges, startes som process/static/Docker-service, routes ud via host-baseret proxy eller Cloudflare Tunnel og overvåges med WebSocket logs, metrics, notifikationer og audit trail. Reference-mediet er derfor optaget fra en bootet, autentificeret LocalSURV-dashboardoplevelse med realistisk driftsdata, så casen viser de faktiske produktflader frem for kun en landing page.",
+  "challenge": "Egen hosting bliver hurtigt fragmenteret: Git pulls, builds, processer, Docker-containere, SSL, reverse proxy, secrets, logs, databaser og health checks ender ofte i separate terminalkommandoer. Målet var at samle de operationelle beslutninger i et dashboard, hvor en udvikler kan forstå status, deploye nyt kodegrundlag og fejlfinde uden at miste kontrol over egen infrastruktur.",
+  "approach": "Løsningen kombinerer et React/Vite-dashboard med et Fastify API og SQLite som lokal state. Repoet viser routes til projekter, services, deployments, proxy, Cloudflare, tunneller, databaser, observability, terminaler, agents og MCP. Runtime-laget understøtter proces- og static-services, Docker-services, auto-restart, healthchecks, GitHub webhooks/polling, rollback/redeploy, encrypted secrets, audit logs og WebSocket-baseret logstreaming. Casens media viser de centrale arbejdsgange: driftsoverblik, service control plane, GitOps pipeline, terminal logs, edge ingress og databasekoblinger.",
+  "tags": [
+    "DevTools",
+    "Self-hosting",
+    "PaaS",
+    "GitHub Deploy",
+    "Reverse Proxy",
+    "Cloudflare Tunnel",
+    "Live Logs",
+    "Databases",
+    "MCP",
+    "Dashboard"
+  ],
+  "tech_stack": [
+    "TypeScript",
+    "React",
+    "Vite",
+    "Fastify",
+    "SQLite",
+    "better-sqlite3",
+    "Dockerode",
+    "Cloudflare Tunnel",
+    "GitHub Webhooks",
+    "WebSocket",
+    "MCP SDK",
+    "Zod",
+    "Framer Motion",
+    "Lucide React"
+  ],
+  "client": "Server Hoster",
+  "year": 2026,
+  "status": "published",
+  "featured": true,
+  "sort_order": -10,
+  "metrics": [
+    {
+      "value": "20",
+      "label": "API-routefiler i kontrolplanet"
+    },
+    {
+      "value": "11",
+      "label": "dashboard-sider i webappen"
+    },
+    {
+      "value": "18",
+      "label": "testfiler dokumenteret i audit"
+    },
+    {
+      "value": "5",
+      "label": "package manifests kortlagt"
+    }
+  ],
+  "testimonial_text": "",
+  "testimonial_author": "",
+  "testimonial_role": "",
+  "thumbnail_url": "[data-url 106735 chars]",
+  "case_url": "https://github.com/Flyvendedk799/ServerHoster",
+  "media": [
+    {
+      "type": "image",
+      "url": "[data-url 106735 chars]",
+      "caption": "Driftsoverblik med live stream, health score, seneste deployments og service metrics.",
+      "alt": "LocalSURV dashboard med health score, deployments og service health"
+    },
+    {
+      "type": "image",
+      "url": "[data-url 152835 chars]",
+      "caption": "Service-control plane med GitHub-status, runtime controls, managed Postgres og public domain.",
+      "alt": "Server Hoster service control plane med Mast3kMedia webservice og Postgres"
+    },
+    {
+      "type": "image",
+      "url": "[data-url 125623 chars]",
+      "caption": "GitOps deployment pipeline med manual trigger, revisionshistorik, success states, failed build og retry.",
+      "alt": "Server Hoster deployment pipeline med historiske deployments"
+    },
+    {
+      "type": "image",
+      "url": "[data-url 117231 chars]",
+      "caption": "Terminal Pro med live logstreaming, level-filter, søgning, eksport og servicekontekst.",
+      "alt": "Server Hoster Terminal Pro live logs for portfolio API"
+    },
+    {
+      "type": "image",
+      "url": "[data-url 106415 chars]",
+      "caption": "Edge ingress med host-baserede routes fra offentlige domæner til lokale services.",
+      "alt": "Server Hoster edge routing med mast3kmedia.dk og api.mast3kmedia.dk"
+    },
+    {
+      "type": "image",
+      "url": "[data-url 100207 chars]",
+      "caption": "Database-overblik med managed Postgres/Redis, backups, størrelser og service links.",
+      "alt": "Server Hoster database operationer med Postgres og Redis"
+    },
+    {
+      "type": "image",
+      "url": "[data-url 103679 chars]",
+      "caption": "Smal mobil dashboardvisning med health score, service metrics og komprimeret navigation.",
+      "alt": "Server Hoster mobil dashboardvisning i smal viewport"
+    },
+    {
+      "type": "image",
+      "url": "[data-url 100659 chars]",
+      "caption": "Smal mobil services-visning med GitHub deploy, import stack og platform presets.",
+      "alt": "Server Hoster mobil services-visning i smal viewport"
+    },
+    {
+      "type": "video",
+      "url": "[data-url 3998015 chars]",
+      "caption": "Guidet referenceflow gennem dashboard, services, deploy pipeline, logs, edge ingress og databases.",
+      "alt": "Server Hoster guidet kontrolpanelvideo"
+    }
+  ]
+}

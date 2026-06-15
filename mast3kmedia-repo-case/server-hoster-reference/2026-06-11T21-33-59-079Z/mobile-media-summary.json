@@ -1,0 +1,9 @@
+{
+  "apiBase": "http://127.0.0.1:55526",
+  "webBase": "http://127.0.0.1:55527",
+  "screenshots": [
+    "/Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/screenshots/reference/serverhoster-08-mobile-dashboard.jpg",
+    "/Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/screenshots/reference/serverhoster-09-mobile-services.jpg"
+  ],
+  "logs": "/Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/logs"
+}
