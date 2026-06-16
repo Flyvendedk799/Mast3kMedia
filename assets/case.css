@@ -115,7 +115,46 @@
 .chart-xaxis { display: flex; gap: clamp(0.5rem, 2vw, 1.4rem); padding-left: 2.6rem; margin-top: 0.7rem; }
 .chart-xaxis span { flex: 1; text-align: center; font-family: var(--font-mono); font-size: 0.6rem; color: var(--faint); }
 .chart-cap { display: inline-flex; align-items: baseline; gap: 0.5rem; margin-top: 1.2rem; }
+.repo-chart { align-items: end; }
+.repo-chart .chart-copy .muted { max-width: 62ch; }
+.repo-chart-list {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1.6rem;
+  list-style: none;
+}
+.repo-chart-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+.repo-chart-list span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.repo-chart-list strong {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  color: var(--lime);
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+}
+.repo-chart .chart-xaxis span {
+  min-height: 2.4rem;
+  line-height: 1.2;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
 @media (max-width: 820px) { .chartwrap { grid-template-columns: 1fr; } .chart-plot { height: 220px; } }
+@media (max-width: 560px) {
+  .repo-chart-list li { align-items: flex-start; flex-direction: column-reverse; gap: 0.25rem; }
+  .repo-chart .chart-plot { gap: 0.55rem; }
+  .repo-chart .chart-xaxis { gap: 0.45rem; }
+  .repo-chart .chart-xaxis span { font-size: 0.54rem; }
+}
 
 /* ---------- Device showcase ---------- */
 .devices { display: grid; grid-template-columns: 1.5fr 0.62fr; gap: clamp(1.2rem, 3vw, 2.5rem); align-items: end; }
