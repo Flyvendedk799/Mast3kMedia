@@ -14,6 +14,19 @@ The Mast3kMedia checkout should expose:
 - `admin/admin.js`
 - `admin/admin.css`
 - public pages that consume projects: `index.html`, `arbejde.html`, `case.html`
+- `uploads/` static directory served at the `/uploads` path
+
+### Required Admin Element IDs (v2 media manager + block builder)
+
+The audit verifies these IDs exist in `admin/index.html` so field/surface parity holds:
+
+- `fieldBlocks` — hidden input/textarea holding JSON of the `blocks` array.
+- `blocksBuilder` — container for the block builder UI.
+- `mediaManager` — container for the structured media editor.
+- `mediaUploadInput` — `<input type=file>` for uploads to `POST /api/admin/uploads`.
+- `embedUrlInput` — text input for a YouTube/Vimeo embed URL.
+
+Existing field IDs (`fieldTitle`, `fieldSlug`, `fieldMedia`, etc.) remain intact.
 
 ## Destination Project Fields
 
@@ -41,7 +54,53 @@ The MCP must support everything the admin UI can submit:
 | `testimonial_role` | `fieldTestiRole` | optional quote role |
 | `thumbnail_url` | `fieldThumb` | card media URL/data URL, or empty to clear |
 | `case_url` | `fieldCaseUrl` | live app/repo URL, or empty to clear |
-| `media` | `fieldMedia` | structured case-page screenshots/videos |
+| `media` | `fieldMedia` / `mediaManager` | structured case-page screenshots/videos (enriched items, see Media Roles) |
+| `blocks` | `fieldBlocks` / `blocksBuilder` | ordered custom layout sections appended after the core case sections (see Block Types) |
+
+### Media Roles (enriched `media` item shape — backward compatible)
+
+Existing items (`{type,url,caption,alt}`) keep rendering unchanged. New optional keys:
+
+- `provider`: `file` | `mp4` | `youtube` | `vimeo`. Inferred from the URL when absent
+  (`youtube.com`/`youtu.be` ⇒ youtube; `vimeo.com` ⇒ vimeo; `.mp4`/`.webm` ⇒ mp4; else file).
+- `poster`: optional poster image URL for video/embed items.
+- `role`: how the renderer places the item. Default `gallery`. Allowed values:
+  `hero`, `gallery`, `feature`, `before`, `after`, `device-desktop`, `device-mobile`, `demo`.
+
+The runner assigns `role` from filename/caption keywords: hero/dashboard/overview ⇒ `hero`,
+mobile ⇒ `device-mobile`, before ⇒ `before`, after ⇒ `after`, demo/video/walkthrough ⇒ `demo`,
+everything else ⇒ `gallery`. Exactly one item is promoted to `hero`.
+
+### Block Types (`blocks` is an ordered array, rendered after core sections)
+
+Each block is `{ "type": "...", "id"?: "anchor-id", ...typed fields }`. Renderers ignore
+unknown `type` values gracefully. Supported types:
+
+- `richtext` — `eyebrow?`, `title?`, `body` (markdown-lite).
+- `timeline` — `title?`, `phases: [{ label, title, body, date? }]` (first-class process visual).
+- `gallery` — `title?`, `layout?` (`grid`|`masonry`), `items: [<media item>]`.
+- `video` — `title?`, `items: [<media item, type video|embed>]`.
+- `before_after` — `title?`, `before: {url,label?}`, `after: {url,label?}`.
+- `metrics` — `title?`, `items: [{value,label}]`.
+- `quote` — `text`, `author?`, `role?`.
+- `embed` — `provider` (`youtube`|`vimeo`), `url`, `caption?`.
+
+The runner auto-generates a `timeline` block from documented project phases
+(Roadmap/Process/Milestones/Phases sections) and a `gallery` block from screenshots
+when the evidence supports it; otherwise `blocks` stays `[]`.
+
+## Media Upload API
+
+The destination server exposes media storage so case media is served as static files
+instead of inlined base64:
+
+- `POST /api/admin/uploads` (auth required, `Bearer` token). Raw binary body with
+  `Content-Type: <mime>` and optional `X-Filename: <original.ext>`. Rejects empty bodies
+  (400) and non image/video MIME types (415).
+- Response `201`: `{ "url": "/uploads/<name>", "type": "image"|"video", "mime", "bytes", "width"?, "height"? }`.
+- Uploaded files are served from the static `/uploads` path.
+- Prefer uploaded `/uploads/<name>` URLs over base64 data URLs when the upload route is
+  reachable from the runner.
 
 ## Public Case Renderer Capabilities
 
@@ -74,6 +133,8 @@ Use renderer modules only when evidence supports them:
 - `set_featured`
 - `reorder_projects`
 - `bulk_import`
+- `set_blocks` — input `{ ref, blocks }`; replaces the project's `blocks` array.
+- `add_media` — input `{ ref, items: [<media item>], replace?: boolean }`; appends (or replaces when `replace:true`) the `media` array; supports `role`/`provider`/`poster`.
 
 ## Evidence Requirements
 

@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="assets/base.css" />
 <link rel="stylesheet" href="assets/sub.css" />
+<link rel="stylesheet" href="assets/work.css" />
 </head>
 <body>
 
@@ -69,13 +70,31 @@
 
 <section class="section-pad" style="padding-top: clamp(2rem,4vw,3rem)">
   <div class="shell">
-    <div class="filters" data-reveal="up">
-      <button class="filter active" data-filter="all">Alle</button>
-      <button class="filter" data-filter="saas">SaaS</button>
-      <button class="filter" data-filter="app">App</button>
-      <button class="filter" data-filter="ai">AI</button>
-      <button class="filter" data-filter="fintech">Fintech</button>
-      <button class="filter" data-filter="web">Web</button>
+    <div class="work-toolbar" data-reveal="up">
+      <div class="work-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="search" placeholder="Søg i cases — titel, beskrivelse, tags, tech…" aria-label="Søg i cases" autocomplete="off" />
+        <button type="button" class="work-search-clear" aria-label="Ryd søgning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6 18 18M18 6 6 18"/></svg></button>
+      </div>
+
+      <div class="filters">
+        <button class="filter active" data-filter="all">Alle</button>
+        <button class="filter" data-filter="saas">SaaS</button>
+        <button class="filter" data-filter="app">App</button>
+        <button class="filter" data-filter="ai">AI</button>
+        <button class="filter" data-filter="fintech">Fintech</button>
+        <button class="filter" data-filter="web">Web</button>
+      </div>
+
+      <div class="work-chips" aria-label="Filtrér efter tag og teknologi"></div>
+
+      <div class="work-count" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="work-empty">
+      <div class="we-title">Ingen cases matcher</div>
+      <p class="we-sub">Prøv et andet søgeord eller fjern nogle filtre.</p>
+      <button type="button" class="work-reset">Nulstil filtre</button>
     </div>
 
     <div class="work-grid">
@@ -159,75 +178,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
 <script src="assets/anim.js"></script>
-<script>
-  /* ── Category → filter key mapping ── */
-  var CAT_MAP = {
-    'saas': 'saas', 'app': 'app', 'ai': 'ai', 'fintech': 'fintech',
-    'e-commerce': 'web saas', 'software': 'web', 'marketing': 'web',
-    'design': 'web', 'andet': 'web', 'web': 'web'
-  };
-  function catToFilter(cat) { return CAT_MAP[(cat||'').toLowerCase()] || 'web'; }
-
-  /* ── Filter buttons (re-used after dynamic load) ── */
-  function initFilters() {
-    document.querySelectorAll('.filter').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        document.querySelectorAll('.filter').forEach(function (b) { b.classList.remove('active'); });
-        btn.classList.add('active');
-        var f = btn.dataset.filter;
-        document.querySelectorAll('.wcard').forEach(function (card) {
-          var show = f === 'all' || (card.dataset.cat || '').split(' ').indexOf(f) !== -1;
-          card.classList.toggle('hide', !show);
-        });
-        if (window.ScrollTrigger) ScrollTrigger.refresh();
-      });
-    });
-  }
-  initFilters();
-
-  /* ── Dynamic project loading from API ── */
-  (function () {
-    var ESC = function (s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
-
-    function buildWcard(p) {
-      var filter  = catToFilter(p.category);
-      var media   = p.thumbnail_url
-        ? '<img src="' + ESC(p.thumbnail_url) + '" alt="' + ESC(p.title) + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" />'
-        : '<div class="ph-inner"><span class="ph-label">' + ESC(p.category) + '</span></div>';
-      var badge   = ESC(p.category) + (p.year ? ' · ' + ESC(p.year) : '');
-
-      return '<a href="case.html?slug=' + ESC(p.slug) + '" class="wcard" data-cat="' + ESC(filter) + '" data-reveal="up">' +
-        '<div class="wcard-media' + (p.thumbnail_url ? '' : ' ph') + '">' +
-          media +
-          '<span class="wcard-badge tag">' + badge + '</span>' +
-          '<span class="wcard-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span>' +
-        '</div>' +
-        '<div class="wcard-info"><h3 class="wcard-title">' + ESC(p.title) + '</h3>' +
-          '<span class="wcard-cat mono">' + ESC(p.year || '') + '</span></div>' +
-        '<p class="wcard-desc">' + ESC(p.description || '') + '</p>' +
-        '</a>';
-    }
-
-    fetch('/api/projects')
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (projects) {
-        if (!projects || !projects.length) return;
-        var grid = document.querySelector('.work-grid');
-        if (!grid) return;
-        grid.innerHTML = projects.map(buildWcard).join('');
-
-        /* Re-run reveals for new elements */
-        if (window.gsap && window.ScrollTrigger) {
-          grid.querySelectorAll('[data-reveal="up"]').forEach(function (el) {
-            gsap.fromTo(el, { y: 46, opacity: 0 }, {
-              y: 0, opacity: 1, duration: 0.9, ease: 'power3.out',
-              scrollTrigger: { trigger: el, start: 'top 85%' }
-            });
-          });
-        }
-      })
-      .catch(function () { /* fall back to static cards already in DOM */ });
-  })();
-</script>
+<script src="assets/work.js"></script>
 </body>
 </html>

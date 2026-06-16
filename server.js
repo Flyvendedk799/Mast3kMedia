@@ -54,6 +54,7 @@ db.exec(`
     thumbnail_url      TEXT,
     case_url           TEXT,
     media              TEXT    NOT NULL DEFAULT '[]',
+    blocks             TEXT    NOT NULL DEFAULT '[]',
     created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at         TEXT    NOT NULL DEFAULT (datetime('now'))
   );
@@ -70,6 +71,12 @@ try {
   if (!/duplicate column/i.test(e.message)) throw e;
 }
 
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN blocks TEXT NOT NULL DEFAULT '[]'").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const slugify = (s) =>
   String(s).toLowerCase().trim()
@@ -78,12 +85,88 @@ const slugify = (s) =>
 
 const safeJSON = (val, fb) => { try { return val ? JSON.parse(val) : fb; } catch { return fb; } };
 
+// ── Upload helpers ──────────────────────────────────────────────────────────────
+const crypto = require('crypto');
+
+const UPLOAD_DIR = path.join(__dirname, 'uploads');
+
+// mime → file extension (fallbacks; X-Filename ext used when mime is generic)
+const MIME_EXT = {
+  'image/png':  'png',
+  'image/jpeg': 'jpg',
+  'image/jpg':  'jpg',
+  'image/webp': 'webp',
+  'image/gif':  'gif',
+  'image/avif': 'avif',
+  'image/svg+xml': 'svg',
+  'video/mp4':  'mp4',
+  'video/webm': 'webm',
+  'video/quicktime': 'mov',
+  'video/ogg':  'ogv',
+};
+
+// Best-effort image dimension parser for PNG / JPEG / WebP. Returns {width,height} or {}.
+const imageDimensions = (buf) => {
+  try {
+    if (buf.length < 24) return {};
+    // PNG: 89 50 4E 47 0D 0A 1A 0A, IHDR width/height at offset 16/20 (big-endian)
+    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+      return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+    }
+    // JPEG: FF D8 ... scan SOF markers for dimensions
+    if (buf[0] === 0xff && buf[1] === 0xd8) {
+      let off = 2;
+      while (off + 9 < buf.length) {
+        if (buf[off] !== 0xff) { off++; continue; }
+        const marker = buf[off + 1];
+        // SOF0..SOF15 (excluding 0xC4 DHT, 0xC8 JPG, 0xCC DAC) carry frame dimensions
+        if (marker >= 0xc0 && marker <= 0xcf &&
+            marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+          const height = buf.readUInt16BE(off + 5);
+          const width  = buf.readUInt16BE(off + 7);
+          return { width, height };
+        }
+        // skip this segment by its length
+        const segLen = buf.readUInt16BE(off + 2);
+        if (segLen < 2) break;
+        off += 2 + segLen;
+      }
+      return {};
+    }
+    // WebP: "RIFF"...."WEBP"
+    if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') {
+      const fmt4 = buf.toString('ascii', 12, 16);
+      if (fmt4 === 'VP8 ') {
+        // lossy: dimensions in the frame header
+        const width  = buf.readUInt16LE(26) & 0x3fff;
+        const height = buf.readUInt16LE(28) & 0x3fff;
+        return { width, height };
+      }
+      if (fmt4 === 'VP8L') {
+        // lossless: 14-bit width/height packed after 1-byte signature
+        const b0 = buf[21], b1 = buf[22], b2 = buf[23], b3 = buf[24];
+        const width  = 1 + (((b1 & 0x3f) << 8) | b0);
+        const height = 1 + (((b3 & 0x0f) << 10) | (b2 << 2) | ((b1 & 0xc0) >> 6));
+        return { width, height };
+      }
+      if (fmt4 === 'VP8X') {
+        // extended: 24-bit width/height minus one at offset 24/27
+        const width  = 1 + (buf[24] | (buf[25] << 8) | (buf[26] << 16));
+        const height = 1 + (buf[27] | (buf[28] << 8) | (buf[29] << 16));
+        return { width, height };
+      }
+    }
+  } catch { /* best-effort only */ }
+  return {};
+};
+
 const fmt = (row) => ({
   ...row,
   tags:       safeJSON(row.tags,       []),
   tech_stack: safeJSON(row.tech_stack, []),
   metrics:    safeJSON(row.metrics,    []),
   media:      safeJSON(row.media,      []),
+  blocks:     safeJSON(row.blocks,     []),
   featured:   row.featured === 1,
 });
 
@@ -108,6 +191,9 @@ app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin', 'index.
 app.get('/admin/', (_, res) => res.sendFile(path.join(__dirname, 'admin', 'index.html')));
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 app.get('/admin/*', (_, res) => res.sendFile(path.join(__dirname, 'admin', 'index.html')));
+
+// Uploaded media (runtime data)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Root static files
 app.use(express.static(path.join(__dirname), {
@@ -135,14 +221,60 @@ app.get('/api/auth/me', requireAuth, (req, res) =>
 
 // ── Public: projects ───────────────────────────────────────────────────────────
 app.get('/api/projects', (req, res) => {
-  const { featured, limit, category } = req.query;
+  const { featured, limit, category, search, tag } = req.query;
   let sql = 'SELECT * FROM projects WHERE status=?';
   const args = ['published'];
   if (featured)  { sql += ' AND featured=1'; }
   if (category)  { sql += ' AND category=?'; args.push(category); }
+
+  // search — case-insensitive LIKE across the textual + JSON fields
+  if (search && String(search).trim()) {
+    const like = `%${String(search).trim().toLowerCase()}%`;
+    sql += ` AND (
+      LOWER(title)            LIKE ? OR
+      LOWER(description)      LIKE ? OR
+      LOWER(long_description) LIKE ? OR
+      LOWER(tags)             LIKE ? OR
+      LOWER(tech_stack)       LIKE ?
+    )`;
+    args.push(like, like, like, like, like);
+  }
+
+  // tag — comma-separated; match if any value appears in tags OR tech_stack JSON
+  if (tag) {
+    const values = (Array.isArray(tag) ? tag : [tag])
+      .flatMap(t => String(t).split(','))
+      .map(t => t.trim().toLowerCase())
+      .filter(Boolean);
+    for (const v of values) {
+      const like = `%${v}%`;
+      sql += ' AND (LOWER(tags) LIKE ? OR LOWER(tech_stack) LIKE ?)';
+      args.push(like, like);
+    }
+  }
+
   sql += ' ORDER BY sort_order ASC, created_at DESC';
   if (limit)     { sql += ' LIMIT ?'; args.push(parseInt(limit, 10)); }
   res.json(db.prepare(sql).all(...args).map(fmt));
+});
+
+// ── Public: tags + categories (for work-page filter chips) ──────────────────────
+app.get('/api/tags', (req, res) => {
+  const rows = db.prepare(
+    'SELECT tags, tech_stack, category FROM projects WHERE status=?'
+  ).all('published');
+  const tagSet = new Set();
+  const catSet = new Set();
+  for (const r of rows) {
+    for (const t of safeJSON(r.tags, []))       if (t) tagSet.add(String(t));
+    for (const t of safeJSON(r.tech_stack, []))  if (t) tagSet.add(String(t));
+    if (r.category) catSet.add(String(r.category));
+  }
+  const byName = (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' });
+  res.json({
+    tags:       [...tagSet].sort(byName),
+    categories: [...catSet].sort(byName),
+  });
 });
 
 app.get('/api/projects/:slug', (req, res) => {
@@ -150,7 +282,37 @@ app.get('/api/projects/:slug', (req, res) => {
     'SELECT * FROM projects WHERE slug=? AND status=?'
   ).get(req.params.slug, 'published');
   if (!row) return res.status(404).json({ error: 'Not found' });
-  res.json(fmt(row));
+
+  const project = fmt(row);
+
+  // Related: up to 3 OTHER published projects sharing category or any tag/tech value
+  const candidates = db.prepare(
+    'SELECT slug, title, category, year, thumbnail_url, description, tags, tech_stack ' +
+    'FROM projects WHERE status=? AND slug<>? ORDER BY sort_order ASC, created_at DESC'
+  ).all('published', row.slug);
+
+  const ownValues = new Set(
+    [...project.tags, ...project.tech_stack].map(v => String(v).toLowerCase())
+  );
+
+  const related = candidates
+    .filter(c => {
+      if (c.category === row.category) return true;
+      const cv = [...safeJSON(c.tags, []), ...safeJSON(c.tech_stack, [])]
+        .map(v => String(v).toLowerCase());
+      return cv.some(v => ownValues.has(v));
+    })
+    .slice(0, 3)
+    .map(c => ({
+      slug:          c.slug,
+      title:         c.title,
+      category:      c.category,
+      year:          c.year,
+      thumbnail_url: c.thumbnail_url,
+      description:   c.description,
+    }));
+
+  res.json({ ...project, related });
 });
 
 // ── Admin: stats ───────────────────────────────────────────────────────────────
@@ -163,6 +325,55 @@ app.get('/api/admin/stats', requireAuth, (req, res) => {
     featured:  n('SELECT COUNT(*) n FROM projects WHERE featured=1'),
   });
 });
+
+// ── Admin: media upload (dependency-free, raw binary body) ──────────────────────
+app.post(
+  '/api/admin/uploads',
+  requireAuth,
+  express.raw({ type: () => true, limit: '64mb' }),
+  (req, res) => {
+    const buf = Buffer.isBuffer(req.body) ? req.body : null;
+    if (!buf || buf.length === 0)
+      return res.status(400).json({ error: 'Empty body' });
+
+    const mime = String(req.headers['content-type'] || '')
+      .split(';')[0].trim().toLowerCase();
+    const kind = mime.startsWith('image/') ? 'image'
+               : mime.startsWith('video/') ? 'video'
+               : null;
+    if (!kind)
+      return res.status(415).json({ error: `Unsupported mime type: ${mime || '(none)'}` });
+
+    // Derive extension: prefer mime map, fall back to X-Filename extension
+    let ext = MIME_EXT[mime];
+    if (!ext) {
+      const xf = String(req.headers['x-filename'] || '');
+      const m = xf.match(/\.([a-z0-9]+)$/i);
+      ext = m ? m[1].toLowerCase() : (kind === 'image' ? 'bin' : 'bin');
+    }
+
+    const name = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`;
+    try {
+      fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+      fs.writeFileSync(path.join(UPLOAD_DIR, name), buf);
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+
+    const out = {
+      url:   `/uploads/${name}`,
+      type:  kind,
+      mime,
+      bytes: buf.length,
+    };
+    if (kind === 'image') {
+      const dim = imageDimensions(buf);
+      if (dim.width)  out.width  = dim.width;
+      if (dim.height) out.height = dim.height;
+    }
+    res.status(201).json(out);
+  }
+);
 
 // ── Admin: CRUD ────────────────────────────────────────────────────────────────
 app.get('/api/admin/projects', requireAuth, (req, res) => {
@@ -182,8 +393,8 @@ app.post('/api/admin/projects', requireAuth, (req, res) => {
         (title,slug,category,description,long_description,challenge,approach,
          tags,tech_stack,client,year,status,featured,sort_order,
          metrics,testimonial_text,testimonial_author,testimonial_role,
-         thumbnail_url,case_url,media)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         thumbnail_url,case_url,media,blocks)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).run(
       b.title, slug,
       b.category || 'Software',
@@ -205,6 +416,7 @@ app.post('/api/admin/projects', requireAuth, (req, res) => {
       b.thumbnail_url      || null,
       b.case_url           || null,
       JSON.stringify(Array.isArray(b.media) ? b.media : []),
+      JSON.stringify(Array.isArray(b.blocks) ? b.blocks : []),
     );
     res.status(201).json(
       fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(r.lastInsertRowid))
@@ -228,7 +440,7 @@ app.put('/api/admin/projects/:id', requireAuth, (req, res) => {
         challenge=?,approach=?,tags=?,tech_stack=?,client=?,year=?,
         status=?,featured=?,sort_order=?,metrics=?,
         testimonial_text=?,testimonial_author=?,testimonial_role=?,
-        thumbnail_url=?,case_url=?,media=?
+        thumbnail_url=?,case_url=?,media=?,blocks=?
       WHERE id=?
     `).run(
       b.title     ?? old.title,
@@ -252,6 +464,7 @@ app.put('/api/admin/projects/:id', requireAuth, (req, res) => {
       b.thumbnail_url !== undefined ? b.thumbnail_url : old.thumbnail_url,
       b.case_url      !== undefined ? b.case_url      : old.case_url,
       JSON.stringify(Array.isArray(b.media) ? b.media : safeJSON(old.media, [])),
+      JSON.stringify(Array.isArray(b.blocks) ? b.blocks : safeJSON(old.blocks, [])),
       req.params.id,
     );
     res.json(fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(req.params.id)));

@@ -28,6 +28,7 @@ const PROJECT_FIELDS = [
   'thumbnail_url',
   'case_url',
   'media',
+  'blocks',
 ];
 
 const REQUIRED_MCP_TOOLS = [
@@ -42,6 +43,8 @@ const REQUIRED_MCP_TOOLS = [
   'set_featured',
   'reorder_projects',
   'bulk_import',
+  'set_blocks',
+  'add_media',
 ];
 
 const DESTINATION_FILES = [
@@ -77,8 +80,21 @@ const ADMIN_FIELD_IDS = {
   testimonial_role: ['fieldTestiRole'],
   thumbnail_url: ['fieldThumb', 'thumbPreview'],
   case_url: ['fieldCaseUrl'],
-  media: ['fieldMedia'],
+  media: ['fieldMedia', 'mediaManager', 'mediaUploadInput', 'embedUrlInput'],
+  blocks: ['fieldBlocks', 'blocksBuilder'],
 };
+
+// §1.2 media roles the v2 case renderer understands. Default role is "gallery".
+const MEDIA_ROLES = [
+  'hero',
+  'gallery',
+  'feature',
+  'before',
+  'after',
+  'device-desktop',
+  'device-mobile',
+  'demo',
+];
 
 function parseArgs(argv) {
   const args = {
@@ -287,6 +303,186 @@ function ensureImageThumbnail(project) {
   if (stats.firstImage) project.thumbnail_url = stats.firstImage.url;
   else if (!project.thumbnail_url && project.media?.length) project.thumbnail_url = project.media[0].url;
   return stats;
+}
+
+// §1.2 provider inference: shared rule used by the renderer and MCP. URL alone
+// decides the provider, falling back to "file" for everything else.
+function inferMediaProvider(item) {
+  const url = String(item?.url || '').toLowerCase();
+  if (item?.type === 'embed' || /youtube\.com|youtu\.be/.test(url)) {
+    if (/youtube\.com|youtu\.be/.test(url)) return 'youtube';
+    if (/vimeo\.com/.test(url)) return 'vimeo';
+  }
+  if (/vimeo\.com/.test(url)) return 'vimeo';
+  if (/\.(mp4|webm)(\?|#|$)/.test(url) || url.startsWith('data:video/')) return 'mp4';
+  return 'file';
+}
+
+// §1.2 role heuristic: assign a media role from filename + caption keywords so the
+// v2 case renderer can place each item (hero band, device showcase, before/after,
+// demo gallery, etc.) instead of dumping everything into the generic gallery.
+function inferMediaRole(item) {
+  if (item?.role && MEDIA_ROLES.includes(item.role)) return item.role;
+  const haystack = `${item?.caption || ''} ${item?.alt || ''} ${item?.fileHint || ''} ${item?.url || ''}`.toLowerCase();
+  if (item?.type === 'video' || item?.type === 'embed') return 'demo';
+  if (/\bhero\b|forside|frontpage|landing|primær|primaer|overview|overblik|dashboard/.test(haystack)) return 'hero';
+  if (/mobile|mobil|narrow|phone|telefon/.test(haystack)) return 'device-mobile';
+  if (/desktop|widescreen|fullscreen/.test(haystack)) return 'device-desktop';
+  if (/\bbefore\b|før\b|foer\b|gammel|old/.test(haystack)) return 'before';
+  if (/\bafter\b|efter\b|ny version|new version|resultat/.test(haystack)) return 'after';
+  if (/demo|video|walkthrough|gennemgang|flow/.test(haystack)) return 'demo';
+  if (/feature|funktion|showcase|tab/.test(haystack)) return 'feature';
+  return 'gallery';
+}
+
+// Enrich every media item in place with role + provider per §1.2. Backward
+// compatible: existing {type,url,caption,alt} items keep rendering, we only add
+// the optional keys when absent.
+function enrichMediaRoles(media) {
+  const items = Array.isArray(media) ? media : [];
+  let assignedHero = false;
+  for (const item of items) {
+    if (!item || !item.url) continue;
+    if (!item.provider) item.provider = inferMediaProvider(item);
+    if (!item.role || !MEDIA_ROLES.includes(item.role)) item.role = inferMediaRole(item);
+    if (item.role === 'hero') {
+      // Only one hero; demote later heroes to gallery so the renderer band is unambiguous.
+      if (assignedHero) item.role = 'gallery';
+      else assignedHero = true;
+    }
+  }
+  // Promote the first usable image to hero when nothing else claimed the band.
+  if (!assignedHero) {
+    const firstImage = items.find(item => item?.url && item.type !== 'video' && item.type !== 'embed');
+    if (firstImage) firstImage.role = 'hero';
+  }
+  return items;
+}
+
+// §1.3 timeline block: build from documented project phases (Roadmap / Process /
+// Milestones / Phases sections) when the repo actually documents them. Returns
+// null when there is no phase evidence so we never invent a process narrative.
+function buildTimelineBlock(docs) {
+  const source = [
+    extractSection(docs, 'Roadmap'),
+    extractSection(docs, 'Phases'),
+    extractSection(docs, 'Process'),
+    extractSection(docs, 'Milestones'),
+    extractSection(docs, 'Development Phases'),
+    extractSection(docs, 'Project Phases'),
+  ].filter(Boolean).join('\n');
+  if (!source.trim()) return null;
+  const bullets = extractBullets(source, 8);
+  const phases = [];
+  let index = 1;
+  for (const bullet of bullets) {
+    const [labelPart, bodyPart] = String(bullet).split(/:\s*/, 2);
+    const title = (labelPart || '').trim();
+    if (title.length < 3) continue;
+    phases.push({
+      label: `Fase ${String(index).padStart(2, '0')}`,
+      title,
+      body: (bodyPart || '').trim(),
+    });
+    index += 1;
+    if (phases.length >= 6) break;
+  }
+  if (phases.length < 2) return null;
+  return { type: 'timeline', id: 'proces', title: 'Proces', phases };
+}
+
+// §1.3 gallery block: collect screenshot media (role gallery/feature, real images)
+// into an explicit gallery block when there is enough evidence (>= 3 images). The
+// core gallery section already renders untagged images, so this is additive depth
+// for richer cases, not a replacement.
+function buildGalleryBlock(media) {
+  const items = (Array.isArray(media) ? media : [])
+    .filter(item => item?.url && item.type !== 'video' && item.type !== 'embed')
+    .filter(item => !item.role || item.role === 'gallery' || item.role === 'feature');
+  if (items.length < 3) return null;
+  return {
+    type: 'gallery',
+    id: 'galleri',
+    title: 'Skærmbilleder',
+    layout: 'grid',
+    items: items.slice(0, 8).map(item => ({
+      type: 'image',
+      url: item.url,
+      caption: item.caption || '',
+      alt: item.alt || item.caption || '',
+      role: 'gallery',
+      provider: item.provider || inferMediaProvider(item),
+    })),
+  };
+}
+
+// Build the §1.3 blocks array from evidence: timeline from documented phases +
+// gallery from screenshots. Existing blocks are preserved; we only append the
+// auto-generated ones when they are not already present by type.
+function autoGenerateBlocks(existingBlocks, docs, media) {
+  const blocks = Array.isArray(existingBlocks) ? [...existingBlocks] : [];
+  const hasType = type => blocks.some(block => block?.type === type);
+  if (!hasType('timeline')) {
+    const timeline = buildTimelineBlock(docs);
+    if (timeline) blocks.push(timeline);
+  }
+  if (!hasType('gallery')) {
+    const gallery = buildGalleryBlock(media);
+    if (gallery) blocks.push(gallery);
+  }
+  return blocks;
+}
+
+// §2 upload route: probe POST /api/admin/uploads on the local Mast3kMedia server.
+// When reachable, the runner prefers uploaded /uploads/<name> URLs over inlined
+// base64 data URLs so payloads stay small and media is served as static files.
+async function uploadMediaItem(baseUrl, token, item) {
+  const url = String(item?.url || '');
+  const match = url.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return null; // already a real URL (incl. existing /uploads/*) — leave as-is
+  const mime = match[1];
+  if (!/^image\/|^video\//.test(mime)) return null;
+  const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer.length) return null;
+  const ext = mime.split('/')[1]?.replace('+xml', '').replace('jpeg', 'jpg') || 'bin';
+  const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/admin/uploads`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': mime,
+      'X-Filename': `${safeFileStem(item.caption || 'media')}.${ext}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: buffer,
+  }).catch(() => null);
+  if (!res || !res.ok) return null;
+  const body = await res.json().catch(() => null);
+  if (!body?.url) return null;
+  return body.url;
+}
+
+// Prefer uploaded /uploads URLs over base64 when the upload route is reachable.
+// Mutates media items in place, replacing data: URLs with the returned static URL.
+// Silently leaves base64 in place when the route is unavailable (offline-safe).
+async function preferUploadedMedia(baseUrl, token, media, checks) {
+  const items = (Array.isArray(media) ? media : []).filter(item => item?.url?.startsWith('data:'));
+  if (!baseUrl || !items.length) return media;
+  let uploaded = 0;
+  for (const item of items) {
+    const url = await uploadMediaItem(baseUrl, token, item);
+    if (url) {
+      item.url = url;
+      uploaded += 1;
+    }
+  }
+  makeCheck(
+    checks,
+    'destination.media-upload',
+    'Media uploaded to /uploads and preferred over base64 data URLs',
+    uploaded > 0,
+    { uploaded, candidates: items.length, baseUrl },
+    uploaded > 0 ? 'error' : 'warn',
+  );
+  return media;
 }
 
 function runCommand(command, args, options = {}) {
@@ -2070,11 +2266,13 @@ async function analyzeRepo(repoDir, target, options) {
     thumbnail_url: '',
     case_url: liveUrl || repoUrl || target,
     media: [],
+    blocks: [],
   };
 
   return {
     parts,
     metadata,
+    docs,
     files,
     docsUsed: ['README.md', ...explainerCandidates],
     packageFiles,
@@ -2907,6 +3105,37 @@ async function main() {
 
     await verifyDestinationContract(args.portfolioRoot, checks);
     await ensurePortfolioDeps(args.portfolioRoot, checks);
+
+    // §1.2 + §1.3: assign media roles from filename/caption evidence and
+    // auto-generate timeline (documented phases) + gallery (screenshots) blocks
+    // before the payload is persisted, so admin/MCP/renderer all agree.
+    enrichMediaRoles(analysis.project.media);
+    analysis.project.blocks = autoGenerateBlocks(analysis.project.blocks, analysis.docs || '', analysis.project.media);
+    makeCheck(checks, 'destination.blocks', 'Layout blocks derived from evidence (timeline phases + screenshot gallery)', true, {
+      blockTypes: (analysis.project.blocks || []).map(block => block?.type),
+      mediaRoles: (analysis.project.media || []).map(item => item?.role),
+    }, 'warn');
+
+    // Start the local site first so we can prefer uploaded /uploads URLs over
+    // base64 (§2) before the payload is persisted through the MCP/production.
+    const port = args.port || await getFreePort();
+    baseUrl = `http://127.0.0.1:${port}`;
+    server = startPortfolioServer(args.portfolioRoot, port, args.adminUser, args.adminPass);
+    await waitForHttp(`${baseUrl}/api/projects`, 20000, server);
+    makeCheck(checks, 'destination.server', 'Mast3kMedia local site starts before MCP update', true, { baseUrl });
+
+    // §2: when POST /api/admin/uploads is reachable, swap base64 data URLs for
+    // /uploads/<name> static URLs in both media and block-gallery items.
+    const uploadToken = process.env.MAST3KMEDIA_ADMIN_TOKEN || args.adminPass || null;
+    await preferUploadedMedia(baseUrl, uploadToken, analysis.project.media, checks);
+    for (const block of analysis.project.blocks || []) {
+      if (Array.isArray(block?.items)) await preferUploadedMedia(baseUrl, uploadToken, block.items, checks);
+    }
+    if (analysis.project.thumbnail_url?.startsWith('data:')) {
+      const heroItem = (analysis.project.media || []).find(item => item.role === 'hero' && !item.url?.startsWith('data:'));
+      if (heroItem) analysis.project.thumbnail_url = heroItem.url;
+    }
+
     await fs.writeFile(path.join(outputDir, 'project.json'), JSON.stringify(analysis.project, null, 2));
 
     mcp = await upsertProjectThroughMcp(args.portfolioRoot, analysis.project, checks);
@@ -2916,12 +3145,6 @@ async function main() {
     } else {
       makeCheck(checks, 'production.skip', 'Production sync skipped by flag', false, {}, 'warn');
     }
-
-    const port = args.port || await getFreePort();
-    baseUrl = `http://127.0.0.1:${port}`;
-    server = startPortfolioServer(args.portfolioRoot, port, args.adminUser, args.adminPass);
-    await waitForHttp(`${baseUrl}/api/projects`, 20000, server);
-    makeCheck(checks, 'destination.server', 'Mast3kMedia local site starts after MCP update', true, { baseUrl });
 
     if (!args.noBrowser) {
       const localArtifacts = await runDestinationEvidence(

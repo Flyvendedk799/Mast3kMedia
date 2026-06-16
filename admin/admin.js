@@ -13,6 +13,7 @@ const S = {
   tech:     [],
   metrics:  [],
   media:    [],
+  blocks:   [],
   deleteTarget: null,
   filterStatus: '',
   filterQuery:  '',
@@ -56,6 +57,25 @@ const api = {
   deleteProject: (id)     => api.req('DELETE', `/api/admin/projects/${id}`),
   setStatus:   (id, s)    => api.req('PATCH',  `/api/admin/projects/${id}/status`, { status: s }),
   setFeatured: (id, f)    => api.req('PATCH',  `/api/admin/projects/${id}/featured`, { featured: f }),
+  async upload(file) {
+    const res = await fetch('/api/admin/uploads', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${S.token}`,
+        'Content-Type': file.type || 'application/octet-stream',
+        'X-Filename': file.name || 'upload',
+      },
+      body: file,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      S.token = null;
+      localStorage.removeItem('m3k_token');
+      showLogin();
+    }
+    if (!res.ok) throw new Error(data.error || `Upload fejlede (HTTP ${res.status})`);
+    return data;
+  },
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -425,6 +445,7 @@ function loadForm() {
   S.tech    = [];
   S.metrics = [];
   S.media   = [];
+  S.blocks  = [];
 
   const project = S.editId ? S.projects.find(p => p.id === S.editId) : null;
 
@@ -447,24 +468,27 @@ function loadForm() {
     $('#fieldTestiRole').value     = project.testimonial_role || '';
     $('#fieldThumb').value         = project.thumbnail_url || '';
     $('#fieldCaseUrl').value       = project.case_url || '';
-    $('#fieldMedia').value         = JSON.stringify(Array.isArray(project.media) ? project.media : [], null, 2);
     S.tags    = Array.isArray(project.tags)       ? [...project.tags]       : [];
     S.tech    = Array.isArray(project.tech_stack) ? [...project.tech_stack] : [];
     S.metrics = Array.isArray(project.metrics)    ? project.metrics.map(m => ({...m})) : [];
     S.media   = Array.isArray(project.media)      ? project.media.map(m => ({...m})) : [];
+    S.blocks  = Array.isArray(project.blocks)     ? project.blocks.map(b => ({...b})) : [];
   } else {
     // Clear all fields
     $('#projectForm').reset();
     $('#fieldId').value = '';
-    S.tags = []; S.tech = []; S.metrics = []; S.media = [];
+    S.tags = []; S.tech = []; S.metrics = []; S.media = []; S.blocks = [];
     $('#fieldYear').value = new Date().getFullYear();
     $('#fieldSortOrder').value = 0;
-    $('#fieldMedia').value = '[]';
   }
 
   renderTags();
   renderTech();
   renderMetrics();
+  initMediaManager();
+  renderMedia();
+  initBlocksBuilder();
+  renderBlocks();
 
   // Auto-slug from title
   $('#fieldTitle').oninput = () => {
@@ -574,6 +598,457 @@ function renderMetrics() {
   });
 }
 
+// ── Media manager ────────────────────────────────────────────────────────────
+const MEDIA_ROLES = ['hero','gallery','feature','before','after','device-desktop','device-mobile','demo'];
+
+function inferProvider(url) {
+  const u = String(url || '');
+  if (/youtube\.com|youtu\.be/i.test(u)) return 'youtube';
+  if (/vimeo\.com/i.test(u)) return 'vimeo';
+  if (/\.(mp4|webm)(\?|#|$)/i.test(u)) return 'mp4';
+  return 'file';
+}
+
+function initMediaManager() {
+  const mgr = $('#mediaManager');
+  if (mgr.dataset.wired) return;
+  mgr.dataset.wired = '1';
+
+  const input = $('#mediaUploadInput');
+  const drop  = $('#mediaDropzone');
+
+  // File input change
+  input.addEventListener('change', () => {
+    handleUploadFiles(input.files);
+    input.value = '';
+  });
+
+  // Drag & drop
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    drop.classList.add('dragover');
+  }));
+  ['dragleave','dragend'].forEach(ev => drop.addEventListener(ev, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    drop.classList.remove('dragover');
+  }));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    drop.classList.remove('dragover');
+    if (e.dataTransfer && e.dataTransfer.files) handleUploadFiles(e.dataTransfer.files);
+  });
+
+  // Add embed
+  const addEmbed = () => {
+    const url = $('#embedUrlInput').value.trim();
+    if (!url) return;
+    const provider = inferProvider(url);
+    if (provider !== 'youtube' && provider !== 'vimeo') {
+      toast('Indsæt en gyldig YouTube- eller Vimeo-URL', 'error');
+      return;
+    }
+    S.media.push({ type: 'embed', provider, url, role: 'gallery', caption: '', alt: '' });
+    $('#embedUrlInput').value = '';
+    renderMedia();
+  };
+  $('#addEmbedBtn').onclick = addEmbed;
+  $('#embedUrlInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addEmbed(); }
+  });
+
+  // Raw JSON escape hatch — sync editor ⇒ array on edit (when leaving textarea)
+  $('#fieldMedia').addEventListener('change', () => syncMediaFromRaw());
+}
+
+async function handleUploadFiles(fileList) {
+  const files = [...(fileList || [])];
+  for (const file of files) {
+    if (!/^(image|video)\//.test(file.type)) {
+      toast(`"${file.name}" er ikke et billede eller en video`, 'error');
+      continue;
+    }
+    try {
+      const res = await api.upload(file);
+      S.media.push({
+        type: res.type === 'video' ? 'video' : 'image',
+        url: res.url,
+        role: 'gallery',
+        caption: '',
+        alt: '',
+      });
+      renderMedia();
+      toast(`"${file.name}" uploadet`, 'success');
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+}
+
+// Sync raw JSON textarea back into S.media
+function syncMediaFromRaw() {
+  const raw = $('#fieldMedia').value.trim();
+  if (!raw) { S.media = []; renderMedia(); return; }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('Case media skal være et JSON array');
+    S.media = parsed.filter(i => i && i.url).map(normalizeMediaItem);
+    $('#fieldMedia').classList.remove('error');
+    renderMedia();
+  } catch (err) {
+    $('#fieldMedia').classList.add('error');
+    toast(err.message || 'Case media er ikke gyldig JSON', 'error');
+  }
+}
+
+function normalizeMediaItem(item) {
+  const type = item.type === 'video' ? 'video' : (item.type === 'embed' ? 'embed' : 'image');
+  const url  = String(item.url);
+  const out = {
+    type,
+    url,
+    role:    MEDIA_ROLES.includes(item.role) ? item.role : 'gallery',
+    caption: item.caption ? String(item.caption) : '',
+    alt:     item.alt ? String(item.alt) : '',
+  };
+  if (item.provider) out.provider = String(item.provider);
+  else if (type === 'embed') out.provider = inferProvider(url);
+  if (item.poster) out.poster = String(item.poster);
+  return out;
+}
+
+// Render media item rows + keep raw JSON in sync (array ⇒ editor)
+function renderMedia() {
+  const list = $('#mediaList');
+  const empty = $('#mediaEmpty');
+  if (!list) return;
+  list.innerHTML = '';
+  empty.hidden = S.media.length > 0;
+
+  S.media.forEach((m, i) => {
+    const provider = m.provider || inferProvider(m.url);
+    const isVisual = m.type === 'image';
+    const isVideo  = m.type === 'video';
+    let previewHtml;
+    if (isVisual) {
+      previewHtml = `<img src="${esc(m.url)}" alt="" onerror="this.style.display='none';this.parentElement.classList.add('no-img')" />`;
+    } else if (isVideo) {
+      previewHtml = `<div class="media-badge mono">VIDEO</div>`;
+    } else {
+      previewHtml = `<div class="media-badge mono">${esc(provider.toUpperCase())}</div>`;
+    }
+
+    const row = el('div', 'media-item');
+    row.innerHTML = `
+      <div class="media-thumb">${previewHtml}</div>
+      <div class="media-fields">
+        <div class="media-fields-top">
+          <span class="media-type mono">${esc(m.type)}</span>
+          <select class="media-role" data-mi="${i}">
+            ${MEDIA_ROLES.map(r => `<option value="${r}"${(m.role||'gallery')===r?' selected':''}>${r}</option>`).join('')}
+          </select>
+          <a class="media-url mono" href="${esc(m.url)}" target="_blank" rel="noopener" title="${esc(m.url)}">${esc(m.url)}</a>
+        </div>
+        <input type="text" class="media-caption" data-mi="${i}" placeholder="Billedtekst (caption)" value="${esc(m.caption || '')}" />
+        <input type="text" class="media-alt" data-mi="${i}" placeholder="Alt-tekst (tilgængelighed)" value="${esc(m.alt || '')}" />
+      </div>
+      <div class="media-actions">
+        <button type="button" class="ico-btn media-up" data-mi="${i}" title="Flyt op"${i===0?' disabled':''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
+        </button>
+        <button type="button" class="ico-btn media-down" data-mi="${i}" title="Flyt ned"${i===S.media.length-1?' disabled':''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button type="button" class="ico-btn danger media-del" data-mi="${i}" title="Fjern">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+
+  // Wire row controls
+  list.querySelectorAll('.media-role').forEach(sel => {
+    sel.onchange = () => { S.media[sel.dataset.mi].role = sel.value; writeMediaRaw(); };
+  });
+  list.querySelectorAll('.media-caption').forEach(inp => {
+    inp.oninput = () => { S.media[inp.dataset.mi].caption = inp.value; writeMediaRaw(); };
+  });
+  list.querySelectorAll('.media-alt').forEach(inp => {
+    inp.oninput = () => { S.media[inp.dataset.mi].alt = inp.value; writeMediaRaw(); };
+  });
+  list.querySelectorAll('.media-up').forEach(btn => {
+    btn.onclick = () => { const i = +btn.dataset.mi; if (i>0) { [S.media[i-1],S.media[i]]=[S.media[i],S.media[i-1]]; renderMedia(); } };
+  });
+  list.querySelectorAll('.media-down').forEach(btn => {
+    btn.onclick = () => { const i = +btn.dataset.mi; if (i<S.media.length-1) { [S.media[i+1],S.media[i]]=[S.media[i],S.media[i+1]]; renderMedia(); } };
+  });
+  list.querySelectorAll('.media-del').forEach(btn => {
+    btn.onclick = () => { S.media.splice(+btn.dataset.mi, 1); renderMedia(); };
+  });
+
+  writeMediaRaw();
+}
+
+// Serialize S.media into the raw JSON escape-hatch textarea.
+// Skip only while the user is actively typing in the raw field (avoid clobbering).
+function writeMediaRaw() {
+  const raw = $('#fieldMedia');
+  if (!raw || document.activeElement === raw) return;
+  raw.value = JSON.stringify(S.media, null, 2);
+  raw.classList.remove('error');
+}
+
+// ── Blocks builder ─────────────────────────────────────────────────────────────
+const BLOCK_TYPES = ['richtext','timeline','gallery','video','before_after','metrics','quote','embed'];
+const BLOCK_LABELS = {
+  richtext:'Rich text', timeline:'Tidslinje', gallery:'Galleri', video:'Video',
+  before_after:'Før / efter', metrics:'Nøgletal', quote:'Citat', embed:'Embed',
+};
+
+function newBlock(type) {
+  switch (type) {
+    case 'timeline':     return { type, title:'', phases:[{ label:'', title:'', body:'', date:'' }] };
+    case 'gallery':      return { type, title:'', layout:'grid', items:[] };
+    case 'video':        return { type, title:'', items:[] };
+    case 'before_after': return { type, title:'', before:{ url:'', label:'' }, after:{ url:'', label:'' } };
+    case 'metrics':      return { type, title:'', items:[{ value:'', label:'' }] };
+    case 'quote':        return { type, text:'', author:'', role:'' };
+    case 'embed':        return { type, provider:'youtube', url:'', caption:'' };
+    case 'richtext':
+    default:             return { type:'richtext', eyebrow:'', title:'', body:'' };
+  }
+}
+
+function initBlocksBuilder() {
+  const b = $('#blocksBuilder');
+  if (b.dataset.wired) return;
+  b.dataset.wired = '1';
+  $('#addBlockBtn').onclick = () => {
+    S.blocks.push(newBlock($('#blockTypeSelect').value));
+    renderBlocks();
+  };
+}
+
+function renderBlocks() {
+  const list = $('#blocksList');
+  const empty = $('#blocksEmpty');
+  if (!list) return;
+  list.innerHTML = '';
+  empty.hidden = S.blocks.length > 0;
+
+  S.blocks.forEach((block, i) => {
+    const card = el('div', 'block-card');
+    card.innerHTML = `
+      <div class="block-card-head">
+        <span class="block-type mono">${esc(BLOCK_LABELS[block.type] || block.type)}</span>
+        <div class="block-card-actions">
+          <button type="button" class="ico-btn block-up" data-bi="${i}" title="Flyt op"${i===0?' disabled':''}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
+          </button>
+          <button type="button" class="ico-btn block-down" data-bi="${i}" title="Flyt ned"${i===S.blocks.length-1?' disabled':''}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <button type="button" class="ico-btn danger block-del" data-bi="${i}" title="Fjern blok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="block-card-body" data-bi="${i}"></div>
+    `;
+    list.appendChild(card);
+    renderBlockBody(card.querySelector('.block-card-body'), block, i);
+  });
+
+  list.querySelectorAll('.block-up').forEach(btn => {
+    btn.onclick = () => { const i=+btn.dataset.bi; if (i>0) { [S.blocks[i-1],S.blocks[i]]=[S.blocks[i],S.blocks[i-1]]; renderBlocks(); } };
+  });
+  list.querySelectorAll('.block-down').forEach(btn => {
+    btn.onclick = () => { const i=+btn.dataset.bi; if (i<S.blocks.length-1) { [S.blocks[i+1],S.blocks[i]]=[S.blocks[i],S.blocks[i+1]]; renderBlocks(); } };
+  });
+  list.querySelectorAll('.block-del').forEach(btn => {
+    btn.onclick = () => { S.blocks.splice(+btn.dataset.bi, 1); renderBlocks(); };
+  });
+
+  writeBlocksRaw();
+}
+
+// Per-type field inputs
+function renderBlockBody(container, block, i) {
+  const txt = (label, key, ph='') =>
+    `<div class="bf"><label>${label}</label><input type="text" data-bk="${key}" value="${esc(block[key]||'')}" placeholder="${esc(ph)}" /></div>`;
+  const area = (label, key, ph='') =>
+    `<div class="bf"><label>${label}</label><textarea rows="3" data-bk="${key}" placeholder="${esc(ph)}">${esc(block[key]||'')}</textarea></div>`;
+
+  let html = '';
+  switch (block.type) {
+    case 'richtext':
+      html = txt('Eyebrow','eyebrow') + txt('Titel','title') + area('Brødtekst','body','Markdown-lite: **fed**, linjeskift');
+      break;
+    case 'quote':
+      html = area('Citat','text') + txt('Forfatter','author') + txt('Rolle','role');
+      break;
+    case 'embed':
+      html = `<div class="bf"><label>Provider</label><select data-bk="provider">
+        <option value="youtube"${block.provider==='youtube'?' selected':''}>YouTube</option>
+        <option value="vimeo"${block.provider==='vimeo'?' selected':''}>Vimeo</option>
+      </select></div>` + txt('URL','url','https://…') + txt('Caption','caption');
+      break;
+    case 'before_after':
+      html = txt('Titel','title')
+        + `<div class="bf-row">
+             <div class="bf"><label>Før URL</label><input type="text" data-bk2="before.url" value="${esc(block.before?.url||'')}" placeholder="https://…" /></div>
+             <div class="bf"><label>Før label</label><input type="text" data-bk2="before.label" value="${esc(block.before?.label||'')}" /></div>
+           </div>
+           <div class="bf-row">
+             <div class="bf"><label>Efter URL</label><input type="text" data-bk2="after.url" value="${esc(block.after?.url||'')}" placeholder="https://…" /></div>
+             <div class="bf"><label>Efter label</label><input type="text" data-bk2="after.label" value="${esc(block.after?.label||'')}" /></div>
+           </div>`;
+      break;
+    case 'timeline':
+      html = txt('Titel','title') + renderPhases(block, i);
+      break;
+    case 'gallery':
+      html = txt('Titel','title')
+        + `<div class="bf"><label>Layout</label><select data-bk="layout">
+             <option value="grid"${block.layout==='grid'?' selected':''}>Grid</option>
+             <option value="masonry"${block.layout==='masonry'?' selected':''}>Masonry</option>
+           </select></div>`
+        + renderBlockItems(block, i, 'gallery');
+      break;
+    case 'video':
+      html = txt('Titel','title') + renderBlockItems(block, i, 'video');
+      break;
+    case 'metrics':
+      html = txt('Titel','title') + renderMetricItems(block, i);
+      break;
+    default:
+      html = `<p class="bf-note mono">Ukendt bloktype: ${esc(block.type)}</p>`;
+  }
+  container.innerHTML = html;
+  wireBlockBody(container, block, i);
+}
+
+function renderPhases(block, i) {
+  const phases = Array.isArray(block.phases) ? block.phases : [];
+  return `<div class="phases">
+    ${phases.map((p, pi) => `
+      <div class="phase-row" data-pi="${pi}">
+        <div class="bf-row">
+          <div class="bf"><label>Label</label><input type="text" data-pk="label" value="${esc(p.label||'')}" placeholder="Fase 01" /></div>
+          <div class="bf"><label>Dato</label><input type="text" data-pk="date" value="${esc(p.date||'')}" placeholder="2026-01" /></div>
+        </div>
+        <div class="bf"><label>Titel</label><input type="text" data-pk="title" value="${esc(p.title||'')}" placeholder="Discovery" /></div>
+        <div class="bf"><label>Tekst</label><textarea rows="2" data-pk="body">${esc(p.body||'')}</textarea></div>
+        <button type="button" class="btn-ghost phase-del" data-pi="${pi}">Fjern fase</button>
+      </div>
+    `).join('')}
+    <button type="button" class="btn-ghost btn-add phase-add">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Tilføj fase
+    </button>
+  </div>`;
+}
+
+function renderBlockItems(block, i, kind) {
+  const items = Array.isArray(block.items) ? block.items : [];
+  return `<div class="block-items">
+    ${items.map((it, ii) => `
+      <div class="block-item-row" data-ii="${ii}">
+        <input type="text" data-ik="url" value="${esc(it.url||'')}" placeholder="${kind==='video'?'Video/embed-URL':'Billede-URL'}" />
+        <input type="text" data-ik="caption" value="${esc(it.caption||'')}" placeholder="Caption" />
+        <button type="button" class="ico-btn danger item-del" data-ii="${ii}" title="Fjern">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+    `).join('')}
+    <button type="button" class="btn-ghost btn-add item-add">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Tilføj ${kind==='video'?'video':'billede'}
+    </button>
+  </div>`;
+}
+
+function renderMetricItems(block, i) {
+  const items = Array.isArray(block.items) ? block.items : [];
+  return `<div class="block-items">
+    ${items.map((it, ii) => `
+      <div class="block-item-row" data-ii="${ii}">
+        <input type="text" data-ik="value" value="${esc(it.value||'')}" placeholder="Værdi (+64%)" />
+        <input type="text" data-ik="label" value="${esc(it.label||'')}" placeholder="Label" />
+        <button type="button" class="ico-btn danger item-del" data-ii="${ii}" title="Fjern">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+    `).join('')}
+    <button type="button" class="btn-ghost btn-add item-add">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Tilføj nøgletal
+    </button>
+  </div>`;
+}
+
+function wireBlockBody(container, block, i) {
+  // Simple top-level keys
+  container.querySelectorAll('[data-bk]').forEach(inp => {
+    inp.oninput = inp.onchange = () => { block[inp.dataset.bk] = inp.value; writeBlocksRaw(); };
+  });
+  // Nested dotted keys (before.url etc.)
+  container.querySelectorAll('[data-bk2]').forEach(inp => {
+    inp.oninput = () => {
+      const [parent, child] = inp.dataset.bk2.split('.');
+      if (!block[parent] || typeof block[parent] !== 'object') block[parent] = {};
+      block[parent][child] = inp.value;
+      writeBlocksRaw();
+    };
+  });
+
+  // Timeline phases
+  if (block.type === 'timeline') {
+    if (!Array.isArray(block.phases)) block.phases = [];
+    container.querySelectorAll('.phase-row').forEach(row => {
+      const pi = +row.dataset.pi;
+      row.querySelectorAll('[data-pk]').forEach(inp => {
+        inp.oninput = () => { block.phases[pi][inp.dataset.pk] = inp.value; writeBlocksRaw(); };
+      });
+      row.querySelector('.phase-del').onclick = () => { block.phases.splice(pi,1); renderBlocks(); };
+    });
+    const add = container.querySelector('.phase-add');
+    if (add) add.onclick = () => { block.phases.push({ label:'', title:'', body:'', date:'' }); renderBlocks(); };
+  }
+
+  // Gallery/video/metrics items
+  if (block.type === 'gallery' || block.type === 'video' || block.type === 'metrics') {
+    if (!Array.isArray(block.items)) block.items = [];
+    container.querySelectorAll('.block-item-row').forEach(row => {
+      const ii = +row.dataset.ii;
+      row.querySelectorAll('[data-ik]').forEach(inp => {
+        inp.oninput = () => { block.items[ii][inp.dataset.ik] = inp.value; writeBlocksRaw(); };
+      });
+      row.querySelector('.item-del').onclick = () => { block.items.splice(ii,1); renderBlocks(); };
+    });
+    const add = container.querySelector('.item-add');
+    if (add) add.onclick = () => {
+      if (block.type === 'metrics') block.items.push({ value:'', label:'' });
+      else block.items.push({ type: block.type === 'video' ? 'video' : 'image', url:'', caption:'' });
+      renderBlocks();
+    };
+  }
+}
+
+// Serialize blocks into the hidden field
+function writeBlocksRaw() {
+  const f = $('#fieldBlocks');
+  if (f) f.value = JSON.stringify(S.blocks);
+}
+
+// Build the cleaned media array for the payload
+function collectMedia() {
+  // Pull any pending raw-JSON edits the user is mid-typing in the advanced panel
+  const raw = $('#fieldMedia');
+  if (raw && document.activeElement === raw) syncMediaFromRaw();
+  return S.media.filter(m => m && m.url).map(normalizeMediaItem);
+}
+
 // ── Form submission ────────────────────────────────────────────────────────────
 async function submitForm(status) {
   const titleEl = $('#fieldTitle');
@@ -616,10 +1091,9 @@ async function submitForm(status) {
     testimonial_role:   $('#fieldTestiRole').value.trim(),
     thumbnail_url:      $('#fieldThumb').value.trim(),
     case_url:           $('#fieldCaseUrl').value.trim(),
-    media:              parseMediaField(),
+    media:              collectMedia(),
+    blocks:             S.blocks.map(b => ({ ...b })),
   };
-
-  if (!payload.media) return;
 
   // Disable buttons
   const btns = $$('#formView button[type=submit], #formView .btn-primary, #formView .btn-outline');
@@ -654,29 +1128,6 @@ async function submitForm(status) {
 function debounce(fn, ms) {
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-}
-
-function parseMediaField() {
-  const raw = $('#fieldMedia').value.trim();
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) throw new Error('Case media skal være et JSON array');
-    $('#fieldMedia').classList.remove('error');
-    return parsed
-      .filter(item => item && item.url)
-      .map(item => ({
-        type: item.type === 'video' ? 'video' : 'image',
-        url: String(item.url),
-        caption: item.caption ? String(item.caption) : '',
-        alt: item.alt ? String(item.alt) : '',
-      }));
-  } catch (err) {
-    $('#fieldMedia').classList.add('error');
-    $('#fieldMedia').focus();
-    toast(err.message || 'Case media er ikke gyldig JSON', 'error');
-    return null;
-  }
 }
 
 $('#projectForm').addEventListener('submit', (e) => {

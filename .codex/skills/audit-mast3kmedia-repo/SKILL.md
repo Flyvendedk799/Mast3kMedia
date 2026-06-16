@@ -83,6 +83,10 @@ By default, cases are created as `published` and `featured` so the live homepage
 - Reject placeholder/config URLs such as localhost, `api.openai.com`, `trello.com/app-key`, `yourdomain`, `your-host`, bare `http://`, webhook examples, and tokenized sample URLs.
 - Treat missing screenshots/video as a failed or incomplete run unless the user explicitly requested `--no-browser`.
 - After a run, inspect `project.json`, `report.md`, screenshots, and videos before telling the user the result is complete.
+- Assign each `media` item a `role` so the v2 case renderer can place it correctly: `hero` (one only), `gallery`, `feature`, `before`/`after`, `device-desktop`/`device-mobile`, or `demo`. Roles come from filename/caption evidence (hero/dashboard/overview ⇒ hero, mobile ⇒ device-mobile, before/after ⇒ before/after, demo/video/walkthrough ⇒ demo, else gallery); set `provider` (`file`/`mp4`/`youtube`/`vimeo`) from the URL when not already present.
+- Drive the case layout from the ordered `blocks` array (richtext, timeline, gallery, video, before_after, metrics, quote, embed) appended after the core sections. Only add a block when evidence supports it; never invent a process narrative.
+- Auto-generate a `timeline` block from documented project phases (Roadmap/Process/Milestones/Phases sections) and a `gallery` block from screenshots when the evidence clears the bar; otherwise leave `blocks` empty.
+- Prefer uploaded `/uploads/<name>` URLs over inlined base64: when `POST /api/admin/uploads` is reachable, upload media (and block-gallery items) and persist the returned static URL so payloads stay small and media is served as files. Fall back to base64 only when the upload route is unavailable.
 
 ## Reference-Grade Case Pass
 
@@ -168,4 +172,4 @@ If the runner cannot execute:
 
 ## When Updating This Skill
 
-Read `references/mast3kmedia-contract.md` before changing field coverage. If a new admin field is added, update both the reference and the field constants inside `scripts/audit_repo.mjs`.
+Read `references/mast3kmedia-contract.md` before changing field coverage. If a new admin field is added, update both the reference and the field constants inside `scripts/audit_repo.mjs` (`PROJECT_FIELDS`, `ADMIN_FIELD_IDS`, `REQUIRED_MCP_TOOLS`). The v2 contract adds the `blocks` field, the `set_blocks`/`add_media` MCP tools, the media `role`/`provider` keys, the `fieldBlocks`/`blocksBuilder`/`mediaManager`/`mediaUploadInput`/`embedUrlInput` admin IDs, and the `POST /api/admin/uploads` route with `/uploads` static serving — keep all of these in sync across both the `.claude/` and `.codex/` skill copies.
