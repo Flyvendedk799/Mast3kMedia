@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
-<link rel="stylesheet" href="/admin/admin.css?v=20260609b" />
+<link rel="stylesheet" href="/admin/admin.css?v=20260616-v2" />
 </head>
 <body>
 
@@ -390,12 +390,78 @@
               <input id="fieldCaseUrl" type="url" placeholder="https://…" />
             </div>
             <div class="field-group">
-              <label for="fieldMedia">
+              <label>
                 Case media
-                <span class="label-hint">JSON array med screenshots/videoer til case-siden</span>
+                <span class="label-hint">Upload billeder/videoer eller indlejr YouTube/Vimeo</span>
               </label>
-              <textarea id="fieldMedia" rows="7" placeholder='[{"type":"image","url":"https://…/screen.jpg","caption":"Produktets forside"}]'></textarea>
+
+              <!-- Structured media editor -->
+              <div id="mediaManager" class="media-manager">
+                <!-- Upload + embed controls -->
+                <div class="media-controls">
+                  <label id="mediaDropzone" class="media-dropzone" for="mediaUploadInput">
+                    <input type="file" id="mediaUploadInput" accept="image/*,video/*" multiple hidden />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    <div class="media-dropzone-text">
+                      <strong>Træk filer hertil</strong>
+                      <span>eller klik for at uploade billeder/videoer</span>
+                    </div>
+                  </label>
+                  <div class="media-embed-row">
+                    <input type="url" id="embedUrlInput" placeholder="Indsæt YouTube- eller Vimeo-URL…" />
+                    <button type="button" class="btn-outline" id="addEmbedBtn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                      Tilføj embed
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Media item list -->
+                <div id="mediaList" class="media-list"></div>
+                <div id="mediaEmpty" class="media-empty">Ingen medier endnu. Upload en fil eller tilføj et embed.</div>
+
+                <!-- Advanced: raw JSON escape hatch -->
+                <details class="media-advanced" id="mediaAdvanced">
+                  <summary>Avanceret: rå JSON</summary>
+                  <textarea id="fieldMedia" rows="7" placeholder='[{"type":"image","url":"https://…/screen.jpg","caption":"Produktets forside","role":"gallery"}]'></textarea>
+                  <p class="media-advanced-hint">Redigér rå JSON direkte — synkroniseres med editoren ovenfor når feltet forlades.</p>
+                </details>
+              </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Section: Layout & Blocks -->
+        <div class="form-section">
+          <div class="form-section-head">
+            <span class="form-section-num">07</span>
+            <div>
+              <h3>Layout & blokke</h3>
+              <p>Byg ekstra sektioner der vises efter standard-layoutet.</p>
+            </div>
+          </div>
+          <div class="form-fields">
+            <div id="blocksBuilder" class="blocks-builder">
+              <div id="blocksList" class="blocks-list"></div>
+              <div id="blocksEmpty" class="blocks-empty">Ingen blokke endnu. Tilføj en blok for at bygge ekstra layout-sektioner.</div>
+              <div class="blocks-add-row">
+                <select id="blockTypeSelect">
+                  <option value="richtext">Rich text</option>
+                  <option value="timeline">Tidslinje</option>
+                  <option value="gallery">Galleri</option>
+                  <option value="video">Video</option>
+                  <option value="before_after">Før / efter</option>
+                  <option value="metrics">Nøgletal</option>
+                  <option value="quote">Citat</option>
+                  <option value="embed">Embed</option>
+                </select>
+                <button type="button" class="btn-ghost btn-add" id="addBlockBtn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                  Tilføj blok
+                </button>
+              </div>
+            </div>
+            <input type="hidden" id="fieldBlocks" value="[]" />
           </div>
         </div>
 
@@ -431,6 +497,6 @@
   </div>
 </div>
 
-<script src="/admin/admin.js?v=20260610-media"></script>
+<script src="/admin/admin.js?v=20260616-v2"></script>
 </body>
 </html>

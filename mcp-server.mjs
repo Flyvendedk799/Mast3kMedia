@@ -55,6 +55,7 @@ db.exec(`
     thumbnail_url      TEXT,
     case_url           TEXT,
     media              TEXT    NOT NULL DEFAULT '[]',
+    blocks             TEXT    NOT NULL DEFAULT '[]',
     created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at         TEXT    NOT NULL DEFAULT (datetime('now'))
   );
@@ -67,6 +68,12 @@ db.exec(`
 
 try {
   db.prepare("ALTER TABLE projects ADD COLUMN media TEXT NOT NULL DEFAULT '[]'").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN blocks TEXT NOT NULL DEFAULT '[]'").run();
 } catch (e) {
   if (!/duplicate column/i.test(e.message)) throw e;
 }
@@ -85,6 +92,7 @@ const fmt = row => ({
   tech_stack: safeJSON(row.tech_stack, []),
   metrics:    safeJSON(row.metrics,    []),
   media:      safeJSON(row.media,      []),
+  blocks:     safeJSON(row.blocks,     []),
   featured:   row.featured === 1,
 });
 
@@ -165,6 +173,24 @@ server.tool(
   },
 );
 
+// -- shared zod shapes --------------------------------------------------------
+// Enriched media item (§1.2) — backward compatible with {type,url,caption,alt}.
+const MEDIA_ITEM = z.object({
+  type:     z.enum(['image', 'video', 'embed']).optional().describe('Media type. Defaults to image.'),
+  url:      z.string().describe('Public URL, data URL, or embed/watch URL for the asset'),
+  caption:  z.string().optional().describe('Short Danish caption shown under the asset'),
+  alt:      z.string().optional().describe('Accessible alt text for images'),
+  provider: z.enum(['file', 'mp4', 'youtube', 'vimeo']).optional()
+              .describe('Source provider — inferred from url if absent (youtube/vimeo/mp4/file)'),
+  poster:   z.string().optional().describe('Poster image URL for video/embed'),
+  role:     z.enum(['hero', 'gallery', 'feature', 'before', 'after',
+                    'device-desktop', 'device-mobile', 'demo']).optional()
+              .describe('Layout role for the case renderer (default "gallery")'),
+});
+
+// Block items (§1.3) — loose object validation; renderers ignore unknown types.
+const BLOCK_ITEM = z.record(z.any());
+
 // -- create_project -----------------------------------------------------------
 const PROJECT_FIELDS = {
   title:              z.string().describe('Project title (required)'),
@@ -188,12 +214,10 @@ const PROJECT_FIELDS = {
   testimonial_role:   z.string().optional().describe('Quote author role/title'),
   thumbnail_url:      z.string().optional().describe('Cover image URL, data URL, or empty string to clear'),
   case_url:           z.string().optional().describe('External case study/live URL, repo URL, or empty string to clear'),
-  media:              z.array(z.object({
-    type:    z.enum(['image', 'video']).optional().describe('Media type. Defaults to image.'),
-    url:     z.string().describe('Public URL or data URL for the screenshot/video asset'),
-    caption: z.string().optional().describe('Short Danish caption shown under the asset'),
-    alt:     z.string().optional().describe('Accessible alt text for images'),
-  })).optional().describe('Case-page media gallery. Use real product screenshots/video only.'),
+  media:              z.array(MEDIA_ITEM).optional()
+                       .describe('Case-page media gallery. Use real product screenshots/video only. Supports role/provider/poster.'),
+  blocks:             z.array(BLOCK_ITEM).optional()
+                       .describe('Ordered custom content blocks (richtext, timeline, gallery, video, before_after, metrics, quote, embed) rendered after the core sections.'),
 };
 
 server.tool(
@@ -208,8 +232,8 @@ server.tool(
           (title,slug,category,description,long_description,challenge,approach,
            tags,tech_stack,client,year,status,featured,sort_order,
            metrics,testimonial_text,testimonial_author,testimonial_role,
-           thumbnail_url,case_url,media)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+           thumbnail_url,case_url,media,blocks)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).run(
         b.title, slug,
         b.category        || 'Software',
@@ -231,6 +255,7 @@ server.tool(
         b.thumbnail_url      || null,
         b.case_url           || null,
         JSON.stringify(b.media ?? []),
+        JSON.stringify(b.blocks ?? []),
       );
       const created = fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(r.lastInsertRowid));
       return ok(`Created project "${created.title}" (slug: ${created.slug}, id: ${created.id})\n\n${JSON.stringify(created, null, 2)}`);
@@ -267,7 +292,7 @@ server.tool(
           challenge=?,approach=?,tags=?,tech_stack=?,client=?,year=?,
           status=?,featured=?,sort_order=?,metrics=?,
           testimonial_text=?,testimonial_author=?,testimonial_role=?,
-          thumbnail_url=?,case_url=?,media=?
+          thumbnail_url=?,case_url=?,media=?,blocks=?
         WHERE id=?
       `).run(
         b.title            ?? old.title,
@@ -291,6 +316,7 @@ server.tool(
         b.thumbnail_url !== undefined ? b.thumbnail_url : old.thumbnail_url,
         b.case_url      !== undefined ? b.case_url      : old.case_url,
         JSON.stringify(Array.isArray(b.media) ? b.media : safeJSON(old.media, [])),
+        JSON.stringify(Array.isArray(b.blocks) ? b.blocks : safeJSON(old.blocks, [])),
         old.id,
       );
       const updated = fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(old.id));
@@ -415,12 +441,8 @@ server.tool(
       testimonial_role:   z.string().optional(),
       thumbnail_url:      z.string().optional(),
       case_url:           z.string().optional(),
-      media:              z.array(z.object({
-        type:    z.enum(['image', 'video']).optional(),
-        url:     z.string(),
-        caption: z.string().optional(),
-        alt:     z.string().optional(),
-      })).optional(),
+      media:              z.array(MEDIA_ITEM).optional(),
+      blocks:             z.array(BLOCK_ITEM).optional(),
     })).describe('Array of project objects to import'),
     default_status: z.enum(['draft', 'published']).optional()
                      .describe('Override status for all imports (default: draft)'),
@@ -431,8 +453,8 @@ server.tool(
         (title,slug,category,description,long_description,challenge,approach,
          tags,tech_stack,client,year,status,featured,sort_order,
          metrics,testimonial_text,testimonial_author,testimonial_role,
-         thumbnail_url,case_url,media)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         thumbnail_url,case_url,media,blocks)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `);
 
     const created = [], skipped = [];
@@ -461,6 +483,7 @@ server.tool(
           b.thumbnail_url      || null,
           b.case_url           || null,
           JSON.stringify(b.media ?? []),
+          JSON.stringify(b.blocks ?? []),
         );
         if (r.changes > 0) created.push(`${b.title} (${slug})`);
         else               skipped.push(`${b.title} (${slug}) — slug already exists`);
@@ -476,6 +499,44 @@ server.tool(
       ...(skipped.length ? ['Skipped:', ...skipped.map(s => `  ⚠ ${s}`)] : []),
     ];
     return ok(lines.join('\n'));
+  },
+);
+
+// -- set_blocks ---------------------------------------------------------------
+server.tool(
+  'set_blocks',
+  'Replace the ordered custom content blocks (layout) for a project. Returns the updated project. Block types: richtext, timeline, gallery, video, before_after, metrics, quote, embed.',
+  {
+    ref:    z.string().describe('Project slug or numeric ID'),
+    blocks: z.array(BLOCK_ITEM)
+              .describe('Full replacement blocks array (ordered). Each block is { type, id?, ...typed fields }.'),
+  },
+  async ({ ref, blocks }) => {
+    const row = findProject(ref);
+    if (!row) return err(`No project found with slug/id "${ref}"`);
+    db.prepare('UPDATE projects SET blocks=? WHERE id=?').run(JSON.stringify(blocks ?? []), row.id);
+    const updated = fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(row.id));
+    return ok(`Set ${updated.blocks.length} block(s) on "${updated.title}"\n\n${JSON.stringify(updated, null, 2)}`);
+  },
+);
+
+// -- add_media ----------------------------------------------------------------
+server.tool(
+  'add_media',
+  'Append media items to a project (or replace the whole media array when replace:true). Items support role/provider/poster. Returns the updated project.',
+  {
+    ref:     z.string().describe('Project slug or numeric ID'),
+    items:   z.array(MEDIA_ITEM).describe('Media items to add (or the full replacement set when replace:true)'),
+    replace: z.boolean().optional().describe('Replace the entire media array instead of appending (default false)'),
+  },
+  async ({ ref, items, replace }) => {
+    const row = findProject(ref);
+    if (!row) return err(`No project found with slug/id "${ref}"`);
+    const existing = safeJSON(row.media, []);
+    const next = replace ? (items ?? []) : [...existing, ...(items ?? [])];
+    db.prepare('UPDATE projects SET media=? WHERE id=?').run(JSON.stringify(next), row.id);
+    const updated = fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(row.id));
+    return ok(`${replace ? 'Replaced' : 'Added'} media on "${updated.title}" — now ${updated.media.length} item(s)\n\n${JSON.stringify(updated, null, 2)}`);
   },
 );
 
@@ -529,6 +590,8 @@ Field extraction guidelines:
 - testimonial_*: extract only if a direct client quote is present in the brief
 - status: always "draft" unless explicitly told to publish
 - featured: false unless the brief says flagship / hero / homepage
+- media: real product screenshots/video only — set each item's "role" (hero / gallery / feature / before / after / device-desktop / device-mobile / demo) and "provider" (file / mp4 / youtube / vimeo) when known; "hero" marks the cover shot
+- blocks: optional ordered custom sections rendered after the core layout — use them for richer storytelling. Supported types: richtext, timeline (phases), gallery, video, before_after, metrics, quote, embed. Build a "timeline" block when the brief describes project phases, and a "gallery" block when there are grouped screenshots.
 
 Brief:
 ${brief}`,

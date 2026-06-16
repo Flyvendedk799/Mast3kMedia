@@ -28,6 +28,7 @@ const PROJECT_FIELDS = [
   'thumbnail_url',
   'case_url',
   'media',
+  'blocks',
 ];
 
 const REQUIRED_MCP_TOOLS = [
@@ -42,6 +43,8 @@ const REQUIRED_MCP_TOOLS = [
   'set_featured',
   'reorder_projects',
   'bulk_import',
+  'set_blocks',
+  'add_media',
 ];
 
 const DESTINATION_FILES = [
@@ -77,8 +80,21 @@ const ADMIN_FIELD_IDS = {
   testimonial_role: ['fieldTestiRole'],
   thumbnail_url: ['fieldThumb', 'thumbPreview'],
   case_url: ['fieldCaseUrl'],
-  media: ['fieldMedia'],
+  media: ['fieldMedia', 'mediaManager', 'mediaUploadInput', 'embedUrlInput'],
+  blocks: ['fieldBlocks', 'blocksBuilder'],
 };
+
+// §1.2 media roles the v2 case renderer understands. Default role is "gallery".
+const MEDIA_ROLES = [
+  'hero',
+  'gallery',
+  'feature',
+  'before',
+  'after',
+  'device-desktop',
+  'device-mobile',
+  'demo',
+];
 
 function parseArgs(argv) {
   const args = {
@@ -163,6 +179,38 @@ function isDeploymentManagementUrl(value) {
       || (/(\.|^)render\.com$/.test(host) && /\/dashboard|\/account|\/login|\/settings/.test(pathName))
       || (/(\.|^)cloudflare\.com$/.test(host) && /\/dash|\/dashboard|\/login/.test(pathName))
     );
+  } catch {
+    return false;
+  }
+}
+
+function repoNeedlesFromTarget(target, metadata = null) {
+  const parts = repoParts(target);
+  const repo = metadata?.repo || parts.repo || '';
+  const owner = metadata?.owner || parts.owner || '';
+  return {
+    repoNeedle: String(repo).toLowerCase().replace(/[^a-z0-9]/g, ''),
+    ownerNeedle: String(owner).toLowerCase().replace(/[^a-z0-9]/g, ''),
+  };
+}
+
+function isProjectLiveUrl(value, target, metadata = null) {
+  if (!validPublicUrl(value) || isGithubPageUrl(value)) return false;
+  try {
+    const url = new URL(String(value));
+    const host = url.hostname.toLowerCase();
+    const pathName = url.pathname.toLowerCase();
+    const normalized = `${host}${pathName}`.replace(/[^a-z0-9]/g, '');
+    const { repoNeedle, ownerNeedle } = repoNeedlesFromTarget(target, metadata);
+    const namesProject = Boolean(
+      (repoNeedle && normalized.includes(repoNeedle))
+      || (ownerNeedle && normalized.includes(ownerNeedle)),
+    );
+    const referenceHost = /(^|\.)((godotengine|nodejs|npmjs|python)\.org|react\.dev|vitejs\.dev|nextjs\.org|docs\.github\.com|developer\.mozilla\.org)$/i.test(host);
+    const referencePath = /(^|\/)(docs?|documentation|manual|guide|api|download|archive|releases?|examples?)(\/|$|-)/i.test(pathName);
+    if (!namesProject && (referenceHost || referencePath || /^docs?\./i.test(host))) return false;
+    if (/\/download\/archive\//i.test(pathName)) return false;
+    return true;
   } catch {
     return false;
   }
@@ -255,6 +303,186 @@ function ensureImageThumbnail(project) {
   if (stats.firstImage) project.thumbnail_url = stats.firstImage.url;
   else if (!project.thumbnail_url && project.media?.length) project.thumbnail_url = project.media[0].url;
   return stats;
+}
+
+// §1.2 provider inference: shared rule used by the renderer and MCP. URL alone
+// decides the provider, falling back to "file" for everything else.
+function inferMediaProvider(item) {
+  const url = String(item?.url || '').toLowerCase();
+  if (item?.type === 'embed' || /youtube\.com|youtu\.be/.test(url)) {
+    if (/youtube\.com|youtu\.be/.test(url)) return 'youtube';
+    if (/vimeo\.com/.test(url)) return 'vimeo';
+  }
+  if (/vimeo\.com/.test(url)) return 'vimeo';
+  if (/\.(mp4|webm)(\?|#|$)/.test(url) || url.startsWith('data:video/')) return 'mp4';
+  return 'file';
+}
+
+// §1.2 role heuristic: assign a media role from filename + caption keywords so the
+// v2 case renderer can place each item (hero band, device showcase, before/after,
+// demo gallery, etc.) instead of dumping everything into the generic gallery.
+function inferMediaRole(item) {
+  if (item?.role && MEDIA_ROLES.includes(item.role)) return item.role;
+  const haystack = `${item?.caption || ''} ${item?.alt || ''} ${item?.fileHint || ''} ${item?.url || ''}`.toLowerCase();
+  if (item?.type === 'video' || item?.type === 'embed') return 'demo';
+  if (/\bhero\b|forside|frontpage|landing|primær|primaer|overview|overblik|dashboard/.test(haystack)) return 'hero';
+  if (/mobile|mobil|narrow|phone|telefon/.test(haystack)) return 'device-mobile';
+  if (/desktop|widescreen|fullscreen/.test(haystack)) return 'device-desktop';
+  if (/\bbefore\b|før\b|foer\b|gammel|old/.test(haystack)) return 'before';
+  if (/\bafter\b|efter\b|ny version|new version|resultat/.test(haystack)) return 'after';
+  if (/demo|video|walkthrough|gennemgang|flow/.test(haystack)) return 'demo';
+  if (/feature|funktion|showcase|tab/.test(haystack)) return 'feature';
+  return 'gallery';
+}
+
+// Enrich every media item in place with role + provider per §1.2. Backward
+// compatible: existing {type,url,caption,alt} items keep rendering, we only add
+// the optional keys when absent.
+function enrichMediaRoles(media) {
+  const items = Array.isArray(media) ? media : [];
+  let assignedHero = false;
+  for (const item of items) {
+    if (!item || !item.url) continue;
+    if (!item.provider) item.provider = inferMediaProvider(item);
+    if (!item.role || !MEDIA_ROLES.includes(item.role)) item.role = inferMediaRole(item);
+    if (item.role === 'hero') {
+      // Only one hero; demote later heroes to gallery so the renderer band is unambiguous.
+      if (assignedHero) item.role = 'gallery';
+      else assignedHero = true;
+    }
+  }
+  // Promote the first usable image to hero when nothing else claimed the band.
+  if (!assignedHero) {
+    const firstImage = items.find(item => item?.url && item.type !== 'video' && item.type !== 'embed');
+    if (firstImage) firstImage.role = 'hero';
+  }
+  return items;
+}
+
+// §1.3 timeline block: build from documented project phases (Roadmap / Process /
+// Milestones / Phases sections) when the repo actually documents them. Returns
+// null when there is no phase evidence so we never invent a process narrative.
+function buildTimelineBlock(docs) {
+  const source = [
+    extractSection(docs, 'Roadmap'),
+    extractSection(docs, 'Phases'),
+    extractSection(docs, 'Process'),
+    extractSection(docs, 'Milestones'),
+    extractSection(docs, 'Development Phases'),
+    extractSection(docs, 'Project Phases'),
+  ].filter(Boolean).join('\n');
+  if (!source.trim()) return null;
+  const bullets = extractBullets(source, 8);
+  const phases = [];
+  let index = 1;
+  for (const bullet of bullets) {
+    const [labelPart, bodyPart] = String(bullet).split(/:\s*/, 2);
+    const title = (labelPart || '').trim();
+    if (title.length < 3) continue;
+    phases.push({
+      label: `Fase ${String(index).padStart(2, '0')}`,
+      title,
+      body: (bodyPart || '').trim(),
+    });
+    index += 1;
+    if (phases.length >= 6) break;
+  }
+  if (phases.length < 2) return null;
+  return { type: 'timeline', id: 'proces', title: 'Proces', phases };
+}
+
+// §1.3 gallery block: collect screenshot media (role gallery/feature, real images)
+// into an explicit gallery block when there is enough evidence (>= 3 images). The
+// core gallery section already renders untagged images, so this is additive depth
+// for richer cases, not a replacement.
+function buildGalleryBlock(media) {
+  const items = (Array.isArray(media) ? media : [])
+    .filter(item => item?.url && item.type !== 'video' && item.type !== 'embed')
+    .filter(item => !item.role || item.role === 'gallery' || item.role === 'feature');
+  if (items.length < 3) return null;
+  return {
+    type: 'gallery',
+    id: 'galleri',
+    title: 'Skærmbilleder',
+    layout: 'grid',
+    items: items.slice(0, 8).map(item => ({
+      type: 'image',
+      url: item.url,
+      caption: item.caption || '',
+      alt: item.alt || item.caption || '',
+      role: 'gallery',
+      provider: item.provider || inferMediaProvider(item),
+    })),
+  };
+}
+
+// Build the §1.3 blocks array from evidence: timeline from documented phases +
+// gallery from screenshots. Existing blocks are preserved; we only append the
+// auto-generated ones when they are not already present by type.
+function autoGenerateBlocks(existingBlocks, docs, media) {
+  const blocks = Array.isArray(existingBlocks) ? [...existingBlocks] : [];
+  const hasType = type => blocks.some(block => block?.type === type);
+  if (!hasType('timeline')) {
+    const timeline = buildTimelineBlock(docs);
+    if (timeline) blocks.push(timeline);
+  }
+  if (!hasType('gallery')) {
+    const gallery = buildGalleryBlock(media);
+    if (gallery) blocks.push(gallery);
+  }
+  return blocks;
+}
+
+// §2 upload route: probe POST /api/admin/uploads on the local Mast3kMedia server.
+// When reachable, the runner prefers uploaded /uploads/<name> URLs over inlined
+// base64 data URLs so payloads stay small and media is served as static files.
+async function uploadMediaItem(baseUrl, token, item) {
+  const url = String(item?.url || '');
+  const match = url.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return null; // already a real URL (incl. existing /uploads/*) — leave as-is
+  const mime = match[1];
+  if (!/^image\/|^video\//.test(mime)) return null;
+  const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer.length) return null;
+  const ext = mime.split('/')[1]?.replace('+xml', '').replace('jpeg', 'jpg') || 'bin';
+  const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/admin/uploads`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': mime,
+      'X-Filename': `${safeFileStem(item.caption || 'media')}.${ext}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: buffer,
+  }).catch(() => null);
+  if (!res || !res.ok) return null;
+  const body = await res.json().catch(() => null);
+  if (!body?.url) return null;
+  return body.url;
+}
+
+// Prefer uploaded /uploads URLs over base64 when the upload route is reachable.
+// Mutates media items in place, replacing data: URLs with the returned static URL.
+// Silently leaves base64 in place when the route is unavailable (offline-safe).
+async function preferUploadedMedia(baseUrl, token, media, checks) {
+  const items = (Array.isArray(media) ? media : []).filter(item => item?.url?.startsWith('data:'));
+  if (!baseUrl || !items.length) return media;
+  let uploaded = 0;
+  for (const item of items) {
+    const url = await uploadMediaItem(baseUrl, token, item);
+    if (url) {
+      item.url = url;
+      uploaded += 1;
+    }
+  }
+  makeCheck(
+    checks,
+    'destination.media-upload',
+    'Media uploaded to /uploads and preferred over base64 data URLs',
+    uploaded > 0,
+    { uploaded, candidates: items.length, baseUrl },
+    uploaded > 0 ? 'error' : 'warn',
+  );
+  return media;
 }
 
 function runCommand(command, args, options = {}) {
@@ -449,6 +677,8 @@ function scoreMediaCandidate(file) {
   if (/screenshots?|captures?|demo|preview|case|portfolio/.test(lower)) score += 80;
   if (/full|hero|home|dashboard|admin|mobile|desktop|flow|checkout|builder|editor|overview|grid|product/.test(lower)) score += 35;
   if (/public\/|assets\/|static\/|images?\//.test(lower)) score += 10;
+  if (/(^|\/)(header|footer|banner|cover)\.(png|jpe?g|webp)$/i.test(lower)) score -= 90;
+  if (/doc\/assets\//i.test(lower) && !/screenshots?|captures?|demo|preview|case|portfolio/i.test(lower)) score -= 45;
   if (/logo|icon|favicon|sprite|placeholder|mock|avatar|badge/.test(lower)) score -= 90;
   if (/node_modules|\.next|dist|build|coverage|\.git/.test(lower)) score -= 200;
   return score;
@@ -542,6 +772,7 @@ async function inspectPageState(page) {
     const loginOnly = hasPassword && /sign in|log in|login|adgangskode|password/i.test(text) && controls < 10;
     const emptyCart = /kurv|cart|basket/i.test(h1) && /kurv er tom|tom kurv|cart is empty|empty cart|basket is empty|basket empty/i.test(text);
     const accountOnly = hasPassword && /opret konto|create account|log ind|login|sign in/i.test(text) && controls < 14;
+    const errorPage = /something went wrong|application error|internal server error|runtime error|500\s+internal|server error|unexpected error/i.test(text) && images < 3 && controls < 10;
     const blankish = text.trim().length < 90 && images < 2 && controls < 4;
     return {
       h1,
@@ -554,6 +785,7 @@ async function inspectPageState(page) {
       loginOnly,
       emptyCart,
       accountOnly,
+      errorPage,
       blankish,
     };
   });
@@ -807,6 +1039,7 @@ async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, 
   const media = [];
   let thumbnailDataUrl = null;
   let targets = [];
+  const capturedTargets = [];
   let captured = false;
   page.on('console', msg => {
     if (msg.type() === 'error') artifacts.consoleErrors.push(msg.text());
@@ -818,6 +1051,8 @@ async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, 
     let state = await inspectPageState(page);
     if (state.loginOnly) {
       makeCheck(checks, `browser.${prefix}.quality`, 'Source rendered only a login wall, not portfolio media', false, { sourceUrl }, 'warn');
+    } else if (state.errorPage) {
+      makeCheck(checks, `browser.${prefix}.quality`, 'Source rendered an application error page, not portfolio media', false, { sourceUrl, state }, 'warn');
     } else if (state.blankish) {
       makeCheck(checks, `browser.${prefix}.quality`, 'Source rendered too little visible product UI for portfolio media', false, { sourceUrl, state }, 'warn');
     } else {
@@ -835,7 +1070,7 @@ async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, 
         visited.add(key);
         await gotoAndSettle(page, target.url);
         state = await inspectPageState(page);
-        if (state.loginOnly || state.emptyCart || state.accountOnly || state.blankish) continue;
+        if (state.loginOnly || state.emptyCart || state.accountOnly || state.errorPage || state.blankish) continue;
         const sourceKey = sourceUrl.replace(/[#?].*$/, '').replace(/\/$/, '');
         const targetKey = target.url.replace(/[#?].*$/, '').replace(/\/$/, '');
         const primaryView = sourceKey === targetKey;
@@ -852,6 +1087,7 @@ async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, 
         );
         if (firstItem && !thumbnailDataUrl) thumbnailDataUrl = firstItem.url;
         captured = true;
+        capturedTargets.push(target);
         shotIndex += 1;
         if ((state.scrollHeight > state.viewportHeight * 1.45 || state.cards >= 3) && media.length < maxImages) {
           await scrollToUsefulSection(page);
@@ -887,7 +1123,10 @@ async function captureBrowserProductMedia(browser, sourceUrl, title, outputDir, 
           shotIndex += 1;
         }
       }
-      await performGuidedFlow(page, sourceUrl, targets);
+      const videoTargets = capturedTargets
+        .filter(target => target.url.replace(/[#?].*$/, '').replace(/\/$/, '') !== sourceUrl.replace(/[#?].*$/, '').replace(/\/$/, ''))
+        .slice(0, 3);
+      await performGuidedFlow(page, sourceUrl, videoTargets);
       makeCheck(checks, `browser.${prefix}.media`, 'Relevant product screenshots and guided browser flow captured', captured, {
         sourceUrl,
         targets: targets.slice(0, 4).map(target => ({ url: target.url, label: target.label, score: target.score })),
@@ -930,7 +1169,7 @@ async function collectRepoMedia(repoDir, title, checks) {
     .map(line => line.trim().replace(/^\.\//, ''))
     .filter(file => /\.(png|jpe?g|webp)$/i.test(file))
     .map(file => ({ file, score: scoreMediaCandidate(file) }))
-    .filter(item => item.score > 0)
+    .filter(item => item.score >= 45)
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);
 
@@ -1282,16 +1521,17 @@ function htmlVisibleTextLength(html) {
 function scoreStaticHtmlCandidate(file, html) {
   const lowerFile = file.toLowerCase();
   const lowerHtml = String(html || '').toLowerCase();
+  const textLength = htmlVisibleTextLength(html);
   if (/(^|\/)(node_modules|\.next|dist|build|coverage|vendor)\//.test(lowerFile)) return -100;
   if (/(^|\/)(base|layout|partial|template|email|error|404)\.html?$/.test(lowerFile)) return -30;
   if (/<div[^>]+id=["']root["'][^>]*>\s*<\/div>/i.test(html) && htmlVisibleTextLength(html) < 220) return -80;
+  if (textLength < 220 && !/<(img|video)\b/i.test(html)) return -80;
 
   let score = 0;
   if (/landing|showcase|marketing|packaging|public|site|demo/.test(lowerFile)) score += 45;
   if (/\/index\.html?$/.test(lowerFile)) score += 8;
   if (/<main|<section|<article|<h1/i.test(html)) score += 20;
   if (/deploy|dashboard|catalog|course|booking|preview|portfolio|agent|analytics|chat|support|pricing|features/i.test(lowerHtml)) score += 30;
-  const textLength = htmlVisibleTextLength(html);
   if (textLength > 900) score += 35;
   else if (textLength > 420) score += 18;
   else score -= 20;
@@ -1887,9 +2127,12 @@ function narrativeForDomain(domain, title, category, stack, featuresDa, adminDa,
   };
 
   const chosen = narratives[domain] || narratives.generic;
+  const evidenceParagraph = adminDa.length
+    ? `Repoet dokumenterer en løsning omkring ${stackDa}. Nøgleflows omfatter ${featureText}. På driftssiden dokumenterer repoet ${adminText}.`
+    : `Repoet dokumenterer en løsning omkring ${stackDa}. Nøgleflows omfatter ${featureText}. Kodebase, routes, assets eller dokumentation er brugt som evidens for de viste flows.`;
   const longDescription = [
     chosen.longIntro,
-    `Repoet dokumenterer en løsning omkring ${stackDa}. Nøgleflows omfatter ${featureText}. På driftssiden dokumenterer repoet ${adminText}.`,
+    evidenceParagraph,
   ].join('\n\n');
   const approach = [
     chosen.approachLead,
@@ -1958,7 +2201,9 @@ async function analyzeRepo(repoDir, target, options) {
   const slug = slugify(title);
   const repoUrl = metadata?.htmlUrl || (parts.owner && parts.repo ? `https://github.com/${parts.owner}/${parts.repo}` : (isRepoUrl(target) ? target : null));
   const extractedUrl = extractLiveUrl(docs, target);
-  const liveUrl = validPublicUrl(metadata?.homepage) ? metadata.homepage : (validPublicUrl(extractedUrl) && !/github\.com/i.test(extractedUrl) ? extractedUrl : null);
+  const metadataHomepage = isProjectLiveUrl(metadata?.homepage, target, metadata) ? metadata.homepage : null;
+  const extractedLiveUrl = isProjectLiveUrl(extractedUrl, target, metadata) ? extractedUrl : null;
+  const liveUrl = metadataHomepage || extractedLiveUrl;
   const featuresSource = `${extractSection(docs, 'What it does')}\n${extractSection(docs, 'What It Covers')}\n${extractSection(docs, 'Features')}\n${extractSection(docs, 'Key Features')}\n${extractSection(docs, 'Completed Features')}`;
   const features = [
     ...extractTableRows(featuresSource, 10),
@@ -2021,11 +2266,13 @@ async function analyzeRepo(repoDir, target, options) {
     thumbnail_url: '',
     case_url: liveUrl || repoUrl || target,
     media: [],
+    blocks: [],
   };
 
   return {
     parts,
     metadata,
+    docs,
     files,
     docsUsed: ['README.md', ...explainerCandidates],
     packageFiles,
@@ -2525,7 +2772,7 @@ async function captureSourceMedia(sourceUrls, outputDir, checks, headed, title =
     makeCheck(checks, 'browser.source-evidence', 'Source project page screenshot captured', false, {
       sourceUrls,
       error: lastError?.message || 'No source URL available',
-    });
+    }, 'warn');
   }
 
   await browser.close();
@@ -2775,41 +3022,7 @@ async function main() {
       }, 'warn');
     }
 
-    const repoMedia = await collectRepoMedia(repoDir, analysis.project.title, checks);
-    artifacts = mergeArtifacts(artifacts, repoMedia.artifacts);
-    if (repoMedia.media.length) {
-      analysis.project.media = limitPortfolioMedia(repoMedia.media);
-      analysis.project.thumbnail_url = analysis.project.thumbnail_url || repoMedia.media[0].url;
-      const screenshotVideo = await createScreenshotWalkthroughVideo(repoMedia.artifacts.screenshots, analysis.project.title, outputDir, checks);
-      artifacts = mergeArtifacts(artifacts, screenshotVideo.artifacts);
-      if (screenshotVideo.media.length) {
-        analysis.project.media = limitPortfolioMedia([...(analysis.project.media || []), ...screenshotVideo.media]);
-      }
-    }
-
     if (!args.noBrowser) {
-      const mediaImages = (analysis.project.media || []).filter(item => item.type !== 'video').length;
-      const hasVideo = (analysis.project.media || []).some(item => item.type === 'video');
-      if (!analysis.liveUrl && (!analysis.project.media?.length || mediaImages < 3 || !hasVideo)) {
-        const localCapture = await captureLocalRepoAppMedia(repoDir, analysis.project.title, outputDir, checks, args.headed);
-        artifacts = mergeArtifacts(artifacts, localCapture.artifacts);
-        if (localCapture.media?.length) {
-          analysis.project.media = limitPortfolioMedia([...localCapture.media, ...(analysis.project.media || [])]);
-          const firstLocalImage = localCapture.media.find(item => item.type !== 'video');
-          analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstLocalImage?.url || localCapture.media[0].url;
-        }
-      }
-
-      if (!analysis.liveUrl && !portfolioMediaStats(analysis.project.media || []).hasEnoughForPublishedCase) {
-        const staticCapture = await captureLocalStaticHtmlMedia(repoDir, analysis.project.title, outputDir, checks, args.headed);
-        artifacts = mergeArtifacts(artifacts, staticCapture.artifacts);
-        if (staticCapture.media?.length) {
-          analysis.project.media = limitPortfolioMedia([...staticCapture.media, ...(analysis.project.media || [])]);
-          const firstStaticImage = staticCapture.media.find(item => item.type !== 'video');
-          analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstStaticImage?.url || staticCapture.media[0].url;
-        }
-      }
-
       if (analysis.liveUrl) {
         const sourceCapture = await captureSourceMedia(
           [analysis.liveUrl],
@@ -2827,6 +3040,38 @@ async function main() {
         makeCheck(checks, 'browser.source-live-url', 'No live product URL found, so browser capture did not use GitHub as portfolio media', true, {
           repoUrl: analysis.repoUrl,
         }, 'warn');
+        const localCapture = await captureLocalRepoAppMedia(repoDir, analysis.project.title, outputDir, checks, args.headed);
+        artifacts = mergeArtifacts(artifacts, localCapture.artifacts);
+        if (localCapture.media?.length) {
+          analysis.project.media = limitPortfolioMedia([...localCapture.media, ...(analysis.project.media || [])]);
+          const firstLocalImage = localCapture.media.find(item => item.type !== 'video');
+          analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstLocalImage?.url || localCapture.media[0].url;
+        }
+
+        if (!portfolioMediaStats(analysis.project.media || []).hasEnoughForPublishedCase) {
+          const staticCapture = await captureLocalStaticHtmlMedia(repoDir, analysis.project.title, outputDir, checks, args.headed);
+          artifacts = mergeArtifacts(artifacts, staticCapture.artifacts);
+          if (staticCapture.media?.length) {
+            analysis.project.media = limitPortfolioMedia([...staticCapture.media, ...(analysis.project.media || [])]);
+            const firstStaticImage = staticCapture.media.find(item => item.type !== 'video');
+            analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstStaticImage?.url || staticCapture.media[0].url;
+          }
+        }
+      }
+
+      if (!portfolioMediaStats(analysis.project.media || []).hasEnoughForPublishedCase) {
+        const repoMedia = await collectRepoMedia(repoDir, analysis.project.title, checks);
+        artifacts = mergeArtifacts(artifacts, repoMedia.artifacts);
+        if (repoMedia.media.length) {
+          analysis.project.media = limitPortfolioMedia([...(analysis.project.media || []), ...repoMedia.media]);
+          const firstRepoImage = repoMedia.media.find(item => item.type !== 'video');
+          analysis.project.thumbnail_url = analysis.project.thumbnail_url || firstRepoImage?.url || repoMedia.media[0].url;
+          const screenshotVideo = await createScreenshotWalkthroughVideo(repoMedia.artifacts.screenshots, analysis.project.title, outputDir, checks);
+          artifacts = mergeArtifacts(artifacts, screenshotVideo.artifacts);
+          if (screenshotVideo.media.length) {
+            analysis.project.media = limitPortfolioMedia([...(analysis.project.media || []), ...screenshotVideo.media]);
+          }
+        }
       }
 
       analysis.project.media = limitPortfolioMedia(analysis.project.media || []);
@@ -2849,11 +3094,48 @@ async function main() {
         analysis.project.sort_order = 0;
       }
     } else {
+      const repoMedia = await collectRepoMedia(repoDir, analysis.project.title, checks);
+      artifacts = mergeArtifacts(artifacts, repoMedia.artifacts);
+      if (repoMedia.media.length) {
+        analysis.project.media = limitPortfolioMedia(repoMedia.media);
+        analysis.project.thumbnail_url = analysis.project.thumbnail_url || repoMedia.media[0].url;
+      }
       makeCheck(checks, 'browser.skip', 'Browser evidence skipped by flag', false, {}, 'warn');
     }
 
     await verifyDestinationContract(args.portfolioRoot, checks);
     await ensurePortfolioDeps(args.portfolioRoot, checks);
+
+    // §1.2 + §1.3: assign media roles from filename/caption evidence and
+    // auto-generate timeline (documented phases) + gallery (screenshots) blocks
+    // before the payload is persisted, so admin/MCP/renderer all agree.
+    enrichMediaRoles(analysis.project.media);
+    analysis.project.blocks = autoGenerateBlocks(analysis.project.blocks, analysis.docs || '', analysis.project.media);
+    makeCheck(checks, 'destination.blocks', 'Layout blocks derived from evidence (timeline phases + screenshot gallery)', true, {
+      blockTypes: (analysis.project.blocks || []).map(block => block?.type),
+      mediaRoles: (analysis.project.media || []).map(item => item?.role),
+    }, 'warn');
+
+    // Start the local site first so we can prefer uploaded /uploads URLs over
+    // base64 (§2) before the payload is persisted through the MCP/production.
+    const port = args.port || await getFreePort();
+    baseUrl = `http://127.0.0.1:${port}`;
+    server = startPortfolioServer(args.portfolioRoot, port, args.adminUser, args.adminPass);
+    await waitForHttp(`${baseUrl}/api/projects`, 20000, server);
+    makeCheck(checks, 'destination.server', 'Mast3kMedia local site starts before MCP update', true, { baseUrl });
+
+    // §2: when POST /api/admin/uploads is reachable, swap base64 data URLs for
+    // /uploads/<name> static URLs in both media and block-gallery items.
+    const uploadToken = process.env.MAST3KMEDIA_ADMIN_TOKEN || args.adminPass || null;
+    await preferUploadedMedia(baseUrl, uploadToken, analysis.project.media, checks);
+    for (const block of analysis.project.blocks || []) {
+      if (Array.isArray(block?.items)) await preferUploadedMedia(baseUrl, uploadToken, block.items, checks);
+    }
+    if (analysis.project.thumbnail_url?.startsWith('data:')) {
+      const heroItem = (analysis.project.media || []).find(item => item.role === 'hero' && !item.url?.startsWith('data:'));
+      if (heroItem) analysis.project.thumbnail_url = heroItem.url;
+    }
+
     await fs.writeFile(path.join(outputDir, 'project.json'), JSON.stringify(analysis.project, null, 2));
 
     mcp = await upsertProjectThroughMcp(args.portfolioRoot, analysis.project, checks);
@@ -2863,12 +3145,6 @@ async function main() {
     } else {
       makeCheck(checks, 'production.skip', 'Production sync skipped by flag', false, {}, 'warn');
     }
-
-    const port = args.port || await getFreePort();
-    baseUrl = `http://127.0.0.1:${port}`;
-    server = startPortfolioServer(args.portfolioRoot, port, args.adminUser, args.adminPass);
-    await waitForHttp(`${baseUrl}/api/projects`, 20000, server);
-    makeCheck(checks, 'destination.server', 'Mast3kMedia local site starts after MCP update', true, { baseUrl });
 
     if (!args.noBrowser) {
       const localArtifacts = await runDestinationEvidence(

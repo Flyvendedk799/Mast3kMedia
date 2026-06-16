@@ -1,0 +1,15 @@
+{
+  "apiBase": "http://127.0.0.1:52091",
+  "webBase": "http://127.0.0.1:52092",
+  "screenshots": [
+    "serverhoster-01-dashboard-overview.jpg",
+    "serverhoster-02-dashboard-health-and-activity.jpg",
+    "serverhoster-03-service-control-plane.jpg",
+    "serverhoster-04-deployment-pipeline.jpg",
+    "serverhoster-05-terminal-logs.jpg",
+    "serverhoster-06-edge-ingress.jpg",
+    "serverhoster-07-database-operations.jpg"
+  ],
+  "video": "/Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/videos/reference/serverhoster-authenticated-control-plane.webm",
+  "logs": "/Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/logs"
+}

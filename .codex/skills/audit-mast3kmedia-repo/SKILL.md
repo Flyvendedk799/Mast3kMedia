@@ -49,12 +49,12 @@ The runner writes artifacts to `mast3kmedia-repo-case/<timestamp>/` by default:
 - Uses only evidence from repo files, public/live pages, and field-contract inspection.
 - Checks that generated copy is repo-specific, not reused from another domain. A normal webshop must not receive garden, course, event, HR, or lead-intelligence language unless the repo itself contains that evidence.
 - Captures source product screenshots/video before writing the case.
-- Uses real product media from the live URL, repo screenshot assets, or a successfully booted local frontend app as `thumbnail_url` and `media`.
+- Uses real product media from the live URL first, then a successfully booted local frontend app, then substantial static product HTML, and only then repo screenshot assets as a fallback for `thumbnail_url` and `media`.
 - Captures multiple relevant product states where possible: homepage/primary view, useful scrolled detail, and strongest internal routes such as product, booking, checkout, dashboard, gallery, course, service, or case pages.
 - Records a short guided browser flow with deliberate scroll/navigation rather than a passive page-load video.
 - If no live/local app can be recorded but the repo contains real product screenshots, it may create a compact screenshot walkthrough video from those exact screenshots; caption it clearly as screenshot-based evidence.
 - Validates repo image bytes and dimensions before embedding them, so logos, icons, placeholders, tiny assets, and mismatched MIME types do not become portfolio media.
-- Boots recognizable frontend dev apps (Vite, Next, React Scripts, Astro, SvelteKit) only when no live URL or repo screenshot assets exist; supports npm/pnpm workspaces; login-only screens are kept as evidence, not portfolio media.
+- Boots recognizable frontend dev apps (Vite, Next, React Scripts, Astro, SvelteKit) when no live product URL is evidenced, before accepting repo image assets; supports npm/pnpm workspaces; login-only and application-error screens are kept as evidence, not portfolio media.
 - When a repo exposes a Flask app instead of a Node frontend, runs it in an isolated virtualenv with sandbox/local environment values and captures real public routes such as product, catalog, support, chat, or dashboard pages.
 - If a repo has a local setup script and `DATABASE_URL` points to localhost, runs that setup before browser capture so seeded demo apps can render without touching any remote database.
 - If a runnable app is login-only or too thin but the repo contains a substantial static product/landing HTML page, captures that page as product evidence; bare framework shells still fail the media gate.
@@ -63,6 +63,7 @@ The runner writes artifacts to `mast3kmedia-repo-case/<timestamp>/` by default:
 - Syncs the same project payload to the live Mast3kMedia production API at `https://mast3kmedia.dk` unless `--local-only` is passed.
 - Starts the local Mast3kMedia site and verifies the project in admin plus public case pages.
 - Captures screenshots and videos for local Mast3kMedia and, when production sync is enabled, the live Mast3kMedia admin/public case too.
+- Treats the automated runner as a baseline, not the finish line, when the user asks for a reference-quality, flagship, or "from the ground up" case. In those situations, run the reference-grade pass below before saying the work is complete.
 
 By default, cases are created as `published` and `featured` so the live homepage/portfolio can show them. Use `--draft` for review-only entries, `--not-featured` to keep a case off the homepage, and `--local-only` to avoid changing production.
 
@@ -76,11 +77,44 @@ By default, cases are created as `published` and `featured` so the live homepage
 - Prefer the source live URL for `case_url`; use the GitHub repo URL only when no live URL is evidenced.
 - Publish only when the run has real product media from a live page, local product app, or repo screenshot assets: at least two useful screenshots/images and one walkthrough video. If that bar is not met, keep the project as draft and unfeatured.
 - Screenshots must be useful on the public case page: no GitHub repo views, no bare login screens, no tiny logo/asset crops, no placeholders, and no near-duplicate home-only captures when a product flow can be reached.
+- Do not use framework documentation, download/archive, vendor, or tooling URLs as source product pages just because a repo homepage points there.
 - Videos should show an actual product walkthrough: visible landing state, scroll to useful details, and one or two meaningful internal screens when available.
 - Screenshot walkthrough videos are acceptable only as a fallback when a real browser flow cannot be captured, and the caption must say they are based on repo screenshots.
 - Reject placeholder/config URLs such as localhost, `api.openai.com`, `trello.com/app-key`, `yourdomain`, `your-host`, bare `http://`, webhook examples, and tokenized sample URLs.
 - Treat missing screenshots/video as a failed or incomplete run unless the user explicitly requested `--no-browser`.
 - After a run, inspect `project.json`, `report.md`, screenshots, and videos before telling the user the result is complete.
+- Assign each `media` item a `role` so the v2 case renderer can place it correctly: `hero` (one only), `gallery`, `feature`, `before`/`after`, `device-desktop`/`device-mobile`, or `demo`. Roles come from filename/caption evidence (hero/dashboard/overview ⇒ hero, mobile ⇒ device-mobile, before/after ⇒ before/after, demo/video/walkthrough ⇒ demo, else gallery); set `provider` (`file`/`mp4`/`youtube`/`vimeo`) from the URL when not already present.
+- Drive the case layout from the ordered `blocks` array (richtext, timeline, gallery, video, before_after, metrics, quote, embed) appended after the core sections. Only add a block when evidence supports it; never invent a process narrative.
+- Auto-generate a `timeline` block from documented project phases (Roadmap/Process/Milestones/Phases sections) and a `gallery` block from screenshots when the evidence clears the bar; otherwise leave `blocks` empty.
+- Prefer uploaded `/uploads/<name>` URLs over inlined base64: when `POST /api/admin/uploads` is reachable, upload media (and block-gallery items) and persist the returned static URL so payloads stay small and media is served as files. Fall back to base64 only when the upload route is unavailable.
+
+## Reference-Grade Case Pass
+
+Use this pass when the user says the case is important, will be a reference case, should be built from the ground up, or when the first automated result is generic, login-walled, visually thin, or underusing the Mast3kMedia case page.
+
+1. Re-read the source repo and the generated artifacts. Replace generic copy with Danish, repo-specific narrative about the actual product workflows, architecture, and user/operator decisions.
+2. If the app can be booted locally, prefer authenticated product states over public landing/login screens. Seed realistic demo data only to reveal product surfaces; never turn seeded data into business outcomes, testimonials, uptime claims, or customer results.
+3. Capture a product media set, not a single hero screenshot:
+   - desktop overview or primary dashboard
+   - main workflow/control surface
+   - build/deploy/admin or transactional flow
+   - logs/diagnostics/integrations when relevant
+   - data/database/settings surface when relevant
+   - at least one narrow/mobile viewport when the UI supports it
+4. Record a guided walkthrough video with deliberate navigation. Inspect early frames and trim/re-encode if the first frame is blank, white, loading-only, or otherwise weak. Verify the video loads on the public case page.
+5. Use factual metrics only: route counts, dashboard/page counts, test files, package manifests, integrations, modules, templates, or other inspectable repo facts.
+6. Use the full Mast3kMedia case template when evidence supports it:
+   - metrics band from `metrics`
+   - chart/graph from numeric `metrics`
+   - interactive feature showcase from real media and documented workflows
+   - before/after only for an evidence-backed workflow contrast, not invented measured impact
+   - device showcase only with a real narrow/mobile screenshot
+   - video gallery only with real product video
+   - testimonial and next-case sections only when source data explicitly supports them
+7. Prefer deriving richer public sections from existing MCP fields (`metrics`, `media`, `tech_stack`, copy fields) before adding MCP/admin fields. Update `mcp-server.mjs`, `admin/admin.js`, and `references/mast3kmedia-contract.md` only if a new persisted field is truly required.
+8. Sync through the local MCP and production API unless the user requested local-only. Use the correct public endpoint shape (`/api/projects/:slug`) when verifying the live payload.
+9. Verify the live public case like a visitor would: desktop and mobile Playwright checks, screenshots after the preloader clears, no console/page errors, no horizontal overflow, lazy images loaded after scroll, video `readyState` good, and all expected sections present.
+10. If `mast3kmedia.dk` is served through a local tunnel, verify the configured origin is listening before and after publishing.
 
 ## Commands
 
@@ -133,8 +167,9 @@ If the runner cannot execute:
    - Mast3kMedia admin edit form screenshot
    - local Mast3kMedia public case screenshot when published
    - live Mast3kMedia public case screenshot when production sync is enabled
-8. Report the created/updated slug, production status, project payload, and artifact paths.
+8. Run the reference-grade case pass when the user asked for a flagship/reference result or when the generated case is visually or narratively weak.
+9. Report the created/updated slug, production status, project payload, verification results, and artifact paths.
 
 ## When Updating This Skill
 
-Read `references/mast3kmedia-contract.md` before changing field coverage. If a new admin field is added, update both the reference and the field constants inside `scripts/audit_repo.mjs`.
+Read `references/mast3kmedia-contract.md` before changing field coverage. If a new admin field is added, update both the reference and the field constants inside `scripts/audit_repo.mjs` (`PROJECT_FIELDS`, `ADMIN_FIELD_IDS`, `REQUIRED_MCP_TOOLS`). The v2 contract adds the `blocks` field, the `set_blocks`/`add_media` MCP tools, the media `role`/`provider` keys, the `fieldBlocks`/`blocksBuilder`/`mediaManager`/`mediaUploadInput`/`embedUrlInput` admin IDs, and the `POST /api/admin/uploads` route with `/uploads` static serving — keep all of these in sync across both the `.claude/` and `.codex/` skill copies.

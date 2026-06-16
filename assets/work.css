@@ -1,0 +1,114 @@
+/* ─────────────────────────────────────────────────────────────
+   work.css — search + tag filtering for arbejde.html (workstream E)
+   Dark + lime design language; tokens from assets/base.css.
+   Do NOT edit base.css.
+   ───────────────────────────────────────────────────────────── */
+
+/* Toolbar wrapper above the work grid */
+.work-toolbar { margin-bottom: 2.5rem; }
+
+/* ── Search input ── */
+.work-search { position: relative; max-width: 460px; margin-bottom: 1.4rem; }
+.work-search svg {
+  position: absolute; left: 1.1rem; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px; color: var(--faint); pointer-events: none;
+}
+.work-search input {
+  width: 100%;
+  padding: 0.95em 2.6em 0.95em 2.9em;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  transition: border-color 0.3s var(--ease), background 0.3s var(--ease);
+}
+.work-search input::placeholder { color: var(--faint); }
+.work-search input:focus {
+  outline: none;
+  border-color: var(--lime);
+  background: var(--bg-3);
+}
+.work-search-clear {
+  position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%);
+  width: 26px; height: 26px; border-radius: var(--radius-full);
+  display: grid; place-items: center;
+  color: var(--muted); background: transparent; border: 1px solid var(--line);
+  cursor: pointer; opacity: 0; pointer-events: none;
+  transition: all 0.3s var(--ease);
+}
+.work-search.has-value .work-search-clear { opacity: 1; pointer-events: auto; }
+.work-search-clear:hover { color: var(--paper); border-color: var(--line-strong); }
+.work-search-clear svg { width: 13px; height: 13px; position: static; transform: none; }
+
+/* ── Tag / tech filter chips ── */
+.work-chips {
+  display: flex; flex-wrap: wrap; gap: 0.55rem;
+  margin-bottom: 1.6rem;
+}
+.work-chips:empty { display: none; }
+.work-chip {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  padding: 0.5em 0.95em;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.3s var(--ease);
+  white-space: nowrap;
+}
+.work-chip:hover { color: var(--paper); border-color: var(--line-strong); }
+.work-chip.active {
+  background: var(--lime-dim);
+  color: var(--lime);
+  border-color: var(--lime);
+}
+
+/* ── Result count ── */
+.work-count {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 1.6rem;
+}
+.work-count b { color: var(--lime); font-weight: 600; }
+
+/* ── Empty state ── */
+.work-empty {
+  display: none;
+  text-align: center;
+  padding: clamp(3rem, 8vw, 6rem) 1rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-xl);
+  color: var(--muted);
+}
+.work-empty.show { display: block; }
+.work-empty .we-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.3rem, 2.4vw, 1.8rem);
+  color: var(--paper);
+  margin-bottom: 0.6rem;
+}
+.work-empty .we-sub { color: var(--muted); font-size: 0.98rem; }
+.work-empty .work-reset {
+  display: inline-block;
+  margin-top: 1.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--lime);
+  border: 1px solid var(--lime);
+  border-radius: var(--radius-full);
+  padding: 0.6em 1.2em;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.3s var(--ease);
+}
+.work-empty .work-reset:hover { background: var(--lime); color: #14130f; }

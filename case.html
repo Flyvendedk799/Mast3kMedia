@@ -298,6 +298,20 @@
   </div>
 </section>
 
+<!-- CUSTOM BLOCKS (data-driven, rendered in order) -->
+<div id="case-blocks"></div>
+
+<!-- RELATED CASES (data-driven) -->
+<section class="section-pad related-section" id="related-section" hidden>
+  <div class="shell">
+    <div class="ih" data-reveal="up">
+      <span class="eyebrow">Mere fra studiet</span>
+      <h2 class="ih-title display">Relaterede cases.</h2>
+    </div>
+    <div class="related-grid" id="related-grid"></div>
+  </div>
+</section>
+
 <!-- NEXT -->
 <section class="next-cta">
   <div class="shell">
@@ -332,545 +346,593 @@
 /* ── Dynamic case loading from API ── */
 (function() {
   var slug = new URLSearchParams(location.search).get('slug');
-  if (!slug) return; // No slug → show static NordSync demo
+  if (!slug) return; // No slug → keep static NordSync demo (acceptable demo mode)
 
   var ESC = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
   var ATTR = function(s){ return ESC(s).replace(/"/g,'&quot;'); };
+
+  /* ── Media helpers (role + provider driven) ── */
+  var inferProvider = function(item){
+    if (item && item.provider) return item.provider;
+    var u = String((item && item.url) || '');
+    if (/youtube\.com|youtu\.be/i.test(u)) return 'youtube';
+    if (/vimeo\.com/i.test(u)) return 'vimeo';
+    if (/\.(mp4|webm)(\?|#|$)/i.test(u)) return 'mp4';
+    return 'file';
+  };
+  var isVideoItem = function(item){
+    if (!item) return false;
+    if (item.type === 'video' || item.type === 'embed') return true;
+    var p = inferProvider(item);
+    return p === 'youtube' || p === 'vimeo' || p === 'mp4';
+  };
   var isVideo = function(item){ return item && item.type === 'video'; };
-  var isImage = function(item){ return item && item.url && !isVideo(item); };
-  var mediaCaption = function(item, fb){ return ESC(item.caption || item.alt || fb || 'Produktvisning'); };
-  var isServerHosterCase = function(p) {
-    return p && (p.slug === 'server-hoster' || /server hoster|localsurv/i.test(p.title || ''));
-  };
-  var hideDynamicDemoSections = function() {
-    ['[data-showcase]', '[data-ba]', '.chartwrap', '.devices', '.next-cta'].forEach(function(selector) {
-      var node = document.querySelector(selector);
-      var section = node ? node.closest('section') : null;
-      if (section) section.hidden = true;
-    });
-  };
-  var parseMetricNumber = function(value) {
-    var raw = String(value || '').replace(',', '.');
-    var match = raw.match(/-?\d+(?:\.\d+)?/);
-    return match ? Number(match[0]) : null;
-  };
-  var metricShortLabel = function(label, index) {
-    var text = String(label || ('Mål ' + (index + 1))).trim();
-    var lower = text.toLowerCase();
-    if (lower.includes('api') || lower.includes('route')) return 'API routes';
-    if (lower.includes('dashboard')) return 'Dashboards';
-    if (lower.includes('integration')) return 'Integrationer';
-    if (lower.includes('test')) return 'Testfiler';
-    if (lower.includes('appmodul') || lower.includes('app module')) return 'Appmoduler';
-    if (lower.includes('package')) return 'Packages';
-    if (lower.includes('komponent') || lower.includes('component')) return 'Komponenter';
-    if (lower.includes('side') || lower.includes('page')) return 'Sider';
-    if (lower.includes('repo')) return 'Repo';
-    if (lower.includes('medie') || lower.includes('media')) return 'Medier';
-    if (lower.includes('flow')) return 'Flows';
-    if (lower.includes('agent')) return 'Agenter';
-    var words = text.split(/\s+/).filter(Boolean);
-    if (text.length <= 24 || words.length <= 2) return text;
-    return words.slice(0, 2).join(' ');
-  };
-  var renderMetricChart = function(p) {
-    var wrap = document.querySelector('.chartwrap');
-    if (!wrap) return;
-    var section = wrap.closest('section');
-    var rows = (Array.isArray(p.metrics) ? p.metrics : []).map(function(m, i) {
-      var n = parseMetricNumber(m.value);
-      return {
-        value: String(m.value || ''),
-        label: String(m.label || ''),
-        shortLabel: metricShortLabel(m.label, i),
-        number: n
-      };
-    }).filter(function(row) {
-      return Number.isFinite(row.number);
-    });
+  var isImage = function(item){ return item && item.url && !isVideoItem(item); };
+  var roleOf = function(item){ return (item && item.role) || 'gallery'; };
+  var hide = function(node){ var s = node ? node.closest('section') : null; if (s) s.hidden = true; };
+  var show = function(node){ var s = node ? node.closest('section') : null; if (s) s.hidden = false; };
+  var mediaCaption = function(item, fb){ return ESC((item && (item.caption || item.alt)) || fb || 'Produktvisning'); };
 
-    if (!rows.length) {
-      if (section) section.hidden = true;
-      return;
+  /* ── Normalise media ── */
+  var getMedia = function(p){
+    return (Array.isArray(p.media) ? p.media : []).filter(function(item){ return item && item.url; });
+  };
+  var byRole = function(media, role){ return media.filter(function(m){ return roleOf(m) === role; }); };
+
+  /* ── Markup helpers ── */
+  var imageMarkup = function(item, label){
+    var alt = ATTR((item && (item.alt || item.caption)) || label || 'Produktscreenshot');
+    return '<img class="case-media-img" src="' + ATTR(item.url) + '" alt="' + alt + '" loading="lazy" decoding="async">';
+  };
+
+  /* Flat lightbox set across the whole case for prev/next navigation */
+  var lightboxItems = [];
+  var lbEntry = function(item){
+    var prov = inferProvider(item);
+    var type = isVideoItem(item)
+      ? ((item.type === 'embed' || prov === 'youtube' || prov === 'vimeo') ? 'embed' : 'video')
+      : 'image';
+    return { url: item.url, type: type, provider: prov, caption: item.caption || '', alt: item.alt || '', poster: item.poster || '' };
+  };
+  var registerLightbox = function(triggerEl, item){
+    if (!triggerEl || !item || !window.Lightbox) return;
+    var index = lightboxItems.length;
+    lightboxItems.push(lbEntry(item));
+    window.Lightbox.attach(triggerEl, lightboxItems, index);
+  };
+
+  /* ============ HERO ============ */
+  var renderHero = function(p, media){
+    var hero = document.querySelector('.case-hero-media');
+    if (!hero) return;
+    var heroItem = byRole(media, 'hero')[0] || media.filter(isVideoItem)[0] || media.filter(isImage)[0] ||
+      (p.thumbnail_url ? { type: 'image', url: p.thumbnail_url, caption: p.title, alt: p.title } : null);
+    if (!heroItem) return; // keep gradient placeholder (never hidden)
+    hero.classList.remove('ph');
+    if (isVideoItem(heroItem)) {
+      var prov = inferProvider(heroItem);
+      if (heroItem.type === 'embed' || prov === 'youtube' || prov === 'vimeo') {
+        var src = window.Lightbox.embedUrl(heroItem, prov === 'file' ? 'youtube' : prov).replace('autoplay=1', 'autoplay=0');
+        hero.innerHTML = '<iframe class="case-hero-embed" src="' + ATTR(src) + '" allow="fullscreen; picture-in-picture" allowfullscreen title="' + ATTR(heroItem.caption || p.title) + '"></iframe>';
+      } else {
+        hero.innerHTML = '<video class="case-media-img" src="' + ATTR(heroItem.url) + '" controls playsinline preload="metadata"' + (heroItem.poster ? ' poster="' + ATTR(heroItem.poster) + '"' : '') + '></video>';
+      }
+      if (heroItem.caption) hero.innerHTML += '<div class="case-media-caption">' + mediaCaption(heroItem, p.title) + '</div>';
+    } else {
+      hero.innerHTML = imageMarkup(heroItem, p.title) + '<div class="case-media-caption">' + mediaCaption(heroItem, p.title) + '</div>';
+      registerLightbox(hero.querySelector('.case-media-img'), heroItem);
     }
+  };
 
-    var max = Math.max.apply(null, rows.map(function(row) { return row.number; }));
-    var yTop = Math.max(1, Math.ceil(max / 5) * 5);
-    var yMid = yTop / 2;
-    var bars = rows.map(function(row) {
-      var h = Math.max(42, Math.round((row.number / yTop) * 255));
-      var lit = row.number === max ? ' lit' : '';
-      return '<div class="chart-bar' + lit + '" style="height:' + h + 'px">' +
-        '<span class="bv">' + ESC(row.value) + '</span>' +
-      '</div>';
-    }).join('');
-    var labels = rows.map(function(row) {
-      return '<span title="' + ATTR(row.label) + '">' + ESC(row.shortLabel) + '</span>';
-    }).join('');
-    var list = rows.map(function(row) {
-      return '<li><span>' + ESC(row.label) + '</span><strong>' + ESC(row.value) + '</strong></li>';
-    }).join('');
-
-    if (section) section.hidden = false;
-    wrap.classList.add('repo-chart');
-    wrap.innerHTML =
-      '<div class="chart-copy" data-reveal="up">' +
-        '<span class="eyebrow">Kortlagt omfang</span>' +
-        '<h2 class="ih-title display" style="margin:1rem 0 1.2rem">Repoets dokumenterede overflade.</h2>' +
-        '<p class="muted">Grafen visualiserer kun tal, der allerede er dokumenteret i repo-audit og case-payload. Den gør ' + ESC(p.title || 'casen') + ' lettere at scanne uden at opfinde effektdata.</p>' +
-        '<div class="chart-cap"><span class="metric-n" style="font-size:clamp(2.4rem,4vw,3.4rem)">' + rows.length + '</span><span class="muted">mål fra auditten</span></div>' +
-        '<ul class="repo-chart-list">' + list + '</ul>' +
-      '</div>' +
-      '<div class="chart repo-chart-bars" data-reveal="up">' +
-        '<div class="chart-area">' +
-          '<div class="chart-plot">' +
-            '<span class="chart-yline" style="bottom:25%"></span>' +
-            '<span class="chart-yline" style="bottom:50%"></span>' +
-            '<span class="chart-yline" style="bottom:75%"></span>' +
-            '<span class="chart-ylabel" style="bottom:50%">' + ESC(yMid.toLocaleString('da-DK')) + '</span>' +
-            '<span class="chart-ylabel" style="bottom:100%">' + ESC(yTop.toLocaleString('da-DK')) + '</span>' +
-            bars +
-          '</div>' +
-          '<div class="chart-xaxis">' + labels + '</div>' +
-        '</div>' +
-      '</div>';
-
-    requestAnimationFrame(function() {
-      var chartNode = wrap.querySelector('.chart');
-      if (chartNode) chartNode.classList.add('in');
-    });
-  };
-  var iconMarkup = function(name) {
-    var icons = {
-      dashboard: '<path d="M3 3v18h18M7 14l4-4 3 3 5-6"/>',
-      services: '<rect x="4" y="4" width="16" height="6" rx="1.5"/><rect x="4" y="14" width="16" height="6" rx="1.5"/><path d="M8 7h.01M8 17h.01"/>',
-      deploy: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>',
-      logs: '<path d="m4 17 5-5-5-5"/><path d="M12 19h8"/>',
-      ingress: '<path d="M4 12h16"/><path d="M12 4v16"/><path d="m16 8 4 4-4 4"/><path d="m8 8-4 4 4 4"/>',
-      database: '<ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"/><path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
-      commerce: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L23 6H6"/>',
-      ai: '<path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="3"/>',
-      docs: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/>',
-      game: '<path d="M6 12h4"/><path d="M8 10v4"/><path d="M15 13h.01"/><path d="M18 11h.01"/><path d="M7 7h10a5 5 0 0 1 4.8 6.4l-.9 3.2a3 3 0 0 1-5.1 1.2L14 16h-4l-1.8 1.8a3 3 0 0 1-5.1-1.2l-.9-3.2A5 5 0 0 1 7 7z"/>',
-      design: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>'
-    };
-    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">' + (icons[name] || icons.dashboard) + '</svg>';
-  };
-  var getProjectMedia = function(p) {
-    var media = Array.isArray(p.media) ? p.media.filter(function(item){ return item && item.url; }) : [];
-    if (!media.length && p.thumbnail_url) {
-      media = [{ type: 'image', url: p.thumbnail_url, caption: 'Projektvisning', alt: p.title }];
-    }
-    return media;
-  };
-  var compactText = function(text, max) {
-    var clean = String(text || '').replace(/\s+/g, ' ').trim();
-    return clean.length > max ? clean.slice(0, max - 1).trim() + '…' : clean;
-  };
-  var featureIcon = function(text, category) {
-    var hay = (text + ' ' + (category || '')).toLowerCase();
-    if (/log|terminal|diagnos|worker|capture/.test(hay)) return 'logs';
-    if (/deploy|git|build|pipeline|release/.test(hay)) return 'deploy';
-    if (/domain|edge|proxy|preview|metadata|render|prerender|link/.test(hay)) return 'ingress';
-    if (/database|data|postgres|mysql|sqlite|redis|supabase|rapport|analytics/.test(hay)) return 'database';
-    if (/shop|commerce|kurv|checkout|ordre|booking|kursus|produkt|webshop/.test(hay)) return 'commerce';
-    if (/game|spil|wave|level|gameplay|input/.test(hay)) return 'game';
-    if (/ai|agent|prompt|artifact|model|rådgiver|analyse/.test(hay)) return 'ai';
-    if (/doc|rapport|pdf|præsentation|export|eksport/.test(hay)) return 'docs';
-    if (/design|brand|ui|visuel|workspace/.test(hay)) return 'design';
-    if (/admin|dashboard|overblik|control|service|platform/.test(hay)) return 'dashboard';
-    return 'services';
-  };
-  var titleFromCaption = function(item, index) {
-    var text = String(item.caption || item.alt || '').replace(/\s+/g, ' ').trim();
-    if (!text) return 'Produktvisning ' + (index + 1);
-    var split = text.split(/\s+(?:med|og|til|for)\s+|[—:]/i)[0].replace(/[-–—]\s*$/, '').trim();
-    return compactText(split || text, 34);
-  };
-  var bodyFromCaption = function(item, title) {
-    var caption = String(item.caption || '').replace(/\s+/g, ' ').trim();
-    var alt = String(item.alt || '').replace(/\s+/g, ' ').trim();
-    var body = caption && caption !== title ? caption : alt;
-    if (!body || body === title) body = 'Dokumenteret produktvisning fra case-mediet.';
-    return compactText(body, 116);
-  };
-  var screenLabel = function(title, index) {
-    return compactText(title || ('Visning ' + (index + 1)), 26);
-  };
-  var domainLabel = function(p) {
-    if (!p || !p.case_url) return 'produkt.local';
-    return p.case_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'produkt.local';
-  };
-  var buildFeatureSet = function(p, images) {
-    if (isServerHosterCase(p)) {
-      return [
-        {
-          title: 'Driftsoverblik',
-          body: 'Health score, deployments og service metrics samlet i én operatørvisning.',
-          screen: 'Dashboard',
-          icon: 'dashboard',
-          image: images[0]
-        },
-        {
-          title: 'Service control plane',
-          body: 'Runtime controls, GitHub-status, public domain og managed Postgres i samme flow.',
-          screen: 'Services',
-          icon: 'services',
-          image: images[1] || images[0]
-        },
-        {
-          title: 'GitOps deploys',
-          body: 'Manuel trigger, revisionshistorik, build states, failed deploy og retry-mønstre.',
-          screen: 'Deployments',
-          icon: 'deploy',
-          image: images[2] || images[0]
-        },
-        {
-          title: 'Live logs',
-          body: 'Streaming terminal med niveau-filter, søgning, eksport og servicekontekst.',
-          screen: 'Terminal',
-          icon: 'logs',
-          image: images[3] || images[0]
-        },
-        {
-          title: 'Edge ingress',
-          body: 'Host-baserede routes fra offentlige domæner til lokale services.',
-          screen: 'Ingress',
-          icon: 'ingress',
-          image: images[4] || images[0]
-        }
-      ].filter(function(feature) { return feature.image; });
-    }
-
-    return images.slice(0, 5).map(function(item, index) {
-      var title = titleFromCaption(item, index);
-      var text = [item.caption, item.alt, p.category, (p.tags || []).join(' ')].filter(Boolean).join(' ');
-      return {
-        title: title,
-        body: bodyFromCaption(item, title),
-        screen: screenLabel(title, index),
-        icon: featureIcon(text, p.category),
-        image: item
-      };
-    });
-  };
-  var renderFeatureShowcase = function(p) {
+  /* ============ FEATURE SHOWCASE (tabs) ============ */
+  var renderFeatureShowcase = function(p, media){
     var root = document.querySelector('[data-showcase]');
     if (!root) return;
+    var features = byRole(media, 'feature').filter(isImage);
+    if (features.length < 1) { hide(root); return; }
+    show(root);
     var section = root.closest('section');
-    var media = getProjectMedia(p);
-    var images = media.filter(isImage);
-    var features = buildFeatureSet(p, images);
-    if (features.length < 2) {
-      if (section) section.hidden = true;
-      return;
-    }
-
     if (section) {
-      section.hidden = false;
-      var eyebrow = section.querySelector('.ih .eyebrow');
-      var title = section.querySelector('.ih-title');
+      var eb = section.querySelector('.ih .eyebrow');
+      var t = section.querySelector('.ih-title');
       var sub = section.querySelector('.ih-sub');
-      if (eyebrow) eyebrow.textContent = 'Produktflow';
-      if (title) title.textContent = isServerHosterCase(p) ? 'De centrale arbejdsgange.' : 'Udvalgte produktflader.';
-      if (sub) sub.textContent = isServerHosterCase(p)
-        ? 'Klik gennem de faktiske LocalSURV-flader fra referenceoptagelsen.'
-        : 'Klik gennem de stærkeste visninger fra case-mediet.';
+      if (eb) eb.textContent = 'Highlights';
+      if (t) t.textContent = 'Funktioner der gør forskellen.';
+      if (sub) sub.textContent = 'Klik dig igennem de centrale produktflader.';
     }
-
+    var domain = p.case_url ? p.case_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '') : (p.slug || 'produkt') + '.app';
     root.classList.add('dynamic-showcase');
     root.innerHTML =
-      '<div class="feat-tabs">' +
-        features.map(function(feature, i) {
-          return '<button class="feat-tab' + (i === 0 ? ' active' : '') + '" type="button" data-feature-index="' + i + '">' +
-            '<span class="ft-ic">' + iconMarkup(feature.icon) + '</span>' +
-            '<span><h4>' + ESC(feature.title) + '</h4><p>' + ESC(feature.body) + '</p></span>' +
+      '<div class="feat-tabs" role="tablist">' +
+        features.map(function(f, i){
+          var label = (f.caption || f.alt || ('Visning ' + (i + 1)));
+          return '<button class="feat-tab' + (i === 0 ? ' active' : '') + '" type="button" role="tab" aria-selected="' + (i === 0) + '" data-feature-index="' + i + '">' +
+            '<span class="ft-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg></span>' +
+            '<span><h4>' + ESC(label) + '</h4><p>' + ESC(f.alt && f.alt !== label ? f.alt : 'Dokumenteret produktvisning fra casen.') + '</p></span>' +
           '</button>';
         }).join('') +
       '</div>' +
       '<div class="showcase-stage">' +
         '<span class="showcase-progress" style="width:100%"></span>' +
         '<div class="mock">' +
-          '<div class="mock-bar">' +
-            '<div class="mock-dots"><span></span><span></span><span></span></div>' +
-            '<div class="mock-url"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' + ESC(isServerHosterCase(p) ? 'localsurv.local' : domainLabel(p)) + '</div>' +
-          '</div>' +
-          '<div class="mock-screen">' +
-            imageMarkup(features[0].image, features[0].title) +
-            '<span class="mock-label">' + ESC(features[0].screen) + '</span>' +
-          '</div>' +
+          '<div class="mock-bar"><div class="mock-dots"><span></span><span></span><span></span></div>' +
+            '<div class="mock-url"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' + ESC(domain) + '</div></div>' +
+          '<div class="mock-screen">' + imageMarkup(features[0], features[0].caption) +
+            '<span class="mock-label">' + ESC(features[0].caption || 'Visning 1') + '</span></div>' +
         '</div>' +
       '</div>';
-
     var img = root.querySelector('.mock-screen img');
     var label = root.querySelector('.mock-label');
     var tabs = Array.from(root.querySelectorAll('.feat-tab'));
-    var activate = function(index) {
-      var feature = features[index];
-      if (!feature || !img || !label) return;
-      tabs.forEach(function(tab, i) { tab.classList.toggle('active', i === index); });
-      img.src = feature.image.url;
-      img.alt = feature.image.alt || feature.image.caption || feature.title;
-      label.textContent = feature.screen;
+    var activate = function(n){
+      var f = features[n]; if (!f || !img) return;
+      tabs.forEach(function(t, i){ t.classList.toggle('active', i === n); t.setAttribute('aria-selected', i === n); });
+      img.src = f.url; img.alt = f.alt || f.caption || ('Visning ' + (n + 1));
+      if (label) label.textContent = f.caption || ('Visning ' + (n + 1));
     };
-    tabs.forEach(function(tab, i) {
-      tab.addEventListener('click', function() { activate(i); });
+    tabs.forEach(function(t, i){
+      t.addEventListener('click', function(){ activate(i); });
+      t.addEventListener('keydown', function(e){
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); var ni = (i + 1) % tabs.length; tabs[ni].focus(); activate(ni); }
+        if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); var pi = (i - 1 + tabs.length) % tabs.length; tabs[pi].focus(); activate(pi); }
+      });
     });
+    // clicking the shown screenshot opens the full feature set in the lightbox
+    if (img && window.Lightbox) {
+      var lbFeatures = features.map(lbEntry);
+      img.style.cursor = 'zoom-in';
+      img.addEventListener('click', function(){
+        var current = tabs.findIndex(function(t){ return t.classList.contains('active'); });
+        window.Lightbox.open(lbFeatures, Math.max(0, current));
+      });
+    }
   };
-  var renderBeforeAfter = function(p) {
+
+  /* ============ BEFORE / AFTER ============ */
+  var renderBeforeAfter = function(p, media){
     var ba = document.querySelector('[data-ba]');
     if (!ba) return;
+    var before = byRole(media, 'before')[0];
+    var after = byRole(media, 'after')[0];
+    if (!before || !after) { hide(ba); return; }
+    show(ba);
     var section = ba.closest('section');
-    if (!isServerHosterCase(p)) {
-      if (section) section.hidden = true;
-      return;
-    }
     if (section) {
-      section.hidden = false;
-      var eyebrow = section.querySelector('.ih .eyebrow');
-      var title = section.querySelector('.ih-title');
+      var eb = section.querySelector('.ih .eyebrow');
+      var t = section.querySelector('.ih-title');
       var sub = section.querySelector('.ih-sub');
-      if (eyebrow) eyebrow.textContent = 'Før / efter';
-      if (title) title.textContent = 'Fra terminalspredning til kontrolpanel.';
-      if (sub) sub.textContent = 'Slideren viser den operationelle forskel, som repoet samler i LocalSURV.';
+      if (eb) eb.textContent = 'Før / efter';
+      if (t) t.textContent = 'Se forskellen.';
+      if (sub) sub.textContent = 'Træk i skyderen for at sammenligne før og efter.';
     }
-    var beforeTag = ba.querySelector('.ba-before .ba-tag');
-    var afterTag = ba.querySelector('.ba-after .ba-tag');
-    var before = ba.querySelector('.ba-before .ba-content');
-    var after = ba.querySelector('.ba-after .ba-content');
-    if (beforeTag) beforeTag.textContent = 'Før';
-    if (afterTag) afterTag.textContent = 'Efter — LocalSURV';
-    if (before) before.textContent = 'Git pulls · processer · SSL · logs · databaser i separate terminaler';
-    if (after) after.textContent = 'GitHub deploys · reverse proxy · live logs · databases samlet ét sted';
+    ba.classList.add('ba-media');
+    ba.innerHTML =
+      '<div class="ba-layer ba-before">' + imageMarkup(before, 'Før') + '<span class="ba-tag">' + ESC(before.caption || 'Før') + '</span></div>' +
+      '<div class="ba-layer ba-after" style="clip-path:inset(0 0 0 50%)">' + imageMarkup(after, 'Efter') + '<span class="ba-tag">' + ESC(after.caption || 'Efter') + '</span></div>' +
+      '<div class="ba-handle"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg></span></div>';
+    if (window.CaseInteractions) window.CaseInteractions.beforeAfter();
+    registerLightbox(ba.querySelector('.ba-before img'), before);
+    registerLightbox(ba.querySelector('.ba-after img'), after);
   };
-  var renderDeviceShowcase = function(p) {
+
+  /* ============ METRICS CHART ============ */
+  var parseMetricNumber = function(value){
+    var raw = String(value || '').replace(',', '.');
+    var match = raw.match(/-?\d+(?:\.\d+)?/);
+    return match ? Number(match[0]) : null;
+  };
+  var metricShortLabel = function(label, index){
+    var text = String(label || ('Mål ' + (index + 1))).trim();
+    var words = text.split(/\s+/).filter(Boolean);
+    if (text.length <= 24 || words.length <= 2) return text;
+    return words.slice(0, 2).join(' ');
+  };
+  var renderMetricChart = function(p){
+    var wrap = document.querySelector('.chartwrap');
+    if (!wrap) return;
+    var rows = (Array.isArray(p.metrics) ? p.metrics : []).map(function(m, i){
+      var n = parseMetricNumber(m.value);
+      return { value: String(m.value || ''), label: String(m.label || ''), shortLabel: metricShortLabel(m.label, i), number: n };
+    }).filter(function(r){ return Number.isFinite(r.number); });
+    if (!rows.length) { hide(wrap); return; }
+    show(wrap);
+    var max = Math.max.apply(null, rows.map(function(r){ return r.number; }));
+    var yTop = Math.max(1, Math.ceil(max / 5) * 5);
+    var yMid = yTop / 2;
+    var bars = rows.map(function(r){
+      var h = Math.max(42, Math.round((r.number / yTop) * 255));
+      var lit = r.number === max ? ' lit' : '';
+      return '<div class="chart-bar' + lit + '" style="height:' + h + 'px"><span class="bv">' + ESC(r.value) + '</span></div>';
+    }).join('');
+    var labels = rows.map(function(r){ return '<span title="' + ATTR(r.label) + '">' + ESC(r.shortLabel) + '</span>'; }).join('');
+    var list = rows.map(function(r){ return '<li><span>' + ESC(r.label) + '</span><strong>' + ESC(r.value) + '</strong></li>'; }).join('');
+    wrap.classList.add('repo-chart');
+    wrap.innerHTML =
+      '<div class="chart-copy" data-reveal="up">' +
+        '<span class="eyebrow">Resultater</span>' +
+        '<h2 class="ih-title display" style="margin:1rem 0 1.2rem">Tal fra casen.</h2>' +
+        '<p class="muted">Grafen visualiserer de dokumenterede nøgletal for ' + ESC(p.title || 'casen') + '.</p>' +
+        '<div class="chart-cap"><span class="metric-n" style="font-size:clamp(2.4rem,4vw,3.4rem)">' + rows.length + '</span><span class="muted">nøgletal</span></div>' +
+        '<ul class="repo-chart-list">' + list + '</ul>' +
+      '</div>' +
+      '<div class="chart repo-chart-bars" data-reveal="up"><div class="chart-area"><div class="chart-plot">' +
+        '<span class="chart-yline" style="bottom:25%"></span><span class="chart-yline" style="bottom:50%"></span><span class="chart-yline" style="bottom:75%"></span>' +
+        '<span class="chart-ylabel" style="bottom:50%">' + ESC(yMid.toLocaleString('da-DK')) + '</span>' +
+        '<span class="chart-ylabel" style="bottom:100%">' + ESC(yTop.toLocaleString('da-DK')) + '</span>' + bars +
+      '</div><div class="chart-xaxis">' + labels + '</div></div></div>';
+    requestAnimationFrame(function(){ var c = wrap.querySelector('.chart'); if (c) c.classList.add('in'); });
+  };
+
+  /* ============ SCREENSHOT GALLERY (role gallery + untagged) ============ */
+  var renderGallery = function(p, media){
+    var shots = document.querySelector('.shots');
+    if (!shots) return;
+    var images = media.filter(function(m){ return isImage(m) && roleOf(m) === 'gallery'; });
+    if (!images.length) { hide(shots); return; }
+    show(shots);
+    var classes = ['wide', 'tall', 'half', 'half', 'full'];
+    shots.innerHTML = images.map(function(item, i){
+      var cls = classes[i] || (i % 2 ? 'half' : 'wide');
+      return '<figure class="shot ' + cls + '">' + imageMarkup(item, item.caption || p.title) +
+        '<figcaption>' + mediaCaption(item, 'Produktscreenshot') + '</figcaption></figure>';
+    }).join('');
+    Array.from(shots.querySelectorAll('.shot')).forEach(function(fig, i){
+      registerLightbox(fig.querySelector('img'), images[i]);
+    });
+  };
+
+  /* ============ DEVICE SHOWCASE ============ */
+  var renderDeviceShowcase = function(p, media){
     var devices = document.querySelector('.devices');
     if (!devices) return;
+    var desktop = byRole(media, 'device-desktop')[0];
+    var mobile = byRole(media, 'device-mobile')[0];
+    if (!desktop && !mobile) { hide(devices); return; }
+    show(devices);
     var section = devices.closest('section');
-    if (!isServerHosterCase(p)) {
-      if (section) section.hidden = true;
-      return;
-    }
-    var media = getProjectMedia(p);
-    var images = media.filter(isImage);
-    var mobile = images.find(function(item) {
-      return /mobil|mobile|narrow|smal/i.test((item.caption || '') + ' ' + (item.alt || ''));
-    });
-    if (!mobile || images.length < 2) {
-      if (section) section.hidden = true;
-      return;
-    }
-    var desktop = images[1] || images[0];
     if (section) {
-      section.hidden = false;
-      var eyebrow = section.querySelector('.ih .eyebrow');
-      var title = section.querySelector('.ih-title');
+      var eb = section.querySelector('.ih .eyebrow');
+      var t = section.querySelector('.ih-title');
       var sub = section.querySelector('.ih-sub');
-      if (eyebrow) eyebrow.textContent = 'På flere skærme';
-      if (title) title.textContent = 'Samme control plane, smallere viewport.';
-      if (sub) sub.textContent = 'En bred serviceflade og en autentificeret smal dashboardvisning fra samme seedede produktmiljø.';
+      if (eb) eb.textContent = 'På alle skærme';
+      if (t) t.textContent = 'Skarp på hver viewport.';
+      if (sub) sub.textContent = 'Fuldt responsivt design — fra desktop til mobil.';
     }
-    devices.innerHTML =
-      '<div class="mock">' +
-        '<div class="mock-bar">' +
-          '<div class="mock-dots"><span></span><span></span><span></span></div>' +
-          '<div class="mock-url"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>localsurv.local/services</div>' +
-        '</div>' +
-        '<div class="mock-screen">' +
-          imageMarkup(desktop, 'Serviceflade') +
-          '<span class="mock-label">Desktop serviceflade</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="phone-mock">' +
-        '<div class="phone-screen">' +
-          '<span class="phone-notch"></span>' +
-          imageMarkup(mobile, 'Smal dashboardvisning') +
-          '<span class="mock-label">Smal viewport</span>' +
-        '</div>' +
-      '</div>';
+    var domain = p.case_url ? p.case_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '') : (p.slug || 'produkt') + '.app';
+    var html = '';
+    if (desktop) {
+      html += '<div class="mock"><div class="mock-bar"><div class="mock-dots"><span></span><span></span><span></span></div>' +
+        '<div class="mock-url"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' + ESC(domain) + '</div></div>' +
+        '<div class="mock-screen">' + imageMarkup(desktop, 'Desktop') + '<span class="mock-label">' + ESC(desktop.caption || 'Desktop') + '</span></div></div>';
+    }
+    if (mobile) {
+      html += '<div class="phone-mock"><div class="phone-screen"><span class="phone-notch"></span>' +
+        imageMarkup(mobile, 'Mobil') + '<span class="mock-label">' + ESC(mobile.caption || 'Mobil') + '</span></div></div>';
+    }
+    devices.innerHTML = html;
+    if (devices.children.length === 1) devices.classList.add('devices-single');
+    if (desktop) registerLightbox(devices.querySelector('.mock-screen img'), desktop);
+    if (mobile) registerLightbox(devices.querySelector('.phone-screen img'), mobile);
   };
-  var imageMarkup = function(item, label) {
-    var alt = ATTR(item.alt || item.caption || label || 'Produktscreenshot');
-    return '<img class="case-media-img" src="' + ATTR(item.url) + '" alt="' + alt + '" loading="lazy" decoding="async">';
+
+  /* ============ VIDEO GALLERY ============ */
+  var renderVideos = function(p, media){
+    var row = document.querySelector('.vid-row');
+    if (!row) return;
+    var videos = media.filter(isVideoItem);
+    if (!videos.length) { hide(row); return; }
+    show(row);
+    row.innerHTML = videos.map(function(item, i){
+      var poster = item.poster ? ' style="background-image:url(' + ATTR(item.poster) + ');background-size:cover;background-position:center"' : '';
+      return '<figure class="vid vid-trigger" data-vid-index="' + i + '"' + poster + ' tabindex="0" role="button" aria-label="Afspil ' + ATTR(item.caption || 'video') + '">' +
+        '<span class="play-mini"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>' +
+        '<figcaption class="vid-cap">' + mediaCaption(item, 'Demovideo') + '</figcaption></figure>';
+    }).join('');
+    Array.from(row.querySelectorAll('.vid-trigger')).forEach(function(fig, i){
+      registerLightbox(fig, videos[i]);
+    });
   };
-  var applyMockImage = function(target, item, label) {
-    if (!target || !item) return;
-    target.classList.remove('ph');
-    target.innerHTML = imageMarkup(item, label) + '<span class="mock-label">' + mediaCaption(item, label) + '</span>';
+
+  /* ============ TECH STACK ============ */
+  var renderTech = function(p){
+    var techList = document.querySelector('.tech-list');
+    if (!techList) return;
+    if (!Array.isArray(p.tech_stack) || !p.tech_stack.length) { hide(techList); return; }
+    show(techList);
+    techList.innerHTML = p.tech_stack.map(function(t){ return '<span class="tag">' + ESC(t) + '</span>'; }).join('');
   };
-  var renderMedia = function(p) {
-    var media = Array.isArray(p.media) ? p.media.filter(function(item){ return item && item.url; }) : [];
-    if (!media.length && p.thumbnail_url) {
-      media = [{ type: 'image', url: p.thumbnail_url, caption: 'Projektvisning', alt: p.title }];
+
+  /* ============ CHALLENGE / APPROACH ============ */
+  var renderChallengeApproach = function(p){
+    var caCols = null;
+    document.querySelectorAll('.about-cols').forEach(function(c){
+      if (c.querySelector('.eyebrow') && /udfordring|tilgang/i.test(c.textContent)) caCols = c;
+    });
+    if (!caCols) return;
+    var section = caCols.closest('section');
+    if (!p.challenge && !p.approach) { if (section) section.hidden = true; return; }
+    if (section) section.hidden = false;
+    var divs = caCols.querySelectorAll(':scope > div');
+    if (divs.length >= 2) {
+      if (p.challenge) { var c0 = divs[0].querySelector('p.muted'); if (c0) c0.textContent = p.challenge; }
+      else { divs[0].style.display = 'none'; }
+      if (p.approach) { var a0 = divs[1].querySelector('p.muted'); if (a0) a0.textContent = p.approach; }
+      else { divs[1].style.display = 'none'; }
     }
-    var images = media.filter(isImage);
-    var videos = media.filter(isVideo);
-    var first = images[0];
+  };
 
-    var hero = document.querySelector('.case-hero-media');
-    if (hero && first) {
-      hero.classList.remove('ph');
-      hero.innerHTML = imageMarkup(first, p.title) + '<div class="case-media-caption">' + mediaCaption(first, p.title) + '</div>';
+  /* ============ TESTIMONIAL ============ */
+  var renderTestimonial = function(p){
+    var quote = document.querySelector('.case-quote');
+    if (!quote) return;
+    if (!p.testimonial_text) { quote.hidden = true; return; }
+    quote.hidden = false;
+    var qp = quote.querySelector('p'); if (qp) qp.textContent = '“' + p.testimonial_text + '”';
+    var st = quote.querySelector('.by strong'); if (st) st.textContent = p.testimonial_author || '';
+    var mo = quote.querySelector('.by .mono'); if (mo) mo.textContent = p.testimonial_role || '';
+  };
+
+  /* ============================================================
+     BLOCKS — ordered custom sections (§1.3)
+     ============================================================ */
+  var mdLite = function(s){
+    return ESC(s).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  };
+  var blockRenderers = {
+    richtext: function(b){
+      return '<section class="section-pad block block-richtext"><div class="shell"><div class="block-rich" data-reveal="up">' +
+        (b.eyebrow ? '<span class="eyebrow">' + ESC(b.eyebrow) + '</span>' : '') +
+        (b.title ? '<h2 class="ih-title display" style="margin:0.6rem 0 1.2rem">' + ESC(b.title) + '</h2>' : '') +
+        '<div class="block-body muted">' + mdLite(b.body || '') + '</div>' +
+      '</div></div></section>';
+    },
+    timeline: function(b){
+      var phases = Array.isArray(b.phases) ? b.phases : [];
+      if (!phases.length) return '';
+      return '<section class="section-pad block block-timeline"><div class="shell">' +
+        '<div class="ih" data-reveal="up"><span class="eyebrow">Proces</span><h2 class="ih-title display">' + ESC(b.title || 'Forløbet.') + '</h2></div>' +
+        '<ol class="timeline" data-reveal="stagger">' +
+          phases.map(function(ph){
+            return '<li class="tl-step">' +
+              '<span class="tl-dot" aria-hidden="true"></span>' +
+              '<div class="tl-content">' +
+                '<span class="tl-eyebrow eyebrow">' + ESC(ph.label || '') + (ph.date ? ' · ' + ESC(ph.date) : '') + '</span>' +
+                '<h3 class="tl-title">' + ESC(ph.title || '') + '</h3>' +
+                (ph.body ? '<p class="muted tl-body">' + mdLite(ph.body) + '</p>' : '') +
+              '</div></li>';
+          }).join('') +
+        '</ol></div></section>';
+    },
+    gallery: function(b){
+      var items = (Array.isArray(b.items) ? b.items : []).filter(function(m){ return m && m.url; });
+      if (!items.length) return '';
+      var layout = b.layout === 'masonry' ? ' block-gallery-masonry' : '';
+      return '<section class="section-pad block block-gallery"><div class="shell">' +
+        (b.title ? '<div class="ih" data-reveal="up"><h2 class="ih-title display">' + ESC(b.title) + '</h2></div>' : '') +
+        '<div class="block-gallery-grid' + layout + '" data-reveal="stagger" data-block-gallery>' +
+          items.map(function(item, i){
+            return '<figure class="block-shot" data-bg-index="' + i + '" tabindex="0" role="button">' +
+              imageMarkup(item, item.caption) +
+              (item.caption ? '<figcaption>' + mediaCaption(item, '') + '</figcaption>' : '') +
+            '</figure>';
+          }).join('') +
+        '</div></div></section>';
+    },
+    video: function(b){
+      var items = (Array.isArray(b.items) ? b.items : []).filter(function(m){ return m && m.url; });
+      if (!items.length) return '';
+      return '<section class="section-pad block block-video"><div class="shell">' +
+        (b.title ? '<div class="ih" data-reveal="up"><h2 class="ih-title display">' + ESC(b.title) + '</h2></div>' : '') +
+        '<div class="vid-row block-video-row" data-reveal="stagger" data-block-video>' +
+          items.map(function(item, i){
+            var poster = item.poster ? ' style="background-image:url(' + ATTR(item.poster) + ');background-size:cover;background-position:center"' : '';
+            return '<figure class="vid vid-trigger" data-bv-index="' + i + '"' + poster + ' tabindex="0" role="button" aria-label="Afspil video">' +
+              '<span class="play-mini"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>' +
+              '<figcaption class="vid-cap">' + mediaCaption(item, 'Video') + '</figcaption></figure>';
+          }).join('') +
+        '</div></div></section>';
+    },
+    before_after: function(b){
+      if (!b.before || !b.after || !b.before.url || !b.after.url) return '';
+      return '<section class="section-pad block block-before-after"><div class="shell">' +
+        (b.title ? '<div class="ih" data-reveal="up"><h2 class="ih-title display">' + ESC(b.title) + '</h2></div>' : '') +
+        '<div class="ba ba-media" data-ba data-reveal="clip">' +
+          '<div class="ba-layer ba-before"><img class="case-media-img" src="' + ATTR(b.before.url) + '" alt="' + ATTR(b.before.label || 'Før') + '" loading="lazy"><span class="ba-tag">' + ESC(b.before.label || 'Før') + '</span></div>' +
+          '<div class="ba-layer ba-after" style="clip-path:inset(0 0 0 50%)"><img class="case-media-img" src="' + ATTR(b.after.url) + '" alt="' + ATTR(b.after.label || 'Efter') + '" loading="lazy"><span class="ba-tag">' + ESC(b.after.label || 'Efter') + '</span></div>' +
+          '<div class="ba-handle"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg></span></div>' +
+        '</div></div></section>';
+    },
+    metrics: function(b){
+      var items = (Array.isArray(b.items) ? b.items : []).filter(function(m){ return m && (m.value || m.label); });
+      if (!items.length) return '';
+      return '<section class="section-pad block block-metrics" style="border-block:1px solid var(--line-soft);background:var(--bg-1)"><div class="shell">' +
+        (b.title ? '<div class="ih" data-reveal="up"><h2 class="ih-title display">' + ESC(b.title) + '</h2></div>' : '') +
+        '<div class="metric-band" data-reveal="stagger">' +
+          items.map(function(m){ return '<div class="metric"><div class="metric-n">' + ESC(m.value || '') + '</div><div class="metric-l">' + ESC(m.label || '') + '</div></div>'; }).join('') +
+        '</div></div></section>';
+    },
+    quote: function(b){
+      if (!b.text) return '';
+      return '<section class="section-pad block block-quote"><div class="shell"><blockquote class="case-quote block-quote-inner" data-reveal="up">' +
+        '<p>“' + ESC(b.text) + '”</p>' +
+        '<div class="by"><span class="ph"></span><div><strong>' + ESC(b.author || '') + '</strong>' +
+          (b.role ? '<br><span class="mono">' + ESC(b.role) + '</span>' : '') + '</div></div>' +
+      '</blockquote></div></section>';
+    },
+    embed: function(b){
+      if (!b.url) return '';
+      var prov = b.provider || inferProvider(b);
+      var src = window.Lightbox.embedUrl({ url: b.url, provider: prov }, prov).replace('autoplay=1', 'autoplay=0');
+      return '<section class="section-pad block block-embed"><div class="shell">' +
+        '<div class="block-embed-frame" data-reveal="clip"><iframe src="' + ATTR(src) + '" allow="fullscreen; picture-in-picture" allowfullscreen title="' + ATTR(b.caption || 'Indlejret video') + '"></iframe></div>' +
+        (b.caption ? '<p class="muted block-embed-cap" style="margin-top:1rem">' + ESC(b.caption) + '</p>' : '') +
+      '</div></section>';
     }
+  };
+  var renderBlocks = function(p){
+    var host = document.getElementById('case-blocks');
+    if (!host) return;
+    var blocks = Array.isArray(p.blocks) ? p.blocks : [];
+    host.innerHTML = blocks.map(function(b){
+      if (!b || !b.type) return '';
+      var fn = blockRenderers[b.type];
+      if (!fn) return ''; // unknown type → skip silently
+      try { return fn(b) || ''; } catch (e) { return ''; }
+    }).join('');
 
-    var mockScreens = document.querySelectorAll('.mock-screen');
-    applyMockImage(mockScreens[0], first, 'Produkt');
-    applyMockImage(mockScreens[1], images[1] || first, 'Desktop');
+    if (window.CaseInteractions) { window.CaseInteractions.beforeAfter(); window.CaseInteractions.chart(); }
 
-    var phoneScreen = document.querySelector('.phone-screen');
-    if (phoneScreen && (images[2] || first)) {
-      var phoneImage = images[2] || first;
-      phoneScreen.classList.remove('ph');
-      phoneScreen.innerHTML = '<span class="phone-notch"></span>' + imageMarkup(phoneImage, 'Mobilvisning');
-    }
+    // block galleries → lightbox (per-block item set)
+    host.querySelectorAll('[data-block-gallery]').forEach(function(grid){
+      var figs = Array.from(grid.querySelectorAll('.block-shot'));
+      var lbItems = figs.map(function(fig){
+        var img = fig.querySelector('img');
+        var cap = fig.querySelector('figcaption');
+        return { url: img.getAttribute('src'), type: 'image', alt: img.getAttribute('alt'), caption: cap ? cap.textContent : '' };
+      });
+      figs.forEach(function(fig, i){ if (window.Lightbox) window.Lightbox.attach(fig, lbItems, i); });
+    });
+    // block videos → lightbox (derive from block data)
+    var videoBlocks = blocks.filter(function(b){ return b && b.type === 'video'; });
+    var videoRows = host.querySelectorAll('[data-block-video]');
+    videoBlocks.forEach(function(b, ri){
+      var row = videoRows[ri]; if (!row) return;
+      var items = (Array.isArray(b.items) ? b.items : []).filter(function(m){ return m && m.url; });
+      Array.from(row.querySelectorAll('.vid-trigger')).forEach(function(fig, i){
+        if (window.Lightbox && items[i]) window.Lightbox.attach(fig, items, i);
+      });
+    });
+  };
 
-    var shots = document.querySelector('.shots');
-    if (shots && images.length) {
-      var classes = ['wide', 'tall', 'half', 'half', 'full'];
-      shots.innerHTML = images.slice(0, 5).map(function(item, i) {
-        return '<figure class="shot ' + classes[i] + '">' +
-          imageMarkup(item, item.caption || p.title) +
-          '<figcaption>' + mediaCaption(item, 'Produktscreenshot') + '</figcaption>' +
-        '</figure>';
+  /* ============================================================
+     RELATED + NEXT CTA (§5.4)
+     ============================================================ */
+  var renderRelated = function(p){
+    var related = Array.isArray(p.related) ? p.related : [];
+    var section = document.getElementById('related-section');
+    var grid = document.getElementById('related-grid');
+    if (grid && related.length) {
+      grid.innerHTML = related.map(function(r){
+        var media = r.thumbnail_url
+          ? '<img src="' + ATTR(r.thumbnail_url) + '" alt="' + ATTR(r.title) + '" loading="lazy">'
+          : '<div class="ph-inner"><span class="ph-label">' + ESC(r.category || 'Case') + '</span></div>';
+        var badge = ESC(r.category || 'Case') + (r.year ? ' · ' + ESC(r.year) : '');
+        return '<a href="case.html?slug=' + ATTR(r.slug) + '" class="wcard related-card" data-reveal="up">' +
+          '<div class="wcard-media' + (r.thumbnail_url ? '' : ' ph') + '">' + media +
+            '<span class="wcard-badge tag">' + badge + '</span>' +
+            '<span class="wcard-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></div>' +
+          '<div class="wcard-info"><h3 class="wcard-title">' + ESC(r.title) + '</h3><span class="wcard-cat mono">' + ESC(r.year || '') + '</span></div>' +
+          '<p class="wcard-desc">' + ESC(r.description || '') + '</p></a>';
       }).join('');
+      if (section) section.hidden = false;
+    } else if (section) {
+      section.hidden = true;
     }
 
-    var videoSection = document.querySelector('.vid-row')?.closest('section');
-    var videoRow = document.querySelector('.vid-row');
-    if (videoRow) {
-      if (videos.length) {
-        if (videoSection) videoSection.hidden = false;
-        videoRow.innerHTML = videos.slice(0, 3).map(function(item) {
-          return '<figure class="vid">' +
-            '<video src="' + ATTR(item.url) + '" controls muted playsinline preload="metadata"></video>' +
-            '<figcaption class="vid-cap">' + mediaCaption(item, 'Demovideo') + '</figcaption>' +
-          '</figure>';
-        }).join('');
-      } else if (videoSection) {
-        videoSection.hidden = true;
+    // Next-case CTA: use first related when no explicit next case
+    var nextSection = document.querySelector('.next-cta');
+    var nextLink = nextSection ? nextSection.querySelector('.next-link') : null;
+    if (nextLink) {
+      var next = related[0];
+      if (next) {
+        nextLink.textContent = next.title + ' →';
+        nextLink.href = 'case.html?slug=' + encodeURIComponent(next.slug);
+        if (nextSection) nextSection.hidden = false;
+      } else if (nextSection) {
+        nextSection.hidden = true;
       }
     }
   };
 
+  /* ============================================================
+     FETCH + ORCHESTRATE
+     ============================================================ */
   fetch('/api/projects/' + encodeURIComponent(slug))
-    .then(function(r) {
-      if (!r.ok) throw new Error('Not found');
-      return r.json();
-    })
-    .then(function(p) {
-      hideDynamicDemoSections();
+    .then(function(r){ if (!r.ok) throw new Error('Not found'); return r.json(); })
+    .then(function(p){
+      var media = getMedia(p);
 
-      /* ── Document head ── */
+      /* head */
       document.title = p.title + ' — Case · Mast3kMedia';
       var metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc && p.description) metaDesc.content = p.description;
 
-      /* ── Breadcrumb ── */
+      /* breadcrumb */
       var crumb = document.querySelector('.crumb');
       if (crumb) crumb.innerHTML = '<a href="index.html">Forside</a> / <a href="arbejde.html">Arbejde</a> / ' + ESC(p.title);
 
-      /* ── Hero tags (first [data-reveal="up"] inside .page-hero is the tag row) ── */
+      /* hero tags */
       var heroTagRow = document.querySelector('.page-hero [data-reveal="up"]');
       if (heroTagRow) {
-        var catTag  = p.category ? '<span class="tag">' + ESC(p.category) + '</span>' : '';
-        var yearTag = p.year     ? '<span class="tag">' + ESC(p.year)     + '</span>' : '';
-        var pill    = '<span class="pill-live"><span class="dot"></span>Live i produktion</span>';
-        heroTagRow.innerHTML = catTag + yearTag + pill;
+        heroTagRow.innerHTML =
+          (p.category ? '<span class="tag">' + ESC(p.category) + '</span>' : '') +
+          (p.year ? '<span class="tag">' + ESC(p.year) + '</span>' : '') +
+          '<span class="pill-live"><span class="dot"></span>Live i produktion</span>';
       }
 
-      /* ── H1 title ── */
+      /* H1 */
       var titleInner = document.querySelector('.page-title .line-inner');
       if (titleInner) titleInner.innerHTML = ESC(p.title) + '<span class="lime">.</span>';
 
-      /* ── Intro ── */
-      if (p.long_description) {
-        var intro = document.querySelector('.page-intro');
-        if (intro) intro.textContent = p.long_description;
-      }
+      /* intro */
+      if (p.long_description) { var intro = document.querySelector('.page-intro'); if (intro) intro.textContent = p.long_description; }
 
-      /* ── Overview brief ── */
-      if (p.description) {
-        var brief = document.querySelector('.case-brief');
-        if (brief) brief.textContent = p.description;
-      }
+      /* overview brief */
+      if (p.description) { var brief = document.querySelector('.case-brief'); if (brief) brief.textContent = p.description; }
 
-      /* ── Meta list ── */
-      document.querySelectorAll('.cml').forEach(function(cml) {
-        var dt = cml.querySelector('dt');
-        var dd = cml.querySelector('dd');
+      /* meta list */
+      document.querySelectorAll('.cml').forEach(function(cml){
+        var dt = cml.querySelector('dt'); var dd = cml.querySelector('dd');
         if (!dt || !dd) return;
         var label = dt.textContent.trim();
         if (label === 'Kunde' && p.client) dd.textContent = p.client;
-        if (label === 'År'    && p.year)   dd.textContent = p.year;
+        if (label === 'År' && p.year) dd.textContent = p.year;
+        if (label === 'Platform' && p.category) dd.textContent = p.category;
+        if (label === 'Ydelser' && Array.isArray(p.tech_stack) && p.tech_stack.length) dd.textContent = p.tech_stack.slice(0, 3).join(' · ');
       });
 
-      /* ── Metrics band ── */
+      /* metrics band */
       if (p.metrics && p.metrics.length) {
         var band = document.querySelector('.metric-band');
         if (band) {
-          band.innerHTML = p.metrics.map(function(m) {
-            return '<div class="metric">' +
-              '<div class="metric-n">' + ESC(m.value) + '</div>' +
-              '<div class="metric-l">' + ESC(m.label) + '</div>' +
-            '</div>';
+          band.innerHTML = p.metrics.map(function(m){
+            return '<div class="metric"><div class="metric-n">' + ESC(m.value) + '</div><div class="metric-l">' + ESC(m.label) + '</div></div>';
           }).join('');
         }
-      }
-      renderMetricChart(p);
-
-      /* ── Challenge & Approach ── */
-      var aboutCols = document.querySelectorAll('.about-cols > div');
-      if (aboutCols.length >= 2) {
-        if (p.challenge) {
-          var challengePs = aboutCols[0].querySelectorAll('p.muted');
-          if (challengePs.length) challengePs[0].textContent = p.challenge;
-        }
-        if (p.approach) {
-          var approachPs = aboutCols[1].querySelectorAll('p.muted');
-          if (approachPs.length) approachPs[0].textContent = p.approach;
-        }
+      } else {
+        var band2 = document.querySelector('.metric-band');
+        if (band2) hide(band2);
       }
 
-      /* ── Tech stack ── */
-      if (p.tech_stack && p.tech_stack.length) {
-        var techList = document.querySelector('.tech-list');
-        if (techList) {
-          techList.innerHTML = p.tech_stack.map(function(t) {
-            return '<span class="tag">' + ESC(t) + '</span>';
-          }).join('');
-        }
-      }
-
-      /* ── Testimonial ── */
-      var quote = document.querySelector('.case-quote');
-      if (quote) {
-        if (p.testimonial_text) {
-          quote.hidden = false;
-          var quoteP = quote.querySelector('p');
-          if (quoteP) quoteP.textContent = '“' + p.testimonial_text + '”';
-          var byStrong = quote.querySelector('.by strong');
-          if (byStrong) byStrong.textContent = p.testimonial_author || '';
-          var byMono = quote.querySelector('.by .mono');
-          if (byMono) byMono.textContent = p.testimonial_role || '';
-        } else {
-          quote.hidden = true;
-        }
-      }
-
-      /* ── Mock URL bar ── */
+      /* mock URL bar (static fallback) */
       if (p.case_url) {
         var domain = p.case_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-        document.querySelectorAll('.mock-url').forEach(function(el) {
+        document.querySelectorAll('.mock-url').forEach(function(el){
           el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' + ESC(domain);
         });
       }
 
-      renderMedia(p);
-      renderFeatureShowcase(p);
-      renderBeforeAfter(p);
-      renderDeviceShowcase(p);
+      /* core sections */
+      renderHero(p, media);
+      renderMetricChart(p);
+      renderChallengeApproach(p);
+      renderFeatureShowcase(p, media);
+      renderBeforeAfter(p, media);
+      renderGallery(p, media);
+      renderDeviceShowcase(p, media);
+      renderVideos(p, media);
+      renderTech(p);
+      renderTestimonial(p);
+
+      /* custom blocks */
+      renderBlocks(p);
+
+      /* related + next */
+      renderRelated(p);
+
+      if (window.ScrollTrigger) { try { ScrollTrigger.refresh(); } catch (e) {} }
     })
-    .catch(function() {
+    .catch(function(){
       /* Silently fall back to the static NordSync content */
     });
 })();

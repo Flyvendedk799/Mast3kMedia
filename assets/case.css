@@ -215,3 +215,149 @@
     aspect-ratio: 16/10;
   }
 }
+
+/* clickable media affordance */
+.lb-trigger { cursor: zoom-in; }
+.shot .case-media-img, .block-shot .case-media-img { cursor: zoom-in; }
+.vid-trigger { cursor: pointer; }
+.case-hero-embed, .block-embed-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+.case-hero-media { position: relative; aspect-ratio: 16/9; }
+.devices.devices-single { grid-template-columns: minmax(0, 720px); justify-content: center; }
+
+/* play overlay for video tiles */
+.vid .play-mini {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3;
+  width: 58px; height: 58px; border-radius: 50%;
+  background: rgba(11,11,10,0.72); border: 1px solid var(--line); color: var(--lime);
+  display: grid; place-items: center; transition: transform 0.4s var(--ease), background 0.4s;
+}
+.vid .play-mini svg { width: 22px; height: 22px; margin-left: 2px; }
+.vid:hover .play-mini, .vid:focus-visible .play-mini { transform: translate(-50%, -50%) scale(1.08); background: var(--lime); color: #14130f; }
+.vid::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(11,11,10,0.55)); z-index: 1; pointer-events: none; }
+.vid:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+
+/* before/after with real images */
+.ba.ba-media .ba-layer { display: block; }
+.ba.ba-media .ba-layer .case-media-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ba.ba-media .ba-after .case-media-img { object-position: top center; }
+.ba.ba-media .ba-before .case-media-img { object-position: top center; }
+
+/* ============================================================
+   Custom blocks
+   ============================================================ */
+.block + .block { padding-top: 0; }
+.block-rich { max-width: 70ch; }
+.block-body { font-size: 1.05rem; line-height: 1.7; }
+.block-body strong { color: var(--paper); }
+
+.block-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: clamp(0.85rem, 2vw, 1.35rem); }
+.block-gallery-grid.block-gallery-masonry { grid-auto-rows: 10px; align-items: start; }
+.block-shot {
+  position: relative; margin: 0; overflow: hidden; border: 1px solid var(--line);
+  border-radius: 16px; background: var(--bg-2); aspect-ratio: 16/11;
+}
+.block-shot .case-media-img { object-position: top center; transition: transform 0.6s var(--ease); }
+.block-shot:hover .case-media-img { transform: scale(1.02); }
+.block-shot figcaption {
+  position: absolute; left: 0.9rem; right: 0.9rem; bottom: 0.9rem; width: fit-content; max-width: calc(100% - 1.8rem);
+  font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--paper); background: rgba(11,11,10,0.82); border: 1px solid var(--line-soft); border-radius: 999px; padding: 0.5em 0.85em;
+}
+.block-shot:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+.block-video-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: clamp(0.85rem, 2vw, 1.35rem); }
+.block-embed-frame { position: relative; aspect-ratio: 16/9; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: var(--bg-2); }
+.block-quote-inner { max-width: 60ch; }
+
+/* ============================================================
+   Timeline block — first-class stepped process visual
+   ============================================================ */
+.timeline { list-style: none; position: relative; margin: 0; padding: 0 0 0 2.4rem; }
+.timeline::before {
+  content: ""; position: absolute; left: 0.5rem; top: 0.4rem; bottom: 0.4rem; width: 2px;
+  background: linear-gradient(180deg, var(--lime), var(--lime-deep) 60%, transparent);
+}
+.tl-step { position: relative; padding: 0 0 clamp(1.6rem, 3vw, 2.4rem); }
+.tl-step:last-child { padding-bottom: 0; }
+.tl-dot {
+  position: absolute; left: calc(-2.4rem + 0.5rem); top: 0.35rem; transform: translateX(-50%);
+  width: 14px; height: 14px; border-radius: 50%; background: var(--bg); border: 2px solid var(--lime);
+  box-shadow: 0 0 0 4px var(--bg); z-index: 1; transition: background 0.4s var(--ease), box-shadow 0.4s;
+}
+.tl-step:hover .tl-dot { background: var(--lime); }
+.tl-content { padding-left: 0.4rem; }
+.tl-eyebrow { display: block; color: var(--lime); margin-bottom: 0.45rem; }
+.tl-title { font-family: var(--font-display); font-size: clamp(1.15rem, 2.4vw, 1.5rem); line-height: 1.2; margin-bottom: 0.5rem; }
+.tl-body { max-width: 62ch; line-height: 1.6; }
+@media (min-width: 820px) {
+  .timeline { padding-left: 2.6rem; }
+  .timeline::before { left: 0.6rem; }
+  .tl-dot { left: calc(-2.6rem + 0.6rem); }
+}
+
+/* ============================================================
+   Related cases grid (reuses work-card visual language)
+   ============================================================ */
+.related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: clamp(1.2rem, 2.4vw, 2rem); }
+.related-card .wcard-media { position: relative; aspect-ratio: 16/10; overflow: hidden; border-radius: 16px; }
+.related-card .wcard-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 640px) { .related-grid { grid-template-columns: 1fr; } }
+
+/* ============================================================
+   Lightbox overlay
+   ============================================================ */
+body.lb-lock { overflow: hidden; }
+.lightbox {
+  position: fixed; inset: 0; z-index: 1000; display: none;
+  align-items: center; justify-content: center;
+  padding: clamp(1rem, 4vw, 3rem);
+}
+.lightbox.open { display: flex; }
+.lightbox-backdrop {
+  position: absolute; inset: 0; background: rgba(6, 6, 5, 0.92);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.lightbox-stage {
+  position: relative; z-index: 2; margin: 0; display: flex; flex-direction: column;
+  align-items: center; gap: 1rem; max-width: min(1200px, 92vw); max-height: 88vh;
+}
+.lightbox-media {
+  display: flex; align-items: center; justify-content: center;
+  max-width: 92vw; max-height: 80vh; border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--line); background: var(--bg-2);
+  box-shadow: 0 40px 120px -40px rgba(0,0,0,0.9);
+}
+.lightbox-img { display: block; max-width: 92vw; max-height: 80vh; object-fit: contain; }
+.lightbox-video { display: block; max-width: 92vw; max-height: 80vh; background: #000; }
+.lightbox-embed { width: min(1100px, 90vw); aspect-ratio: 16/9; max-height: 80vh; border: 0; display: block; }
+.lightbox-caption {
+  z-index: 2; max-width: 70ch; text-align: center; color: var(--paper);
+  font-size: 0.72rem; letter-spacing: 0.05em; padding: 0.4em 1em;
+  background: rgba(11,11,10,0.7); border: 1px solid var(--line-soft); border-radius: 999px;
+}
+.lightbox-counter {
+  position: absolute; top: clamp(1rem, 3vw, 2rem); left: clamp(1rem, 3vw, 2rem); z-index: 3;
+  color: var(--faint); font-size: 0.7rem; letter-spacing: 0.1em;
+}
+.lightbox-btn {
+  position: absolute; z-index: 3; width: 48px; height: 48px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer; color: var(--paper);
+  background: rgba(11,11,10,0.72); border: 1px solid var(--line);
+  transition: background 0.3s var(--ease), color 0.3s, transform 0.3s var(--ease);
+}
+.lightbox-btn svg { width: 22px; height: 22px; }
+.lightbox-btn:hover, .lightbox-btn:focus-visible { background: var(--lime); color: #14130f; border-color: var(--lime); }
+.lightbox-close { top: clamp(1rem, 3vw, 2rem); right: clamp(1rem, 3vw, 2rem); }
+.lightbox-prev { left: clamp(0.6rem, 3vw, 2rem); top: 50%; transform: translateY(-50%); }
+.lightbox-next { right: clamp(0.6rem, 3vw, 2rem); top: 50%; transform: translateY(-50%); }
+.lightbox-prev:hover, .lightbox-prev:focus-visible { transform: translateY(-50%) scale(1.06); }
+.lightbox-next:hover, .lightbox-next:focus-visible { transform: translateY(-50%) scale(1.06); }
+@media (max-width: 640px) {
+  .lightbox-prev { left: 0.6rem; } .lightbox-next { right: 0.6rem; }
+  .lightbox-btn { width: 42px; height: 42px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shot .case-media-img, .block-shot .case-media-img,
+  .lightbox-btn, .vid .play-mini, .tl-dot { transition: none !important; }
+  .shot:hover .case-media-img, .block-shot:hover .case-media-img { transform: none; }
+}

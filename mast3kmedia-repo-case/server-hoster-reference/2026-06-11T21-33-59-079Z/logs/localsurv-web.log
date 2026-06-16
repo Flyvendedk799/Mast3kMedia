@@ -1,0 +1,60 @@
+
+> @survhub/web@0.1.0 dev
+> vite --host 127.0.0.1 --port 50973 --strictPort
+
+
+  VITE v6.4.1  ready in 152 ms
+
+  ➜  Local:   http://127.0.0.1:50973/
+npm error Lifecycle script `dev` failed with error:
+npm error code 143
+npm error path /Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/work/repo/apps/web
+npm error workspace @survhub/web@0.1.0
+npm error location /Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/work/repo/apps/web
+npm error command failed
+npm error command sh -c vite --host 127.0.0.1 --port 50973 --strictPort
+
+> @survhub/web@0.1.0 dev
+> vite --host 127.0.0.1 --port 51807 --strictPort
+
+
+  VITE v6.4.1  ready in 144 ms
+
+  ➜  Local:   http://127.0.0.1:51807/
+npm error Lifecycle script `dev` failed with error:
+npm error code 143
+npm error path /Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/work/repo/apps/web
+npm error workspace @survhub/web@0.1.0
+npm error location /Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/work/repo/apps/web
+npm error command failed
+npm error command sh -c vite --host 127.0.0.1 --port 51807 --strictPort
+
+> @survhub/web@0.1.0 dev
+> vite --host 127.0.0.1 --port 51932 --strictPort
+
+
+  VITE v6.4.1  ready in 90 ms
+
+  ➜  Local:   http://127.0.0.1:51932/
+npm error Lifecycle script `dev` failed with error:
+npm error code 143
+npm error path /Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/work/repo/apps/web
+npm error workspace @survhub/web@0.1.0
+npm error location /Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/work/repo/apps/web
+npm error command failed
+npm error command sh -c vite --host 127.0.0.1 --port 51932 --strictPort
+
+> @survhub/web@0.1.0 dev
+> vite --host 127.0.0.1 --port 52092 --strictPort
+
+
+  VITE v6.4.1  ready in 132 ms
+
+  ➜  Local:   http://127.0.0.1:52092/
+npm error Lifecycle script `dev` failed with error:
+npm error code 143
+npm error path /Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/work/repo/apps/web
+npm error workspace @survhub/web@0.1.0
+npm error location /Users/tobiasmastek/Desktop/Mast3kMedia/mast3kmedia-repo-case/server-hoster-reference/2026-06-11T21-33-59-079Z/work/repo/apps/web
+npm error command failed
+npm error command sh -c vite --host 127.0.0.1 --port 52092 --strictPort
