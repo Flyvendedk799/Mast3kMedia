@@ -372,6 +372,16 @@
   var hide = function(node){ var s = node ? node.closest('section') : null; if (s) s.hidden = true; };
   var show = function(node){ var s = node ? node.closest('section') : null; if (s) s.hidden = false; };
   var mediaCaption = function(item, fb){ return ESC((item && (item.caption || item.alt)) || fb || 'Produktvisning'); };
+  var caseTitle = function(p){ return (p && p.title) ? p.title : 'casen'; };
+  var setSectionHeading = function(section, eyebrow, title, subtitle){
+    if (!section) return;
+    var eb = section.querySelector('.ih .eyebrow');
+    var t = section.querySelector('.ih-title');
+    var sub = section.querySelector('.ih-sub');
+    if (eb && eyebrow) eb.textContent = eyebrow;
+    if (t && title) t.textContent = title;
+    if (sub && subtitle !== undefined) sub.textContent = subtitle || '';
+  };
 
   /* ── Normalise media ── */
   var getMedia = function(p){
@@ -432,14 +442,12 @@
     if (features.length < 1) { hide(root); return; }
     show(root);
     var section = root.closest('section');
-    if (section) {
-      var eb = section.querySelector('.ih .eyebrow');
-      var t = section.querySelector('.ih-title');
-      var sub = section.querySelector('.ih-sub');
-      if (eb) eb.textContent = 'Highlights';
-      if (t) t.textContent = 'Funktioner der gør forskellen.';
-      if (sub) sub.textContent = 'Klik dig igennem de centrale produktflader.';
-    }
+    setSectionHeading(
+      section,
+      'Highlights',
+      caseTitle(p) + ' i brug.',
+      'Klik dig igennem de centrale produktflader fra den konkrete case.'
+    );
     var domain = p.case_url ? p.case_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '') : (p.slug || 'produkt') + '.app';
     root.classList.add('dynamic-showcase');
     root.innerHTML =
@@ -497,14 +505,12 @@
     if (!before || !after) { hide(ba); return; }
     show(ba);
     var section = ba.closest('section');
-    if (section) {
-      var eb = section.querySelector('.ih .eyebrow');
-      var t = section.querySelector('.ih-title');
-      var sub = section.querySelector('.ih-sub');
-      if (eb) eb.textContent = 'Før / efter';
-      if (t) t.textContent = 'Se forskellen.';
-      if (sub) sub.textContent = 'Træk i skyderen for at sammenligne før og efter.';
-    }
+    setSectionHeading(
+      section,
+      'Før / efter',
+      caseTitle(p) + ': før og efter.',
+      'Træk i skyderen for at sammenligne de dokumenterede visninger.'
+    );
     ba.classList.add('ba-media');
     ba.innerHTML =
       '<div class="ba-layer ba-before">' + imageMarkup(before, 'Før') + '<span class="ba-tag">' + ESC(before.caption || 'Før') + '</span></div>' +
@@ -550,8 +556,8 @@
     wrap.innerHTML =
       '<div class="chart-copy" data-reveal="up">' +
         '<span class="eyebrow">Resultater</span>' +
-        '<h2 class="ih-title display" style="margin:1rem 0 1.2rem">Tal fra casen.</h2>' +
-        '<p class="muted">Grafen visualiserer de dokumenterede nøgletal for ' + ESC(p.title || 'casen') + '.</p>' +
+        '<h2 class="ih-title display" style="margin:1rem 0 1.2rem">Tal fra ' + ESC(caseTitle(p)) + '.</h2>' +
+        '<p class="muted">Grafen visualiserer de dokumenterede nøgletal for denne case.</p>' +
         '<div class="chart-cap"><span class="metric-n" style="font-size:clamp(2.4rem,4vw,3.4rem)">' + rows.length + '</span><span class="muted">nøgletal</span></div>' +
         '<ul class="repo-chart-list">' + list + '</ul>' +
       '</div>' +
@@ -590,14 +596,12 @@
     if (!desktop && !mobile) { hide(devices); return; }
     show(devices);
     var section = devices.closest('section');
-    if (section) {
-      var eb = section.querySelector('.ih .eyebrow');
-      var t = section.querySelector('.ih-title');
-      var sub = section.querySelector('.ih-sub');
-      if (eb) eb.textContent = 'På alle skærme';
-      if (t) t.textContent = 'Skarp på hver viewport.';
-      if (sub) sub.textContent = 'Fuldt responsivt design — fra desktop til mobil.';
-    }
+    setSectionHeading(
+      section,
+      'På alle skærme',
+      caseTitle(p) + ' på tværs af skærme.',
+      'Dokumenterede desktop- og mobilvisninger fra projektet.'
+    );
     var domain = p.case_url ? p.case_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '') : (p.slug || 'produkt') + '.app';
     var html = '';
     if (desktop) {
@@ -622,6 +626,12 @@
     var videos = media.filter(isVideoItem);
     if (!videos.length) { hide(row); return; }
     show(row);
+    setSectionHeading(
+      row.closest('section'),
+      'I bevægelse',
+      'Video fra ' + caseTitle(p) + '.',
+      ''
+    );
     row.innerHTML = videos.map(function(item, i){
       var poster = item.poster ? ' style="background-image:url(' + ATTR(item.poster) + ');background-size:cover;background-position:center"' : '';
       return '<figure class="vid vid-trigger" data-vid-index="' + i + '"' + poster + ' tabindex="0" role="button" aria-label="Afspil ' + ATTR(item.caption || 'video') + '">' +
@@ -639,10 +649,37 @@
     if (!techList) return;
     if (!Array.isArray(p.tech_stack) || !p.tech_stack.length) { hide(techList); return; }
     show(techList);
+    var section = techList.closest('section');
+    if (section) {
+      var eb = section.querySelector('.eyebrow');
+      var t = section.querySelector('.ih-title');
+      var body = section.querySelector('p.muted');
+      if (eb) eb.textContent = 'Stack';
+      if (t) t.textContent = 'Teknologi brugt i casen.';
+      if (body) body.textContent = 'Listen viser de teknologier, der er dokumenteret i projektdata og kildekode.';
+    }
     techList.innerHTML = p.tech_stack.map(function(t){ return '<span class="tag">' + ESC(t) + '</span>'; }).join('');
   };
 
   /* ============ CHALLENGE / APPROACH ============ */
+  var fillChallengeColumn = function(col, eyebrow, title, body){
+    if (!col) return;
+    if (!body) { col.style.display = 'none'; return; }
+    col.style.display = '';
+    var eb = col.querySelector('.eyebrow');
+    var h = col.querySelector('.ih-title');
+    if (eb) eb.textContent = eyebrow;
+    if (h) h.textContent = title;
+    var paragraphs = Array.from(col.querySelectorAll('p.muted'));
+    if (!paragraphs.length) {
+      var pEl = document.createElement('p');
+      pEl.className = 'muted';
+      col.appendChild(pEl);
+      paragraphs = [pEl];
+    }
+    paragraphs[0].textContent = body;
+    paragraphs.slice(1).forEach(function(pEl){ pEl.remove(); });
+  };
   var renderChallengeApproach = function(p){
     var caCols = null;
     document.querySelectorAll('.about-cols').forEach(function(c){
@@ -654,10 +691,8 @@
     if (section) section.hidden = false;
     var divs = caCols.querySelectorAll(':scope > div');
     if (divs.length >= 2) {
-      if (p.challenge) { var c0 = divs[0].querySelector('p.muted'); if (c0) c0.textContent = p.challenge; }
-      else { divs[0].style.display = 'none'; }
-      if (p.approach) { var a0 = divs[1].querySelector('p.muted'); if (a0) a0.textContent = p.approach; }
-      else { divs[1].style.display = 'none'; }
+      fillChallengeColumn(divs[0], 'Udfordringen', 'Udfordringen i ' + caseTitle(p) + '.', p.challenge);
+      fillChallengeColumn(divs[1], 'Tilgangen', 'Tilgangen til ' + caseTitle(p) + '.', p.approach);
     }
   };
 
