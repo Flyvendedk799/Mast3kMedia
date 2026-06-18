@@ -373,11 +373,29 @@
   var show = function(node){ var s = node ? node.closest('section') : null; if (s) s.hidden = false; };
   var mediaCaption = function(item, fb){ return ESC((item && (item.caption || item.alt)) || fb || 'Produktvisning'); };
   var caseTitle = function(p){ return (p && p.title) ? p.title : 'casen'; };
+  var sectionTitleBlock = function(p){
+    var blocks = Array.isArray(p && p.blocks) ? p.blocks : [];
+    return blocks.find(function(b){ return b && (b.type === 'section_titles' || b.type === 'case_section_titles'); }) || {};
+  };
+  var sectionHeading = function(p, key, fallback){
+    var titles = sectionTitleBlock(p);
+    var item = (titles && titles[key]) || {};
+    return {
+      eyebrow: item.eyebrow || fallback.eyebrow || '',
+      title: item.title || fallback.title || '',
+      subtitle: item.subtitle !== undefined ? item.subtitle : fallback.subtitle
+    };
+  };
   var setSectionHeading = function(section, eyebrow, title, subtitle){
     if (!section) return;
-    var eb = section.querySelector('.ih .eyebrow');
+    if (eyebrow && typeof eyebrow === 'object') {
+      subtitle = eyebrow.subtitle;
+      title = eyebrow.title;
+      eyebrow = eyebrow.eyebrow;
+    }
+    var eb = section.querySelector('.ih .eyebrow') || section.querySelector('.eyebrow');
     var t = section.querySelector('.ih-title');
-    var sub = section.querySelector('.ih-sub');
+    var sub = section.querySelector('.ih-sub') || section.querySelector('p.muted');
     if (eb && eyebrow) eb.textContent = eyebrow;
     if (t && title) t.textContent = title;
     if (sub && subtitle !== undefined) sub.textContent = subtitle || '';
@@ -442,12 +460,11 @@
     if (features.length < 1) { hide(root); return; }
     show(root);
     var section = root.closest('section');
-    setSectionHeading(
-      section,
-      'Highlights',
-      caseTitle(p) + ' i brug.',
-      'Klik dig igennem de centrale produktflader fra den konkrete case.'
-    );
+    setSectionHeading(section, sectionHeading(p, 'features', {
+      eyebrow: 'Highlights',
+      title: caseTitle(p) + ' i brug.',
+      subtitle: 'Klik dig igennem de centrale produktflader fra den konkrete case.'
+    }));
     var domain = p.case_url ? p.case_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '') : (p.slug || 'produkt') + '.app';
     root.classList.add('dynamic-showcase');
     root.innerHTML =
@@ -505,12 +522,11 @@
     if (!before || !after) { hide(ba); return; }
     show(ba);
     var section = ba.closest('section');
-    setSectionHeading(
-      section,
-      'Før / efter',
-      caseTitle(p) + ': før og efter.',
-      'Træk i skyderen for at sammenligne de dokumenterede visninger.'
-    );
+    setSectionHeading(section, sectionHeading(p, 'before_after', {
+      eyebrow: 'Før / efter',
+      title: caseTitle(p) + ': før og efter.',
+      subtitle: 'Træk i skyderen for at sammenligne de dokumenterede visninger.'
+    }));
     ba.classList.add('ba-media');
     ba.innerHTML =
       '<div class="ba-layer ba-before">' + imageMarkup(before, 'Før') + '<span class="ba-tag">' + ESC(before.caption || 'Før') + '</span></div>' +
@@ -552,12 +568,17 @@
     }).join('');
     var labels = rows.map(function(r){ return '<span title="' + ATTR(r.label) + '">' + ESC(r.shortLabel) + '</span>'; }).join('');
     var list = rows.map(function(r){ return '<li><span>' + ESC(r.label) + '</span><strong>' + ESC(r.value) + '</strong></li>'; }).join('');
+    var heading = sectionHeading(p, 'results', {
+      eyebrow: 'Resultater',
+      title: 'Tal fra ' + caseTitle(p) + '.',
+      subtitle: 'Grafen visualiserer de dokumenterede nøgletal for denne case.'
+    });
     wrap.classList.add('repo-chart');
     wrap.innerHTML =
       '<div class="chart-copy" data-reveal="up">' +
-        '<span class="eyebrow">Resultater</span>' +
-        '<h2 class="ih-title display" style="margin:1rem 0 1.2rem">Tal fra ' + ESC(caseTitle(p)) + '.</h2>' +
-        '<p class="muted">Grafen visualiserer de dokumenterede nøgletal for denne case.</p>' +
+        '<span class="eyebrow">' + ESC(heading.eyebrow || 'Resultater') + '</span>' +
+        '<h2 class="ih-title display" style="margin:1rem 0 1.2rem">' + ESC(heading.title) + '</h2>' +
+        '<p class="muted">' + ESC(heading.subtitle || '') + '</p>' +
         '<div class="chart-cap"><span class="metric-n" style="font-size:clamp(2.4rem,4vw,3.4rem)">' + rows.length + '</span><span class="muted">nøgletal</span></div>' +
         '<ul class="repo-chart-list">' + list + '</ul>' +
       '</div>' +
@@ -576,6 +597,11 @@
     var images = media.filter(function(m){ return isImage(m) && roleOf(m) === 'gallery'; });
     if (!images.length) { hide(shots); return; }
     show(shots);
+    setSectionHeading(shots.closest('section'), sectionHeading(p, 'gallery', {
+      eyebrow: 'Inde i produktet',
+      title: 'Produktflader fra ' + caseTitle(p) + '.',
+      subtitle: ''
+    }));
     var classes = ['wide', 'tall', 'half', 'half', 'full'];
     shots.innerHTML = images.map(function(item, i){
       var cls = classes[i] || (i % 2 ? 'half' : 'wide');
@@ -596,12 +622,11 @@
     if (!desktop && !mobile) { hide(devices); return; }
     show(devices);
     var section = devices.closest('section');
-    setSectionHeading(
-      section,
-      'På alle skærme',
-      caseTitle(p) + ' på tværs af skærme.',
-      'Dokumenterede desktop- og mobilvisninger fra projektet.'
-    );
+    setSectionHeading(section, sectionHeading(p, 'devices', {
+      eyebrow: 'På alle skærme',
+      title: caseTitle(p) + ' på tværs af skærme.',
+      subtitle: 'Dokumenterede desktop- og mobilvisninger fra projektet.'
+    }));
     var domain = p.case_url ? p.case_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '') : (p.slug || 'produkt') + '.app';
     var html = '';
     if (desktop) {
@@ -626,12 +651,11 @@
     var videos = media.filter(isVideoItem);
     if (!videos.length) { hide(row); return; }
     show(row);
-    setSectionHeading(
-      row.closest('section'),
-      'I bevægelse',
-      'Video fra ' + caseTitle(p) + '.',
-      ''
-    );
+    setSectionHeading(row.closest('section'), sectionHeading(p, 'video', {
+      eyebrow: 'I bevægelse',
+      title: 'Video fra ' + caseTitle(p) + '.',
+      subtitle: ''
+    }));
     row.innerHTML = videos.map(function(item, i){
       var poster = item.poster ? ' style="background-image:url(' + ATTR(item.poster) + ');background-size:cover;background-position:center"' : '';
       return '<figure class="vid vid-trigger" data-vid-index="' + i + '"' + poster + ' tabindex="0" role="button" aria-label="Afspil ' + ATTR(item.caption || 'video') + '">' +
@@ -649,15 +673,11 @@
     if (!techList) return;
     if (!Array.isArray(p.tech_stack) || !p.tech_stack.length) { hide(techList); return; }
     show(techList);
-    var section = techList.closest('section');
-    if (section) {
-      var eb = section.querySelector('.eyebrow');
-      var t = section.querySelector('.ih-title');
-      var body = section.querySelector('p.muted');
-      if (eb) eb.textContent = 'Stack';
-      if (t) t.textContent = 'Teknologi brugt i casen.';
-      if (body) body.textContent = 'Listen viser de teknologier, der er dokumenteret i projektdata og kildekode.';
-    }
+    setSectionHeading(techList.closest('section'), sectionHeading(p, 'tech', {
+      eyebrow: 'Stack',
+      title: 'Teknologi brugt i casen.',
+      subtitle: 'Listen viser de teknologier, der er dokumenteret i projektdata og kildekode.'
+    }));
     techList.innerHTML = p.tech_stack.map(function(t){ return '<span class="tag">' + ESC(t) + '</span>'; }).join('');
   };
 
@@ -691,8 +711,16 @@
     if (section) section.hidden = false;
     var divs = caCols.querySelectorAll(':scope > div');
     if (divs.length >= 2) {
-      fillChallengeColumn(divs[0], 'Udfordringen', 'Udfordringen i ' + caseTitle(p) + '.', p.challenge);
-      fillChallengeColumn(divs[1], 'Tilgangen', 'Tilgangen til ' + caseTitle(p) + '.', p.approach);
+      var challengeHeading = sectionHeading(p, 'challenge', {
+        eyebrow: 'Udfordringen',
+        title: 'Udfordringen i ' + caseTitle(p) + '.'
+      });
+      var approachHeading = sectionHeading(p, 'approach', {
+        eyebrow: 'Tilgangen',
+        title: 'Tilgangen til ' + caseTitle(p) + '.'
+      });
+      fillChallengeColumn(divs[0], challengeHeading.eyebrow, challengeHeading.title, p.challenge);
+      fillChallengeColumn(divs[1], approachHeading.eyebrow, approachHeading.title, p.approach);
     }
   };
 
@@ -810,6 +838,7 @@
     var blocks = Array.isArray(p.blocks) ? p.blocks : [];
     host.innerHTML = blocks.map(function(b){
       if (!b || !b.type) return '';
+      if (b.type === 'section_titles' || b.type === 'case_section_titles') return '';
       var fn = blockRenderers[b.type];
       if (!fn) return ''; // unknown type → skip silently
       try { return fn(b) || ''; } catch (e) { return ''; }
