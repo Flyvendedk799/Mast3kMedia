@@ -8,6 +8,7 @@ const S = {
   token:    localStorage.getItem('m3k_token') || null,
   view:     'dashboard',
   projects: [],
+  leads:    [],
   editId:   null,   // null = create, number = update
   tags:     [],
   tech:     [],
@@ -52,6 +53,7 @@ const api = {
   me:          ()         => api.req('GET',    '/api/auth/me'),
   getStats:    ()         => api.req('GET',    '/api/admin/stats'),
   getProjects: ()         => api.req('GET',    '/api/admin/projects'),
+  getLeads:    ()         => api.req('GET',    '/api/admin/leads'),
   createProject: (d)      => api.req('POST',   '/api/admin/projects', d),
   updateProject: (id, d)  => api.req('PUT',    `/api/admin/projects/${id}`, d),
   deleteProject: (id)     => api.req('DELETE', `/api/admin/projects/${id}`),
@@ -227,12 +229,12 @@ function navigate(view, params = {}) {
   });
 
   // Show correct view
-  const views = ['dashboardView','projectsView','formView'];
-  const map   = { dashboard:'dashboardView', projects:'projectsView', form:'formView' };
+  const views = ['dashboardView','leadsView','projectsView','formView'];
+  const map   = { dashboard:'dashboardView', leads:'leadsView', projects:'projectsView', form:'formView' };
   views.forEach(id => { $(`.view#${id}`) && ($(`.view#${id}`).hidden = (map[view] !== id)); });
 
   // Topbar title
-  const titles = { dashboard: 'Dashboard', projects: 'Projekter', form: S.editId ? 'Rediger projekt' : 'Nyt projekt' };
+  const titles = { dashboard: 'Dashboard', leads: 'Henvendelser', projects: 'Projekter', form: S.editId ? 'Rediger projekt' : 'Nyt projekt' };
   $('#topbarTitle').textContent = titles[view] || '';
 
   // Clear topbar actions
@@ -240,6 +242,7 @@ function navigate(view, params = {}) {
 
   // Load view content
   if (view === 'dashboard') loadDashboard();
+  if (view === 'leads')     loadLeads();
   if (view === 'projects')  loadProjects();
   if (view === 'form')      loadForm();
 
@@ -279,12 +282,69 @@ async function loadDashboard() {
     // Badge
     const badge = $('#projectCount');
     if (badge) badge.textContent = stats.total;
+    const leadBadge = $('#leadCount');
+    if (leadBadge) leadBadge.textContent = stats.new_leads || stats.leads || '';
 
     // Recent projects table (last 5)
     renderProjectsTable($('#dashProjectsList'), projects.slice(0, 5), true);
   } catch (err) {
     toast('Kunne ikke hente data: ' + err.message, 'error');
   }
+}
+
+// ── Leads list ────────────────────────────────────────────────────────────────
+async function loadLeads() {
+  try {
+    S.leads = await api.getLeads();
+    const badge = $('#leadCount');
+    if (badge) badge.textContent = S.leads.filter(l => l.status === 'new').length || '';
+    renderLeadsTable($('#leadsTable'), S.leads);
+  } catch (err) {
+    toast('Kunne ikke hente henvendelser: ' + err.message, 'error');
+  }
+}
+
+function renderLeadsTable(container, leads) {
+  if (!leads.length) {
+    container.innerHTML = '<div class="table-empty">Ingen henvendelser endnu.</div>';
+    return;
+  }
+
+  const table = el('table');
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Kontakt</th>
+        <th>Projekt</th>
+        <th>Rammer</th>
+        <th>Brief</th>
+        <th>Modtaget</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${leads.map((lead) => `
+        <tr>
+          <td>
+            <strong>${esc(lead.name || 'Ukendt')}</strong>
+            <div class="muted small">${esc(lead.email)}</div>
+            ${lead.company ? `<div class="muted small">${esc(lead.company)}</div>` : ''}
+          </td>
+          <td>
+            <span class="status-badge">${esc(lead.project_type)}</span>
+            <div class="muted small">${esc(lead.goal || '')}</div>
+          </td>
+          <td>
+            <div class="muted small">Budget: ${esc(lead.budget || 'Ikke angivet')}</div>
+            <div class="muted small">Tempo: ${esc(lead.timeline || 'Ikke angivet')}</div>
+          </td>
+          <td class="lead-brief">${esc(lead.brief || '')}</td>
+          <td>${fmtDate(lead.created_at)}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+  container.innerHTML = '';
+  container.appendChild(table);
 }
 
 // ── Projects list ──────────────────────────────────────────────────────────────
