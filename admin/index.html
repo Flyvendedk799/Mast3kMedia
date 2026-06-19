@@ -67,6 +67,11 @@
         Projekter
         <span class="snav-badge" id="projectCount"></span>
       </a>
+      <a href="#" class="snav-item" data-view="leads">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/></svg>
+        Henvendelser
+        <span class="snav-badge" id="leadCount"></span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
@@ -127,6 +132,20 @@
         <div id="dashProjectsList" class="table-wrap">
           <div class="table-empty">Indlæser...</div>
         </div>
+      </div>
+    </div>
+
+    <!-- ── Leads view ── -->
+    <div id="leadsView" class="view" hidden>
+      <div class="view-header">
+        <div>
+          <h2>Henvendelser</h2>
+          <p class="view-sub">Briefs sendt fra hero-formularen.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap" id="leadsTable">
+        <div class="table-empty">Indlæser henvendelser...</div>
       </div>
     </div>
 

@@ -95,26 +95,116 @@
       </div>
 
       <aside class="hero-cta" data-hero-fade>
-        <form class="hcta-form" id="heroForm" onsubmit="return heroQuickContact(event)">
+        <form class="hcta-form hcta-cockpit" id="heroForm" novalidate>
+          <input type="hidden" name="source" value="hero" />
+          <input type="hidden" name="page_path" value="/" />
+          <input class="hp-field" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          <div class="hcta-orbit" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="hcta-scan" aria-hidden="true"></div>
           <div class="hcta-head">
             <span class="pill-live"><span class="dot"></span>Svar inden for 1 arbejdsdag</span>
+            <span class="hcta-stepmark mono" id="heroStepMark">01 / 04</span>
           </div>
-          <h2 class="hcta-title">Har du noget på tegnebrættet?</h2>
-          <p class="hcta-sub">Sig hvad du roder med, og smid din mail. Du hører fra et menneske — ikke en bot — inden for en arbejdsdag.</p>
-          <div class="hcta-chips" id="heroChips">
-            <span class="hchip on" data-chip>Software</span>
-            <span class="hchip" data-chip>SaaS</span>
-            <span class="hchip" data-chip>AI</span>
-            <span class="hchip" data-chip>Marketing</span>
+          <h2 class="hcta-title" id="heroFormTitle">Byg briefet. Send signalet.</h2>
+          <p class="hcta-sub">Et hurtigt projekt-cockpit. Vælg retning, rammer og kontaktinfo — så svarer en bygger tilbage, ikke en sælger.</p>
+          <div class="hcta-progress" aria-hidden="true"><span id="heroProgress"></span></div>
+
+          <div class="hcta-flow">
+            <section class="hcta-step is-active" data-hcta-step="0">
+              <span class="hcta-kicker mono">01 · Type og mål</span>
+              <div class="hcta-choice-grid" role="radiogroup" aria-label="Projekttype">
+                <label class="hcta-choice is-selected">
+                  <input type="radio" name="project_type" value="Software" checked required />
+                  <span>Software</span><small>Web, app, API eller intern platform.</small>
+                </label>
+                <label class="hcta-choice">
+                  <input type="radio" name="project_type" value="SaaS" required />
+                  <span>SaaS</span><small>Produkt, billing, drift og skalering.</small>
+                </label>
+                <label class="hcta-choice">
+                  <input type="radio" name="project_type" value="AI" required />
+                  <span>AI</span><small>Agenter, workflows og automatisering.</small>
+                </label>
+                <label class="hcta-choice">
+                  <input type="radio" name="project_type" value="Marketing" required />
+                  <span>Marketing</span><small>SEO, tracking, annoncer og vækst.</small>
+                </label>
+              </div>
+              <label class="hcta-input wide">
+                <span>Hvad skal ændre sig?</span>
+                <textarea name="goal" required rows="3" placeholder="Fx: Vi skal lancere en MVP, automatisere onboarding eller få flere kvalificerede leads."></textarea>
+              </label>
+            </section>
+
+            <section class="hcta-step" data-hcta-step="1" hidden>
+              <span class="hcta-kicker mono">02 · Rammer</span>
+              <div class="hcta-fieldset">
+                <span class="hcta-label">Budget</span>
+                <div class="hcta-pills" role="radiogroup" aria-label="Budget">
+                  <label class="hcta-pill"><input type="radio" name="budget" value="25-75k" required />25-75k</label>
+                  <label class="hcta-pill is-selected"><input type="radio" name="budget" value="75-150k" checked required />75-150k</label>
+                  <label class="hcta-pill"><input type="radio" name="budget" value="150-300k" required />150-300k</label>
+                  <label class="hcta-pill"><input type="radio" name="budget" value="300k+" required />300k+</label>
+                </div>
+              </div>
+              <div class="hcta-fieldset">
+                <span class="hcta-label">Tidshorisont</span>
+                <div class="hcta-pills" role="radiogroup" aria-label="Tidshorisont">
+                  <label class="hcta-pill"><input type="radio" name="timeline" value="Nu" required />Nu</label>
+                  <label class="hcta-pill is-selected"><input type="radio" name="timeline" value="2-6 uger" checked required />2-6 uger</label>
+                  <label class="hcta-pill"><input type="radio" name="timeline" value="Dette kvartal" required />Dette kvartal</label>
+                  <label class="hcta-pill"><input type="radio" name="timeline" value="Bare sondering" required />Sondering</label>
+                </div>
+              </div>
+              <div class="hcta-telemetry" aria-hidden="true">
+                <span><b data-meter="budget">75-150k</b> budget</span>
+                <span><b data-meter="timeline">2-6 uger</b> tempo</span>
+              </div>
+            </section>
+
+            <section class="hcta-step" data-hcta-step="2" hidden>
+              <span class="hcta-kicker mono">03 · Kontakt</span>
+              <div class="hcta-field-row">
+                <label class="hcta-input">
+                  <span>Navn</span>
+                  <input type="text" name="name" autocomplete="name" required placeholder="Dit navn" />
+                </label>
+                <label class="hcta-input">
+                  <span>Firma</span>
+                  <input type="text" name="company" autocomplete="organization" placeholder="Firma ApS" />
+                </label>
+              </div>
+              <label class="hcta-input wide">
+                <span>E-mail</span>
+                <input type="email" id="heroEmail" name="email" autocomplete="email" required placeholder="dig@firma.dk" />
+              </label>
+            </section>
+
+            <section class="hcta-step" data-hcta-step="3" hidden>
+              <span class="hcta-kicker mono">04 · Send</span>
+              <div class="hcta-review" aria-live="polite">
+                <span><b data-review="project_type">Software</b><small>type</small></span>
+                <span><b data-review="budget">75-150k</b><small>budget</small></span>
+                <span><b data-review="timeline">2-6 uger</b><small>tempo</small></span>
+              </div>
+              <label class="hcta-input wide">
+                <span>Det sidste vi bør vide</span>
+                <textarea name="brief" required rows="4" placeholder="Links, deadline, beslutningstagere, eksisterende stack eller det der gør projektet besværligt."></textarea>
+              </label>
+            </section>
           </div>
-          <div class="hcta-field">
-            <input type="email" id="heroEmail" required placeholder="dig@firma.dk" aria-label="Din e-mail" />
+          <p class="hcta-error" id="heroError" role="alert" aria-live="polite"></p>
+          <div class="hcta-nav">
+            <button type="button" class="hcta-back" data-hcta-back>Tilbage</button>
+            <button type="button" class="hcta-next" data-hcta-next>Næste</button>
+            <button type="submit" class="hcta-send" data-hcta-submit>
+              <span class="send-label">Send brief</span>
+              <svg class="send-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              <span class="send-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+            </button>
           </div>
-          <button type="submit" class="hcta-send" data-magnetic="0.15">
-            <span class="send-label">Fyr den af</span>
-            <svg class="send-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            <span class="send-dots" aria-hidden="true"><span></span><span></span><span></span></span>
-          </button>
           <span class="hcta-foot mono">Eller skriv til hej@mast3kmedia.dk</span>
         </form>
         <div class="hcta-done" id="heroDone" hidden>
@@ -453,67 +543,6 @@
       })
       .catch(function(){});
   })();
-
-  /* ── Chips ── */
-  var heroTitles = { Software: 'Hvad skal vi bygge?', SaaS: 'Fortæl os om dit SaaS-projekt.', AI: 'Hvad skal AI løse for dig?', Marketing: 'Klar til at vækste?' };
-  var defaultTitle = 'Har du noget på tegnebrættet?';
-
-  function updateHeroTitle() {
-    var selected = Array.from(document.querySelectorAll('#heroChips .hchip.on')).map(function(c){ return c.textContent.trim(); });
-    var titleEl = document.querySelector('.hcta-form .hcta-title');
-    if (!titleEl) return;
-    var next = selected.length === 1 && heroTitles[selected[0]] ? heroTitles[selected[0]] : defaultTitle;
-    if (titleEl.textContent.trim() === next) return;
-    titleEl.classList.add('crossfade', 'fading');
-    setTimeout(function(){ titleEl.textContent = next; titleEl.classList.remove('fading'); }, 190);
-  }
-
-  document.querySelectorAll('#heroChips [data-chip]').forEach(function(c) {
-    c.addEventListener('click', function() {
-      c.classList.toggle('on');
-      c.animate([{transform:'scale(1)'},{transform:'scale(0.86)'},{transform:'scale(1.07)'},{transform:'scale(1)'}],
-        {duration:300, easing:'cubic-bezier(.16,1,.3,1)'});
-      updateHeroTitle();
-    });
-  });
-
-  /* ── Mouse-tracking glow ── */
-  var hcta = document.querySelector('.hcta-form');
-  if (hcta) {
-    hcta.addEventListener('mousemove', function(e) {
-      var r = hcta.getBoundingClientRect();
-      hcta.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
-      hcta.style.setProperty('--my', ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%');
-    });
-  }
-
-  /* ── Submit ── */
-  function heroQuickContact(e) {
-    e.preventDefault();
-    var emailInput = document.getElementById('heroEmail');
-    if (!emailInput.checkValidity()) {
-      var form = document.querySelector('.hcta-form');
-      form.classList.remove('shake');
-      void form.offsetWidth;
-      form.classList.add('shake');
-      emailInput.focus();
-      return false;
-    }
-    var btn = e.target.querySelector('.hcta-send');
-    btn.classList.add('loading');
-    setTimeout(function() {
-      var form = document.getElementById('heroForm');
-      var done = document.getElementById('heroDone');
-      form.hidden = true;
-      done.hidden = false;
-      requestAnimationFrame(function(){
-        requestAnimationFrame(function(){
-          done.classList.add('anim-in');
-        });
-      });
-    }, 1400);
-    return false;
-  }
 </script>
 </body>
 </html>

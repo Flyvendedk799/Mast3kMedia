@@ -63,6 +63,23 @@ db.exec(`
   AFTER UPDATE ON projects FOR EACH ROW BEGIN
     UPDATE projects SET updated_at = datetime('now') WHERE id = NEW.id;
   END;
+
+  CREATE TABLE IF NOT EXISTS leads (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    source        TEXT    NOT NULL DEFAULT 'hero',
+    project_type  TEXT    NOT NULL,
+    goal          TEXT,
+    budget        TEXT,
+    timeline      TEXT,
+    name          TEXT,
+    company       TEXT,
+    email         TEXT    NOT NULL,
+    brief         TEXT,
+    status        TEXT    NOT NULL DEFAULT 'new'
+                         CHECK(status IN ('new','contacted','qualified','archived')),
+    metadata      TEXT    NOT NULL DEFAULT '{}',
+    created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 try {
@@ -84,6 +101,11 @@ const slugify = (s) =>
     .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
 
 const safeJSON = (val, fb) => { try { return val ? JSON.parse(val) : fb; } catch { return fb; } };
+const clipLine = (val, max = 240) =>
+  String(val ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
+const clipText = (val, max = 1800) =>
+  String(val ?? '').trim().replace(/\r\n/g, '\n').replace(/\n{4,}/g, '\n\n\n').slice(0, max);
+const validEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val || '').trim());
 
 // ── Upload helpers ──────────────────────────────────────────────────────────────
 const crypto = require('crypto');
@@ -315,6 +337,61 @@ app.get('/api/projects/:slug', (req, res) => {
   res.json({ ...project, related });
 });
 
+// ── Public: lead intake ───────────────────────────────────────────────────────
+app.post('/api/leads', (req, res) => {
+  const b = req.body || {};
+
+  // Honeypot: real visitors never fill this hidden field.
+  if (clipLine(b.website, 120)) return res.status(201).json({ ok: true });
+
+  const lead = {
+    source:       clipLine(b.source || 'hero', 40),
+    project_type: clipLine(b.project_type || b.projectType, 80),
+    goal:         clipText(b.goal, 900),
+    budget:       clipLine(b.budget, 80),
+    timeline:     clipLine(b.timeline, 80),
+    name:         clipLine(b.name, 160),
+    company:      clipLine(b.company, 180),
+    email:        clipLine(b.email, 220).toLowerCase(),
+    brief:        clipText(b.brief, 1800),
+  };
+
+  if (!lead.project_type)
+    return res.status(400).json({ error: 'project_type is required' });
+  if (!validEmail(lead.email))
+    return res.status(400).json({ error: 'valid email is required' });
+  if (!lead.goal && !lead.brief)
+    return res.status(400).json({ error: 'goal or brief is required' });
+
+  const metadata = {
+    page_path: clipLine(b.page_path || req.headers.referer || '/', 500),
+    user_agent: clipLine(req.headers['user-agent'], 500),
+    ip: clipLine(req.headers['x-forwarded-for'] || req.socket.remoteAddress, 120),
+  };
+
+  try {
+    const r = db.prepare(`
+      INSERT INTO leads
+        (source,project_type,goal,budget,timeline,name,company,email,brief,metadata)
+      VALUES (?,?,?,?,?,?,?,?,?,?)
+    `).run(
+      lead.source,
+      lead.project_type,
+      lead.goal || null,
+      lead.budget || null,
+      lead.timeline || null,
+      lead.name || null,
+      lead.company || null,
+      lead.email,
+      lead.brief || null,
+      JSON.stringify(metadata),
+    );
+    res.status(201).json({ ok: true, id: r.lastInsertRowid });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Admin: stats ───────────────────────────────────────────────────────────────
 app.get('/api/admin/stats', requireAuth, (req, res) => {
   const n = (q, ...a) => db.prepare(q).get(...a).n;
@@ -323,7 +400,15 @@ app.get('/api/admin/stats', requireAuth, (req, res) => {
     published: n("SELECT COUNT(*) n FROM projects WHERE status='published'"),
     drafts:    n("SELECT COUNT(*) n FROM projects WHERE status='draft'"),
     featured:  n('SELECT COUNT(*) n FROM projects WHERE featured=1'),
+    leads:     n('SELECT COUNT(*) n FROM leads'),
+    new_leads: n("SELECT COUNT(*) n FROM leads WHERE status='new'"),
   });
+});
+
+app.get('/api/admin/leads', requireAuth, (req, res) => {
+  const limit = Math.min(200, Math.max(1, parseInt(req.query.limit || '100', 10) || 100));
+  const rows = db.prepare('SELECT * FROM leads ORDER BY created_at DESC LIMIT ?').all(limit);
+  res.json(rows.map((row) => ({ ...row, metadata: safeJSON(row.metadata, {}) })));
 });
 
 // ── Admin: media upload (dependency-free, raw binary body) ──────────────────────

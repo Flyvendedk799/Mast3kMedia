@@ -309,6 +309,21 @@ tbody td {
 .badge-published { background: rgba(0,255,136,0.1); color: var(--lime); }
 .badge-draft { background: rgba(40,40,58,0.8); color: var(--muted); }
 .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.status-badge {
+  display: inline-flex; align-items: center;
+  padding: 0.28em 0.7em; border-radius: var(--r-full);
+  background: rgba(0,255,136,0.1); color: var(--lime);
+  font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase;
+  margin-bottom: 0.42rem;
+}
+.small { font-size: 0.75rem; line-height: 1.35; }
+.muted { color: var(--muted); }
+.lead-brief {
+  max-width: 360px;
+  color: var(--muted);
+  white-space: normal;
+  line-height: 1.45;
+}
 
 /* Featured toggle in table */
 .star-btn {

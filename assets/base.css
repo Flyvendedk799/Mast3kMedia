@@ -294,6 +294,12 @@ section { position: relative; }
 body.has-cursor { cursor: none; }
 body.has-cursor a, body.has-cursor button { cursor: none; }
 @media (hover: none) { .cursor-dot, .cursor-ring { display: none; } body.has-cursor { cursor: auto; } }
+@media (max-width: 760px) {
+  body.has-cursor,
+  body.has-cursor a,
+  body.has-cursor button { cursor: auto; }
+  .cursor-dot, .cursor-ring { display: none !important; }
+}
 
 /* ============================================================
    Navbar
