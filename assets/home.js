@@ -74,205 +74,316 @@
   function heroIntake() {
     const form = document.getElementById('heroForm');
     if (!form) return;
+    const $ = (selector, root = form) => root.querySelector(selector);
+    const $$ = (selector, root = form) => Array.from(root.querySelectorAll(selector));
+    const cockpit = document.getElementById('heroCockpit');
+    const stage = form.closest('.stage') || form;
+    const track = $('#track');
+    const steps = $$('.step');
+    const backBtn = $('#back');
+    const nextBtn = $('#next');
+    const nextLabel = $('.lbl', nextBtn);
+    const success = $('#success');
+    const refEl = $('#ref');
+    const TOTAL = 4;
+    const titles = {
+      1: 'Hvad skal vi bygge?',
+      2: 'Definér scope',
+      3: 'Hvem skriver vi til?',
+      4: 'Tjek og send'
+    };
+    const state = {
+      type: null,
+      outcome: null,
+      budget: null,
+      timeline: null,
+      brief: '',
+      name: '',
+      company: '',
+      email: '',
+      phone: ''
+    };
+    let current = 1;
 
-    const steps = Array.from(form.querySelectorAll('[data-hcta-step]'));
-    const backBtn = form.querySelector('[data-hcta-back]');
-    const nextBtn = form.querySelector('[data-hcta-next]');
-    const submitBtn = form.querySelector('[data-hcta-submit]');
-    const progress = document.getElementById('heroProgress');
-    const stepMark = document.getElementById('heroStepMark');
-    const errorEl = document.getElementById('heroError');
-    const done = document.getElementById('heroDone');
-    let current = 0;
+    const formValue = (name) => String(form.elements[name]?.value || '').trim();
 
-    const titles = [
-      'Byg briefet. Send signalet.',
-      'Sæt rammerne.',
-      'Hvor skal vi svare?',
-      'Klar til launch.'
-    ];
-
-    const getCheckedValue = (name) => {
-      const checked = form.querySelector(`input[name="${name}"]:checked`);
-      return checked ? checked.value : '';
+    const clearError = (field) => {
+      if (field) field.classList.remove('invalid');
     };
 
-    const getValue = (name) => {
-      const field = form.elements[name];
-      if (!field) return '';
-      if (field instanceof RadioNodeList) return field.value || getCheckedValue(name);
-      return String(field.value || '').trim();
+    const setTrackHeight = () => {
+      const active = $(`.step[data-step="${current}"]`);
+      if (track && active) track.style.height = active.scrollHeight + 'px';
     };
 
-    const setError = (msg) => {
-      if (errorEl) errorEl.textContent = msg || '';
-      if (msg) {
-        form.classList.remove('shake');
-        void form.offsetWidth;
-        form.classList.add('shake');
+    const applyScopeMode = () => {
+      const free = state.type === 'Noget helt andet';
+      const fOutcome = $('#field-outcome');
+      const fBudget = $('#field-budget');
+      const fTimeline = $('#field-timeline');
+      const fBrief = $('#field-brief');
+      const briefLabel = $('#brief-label');
+      const textarea = $('#f-brief');
+      if (!fOutcome || !fBudget || !fTimeline || !fBrief || !briefLabel || !textarea) return;
+
+      fOutcome.style.display = free ? 'none' : '';
+      if (free) {
+        fOutcome.removeAttribute('data-req');
+        fBudget.removeAttribute('data-req');
+        fTimeline.removeAttribute('data-req');
+        fBrief.setAttribute('data-req', 'brief');
+        briefLabel.innerHTML = 'Fortæl frit <span class="hint">det er her du former det</span>';
+        textarea.setAttribute('placeholder', 'Du har noget der ikke passer i en kasse — beskriv det. Hvad er det, hvad skal det kunne, og hvorfor nu?');
+        textarea.classList.add('tall');
+      } else {
+        fOutcome.setAttribute('data-req', 'outcome');
+        fBudget.setAttribute('data-req', 'budget');
+        fTimeline.setAttribute('data-req', 'timeline');
+        fBrief.removeAttribute('data-req');
+        clearError(fBrief);
+        briefLabel.innerHTML = 'Kort om projektet <span class="hint">valgfrit, men hjælper</span>';
+        textarea.setAttribute('placeholder', 'Hvad skal det kunne? Hvad er problemet i dag? Hvad findes der allerede?');
+        textarea.classList.remove('tall');
       }
+      requestAnimationFrame(setTrackHeight);
     };
 
-    const syncChoiceState = (name) => {
-      const radios = Array.from(form.querySelectorAll(`input[type="radio"][name="${name}"]`));
-      radios.forEach((radio) => {
-        const label = radio.closest('.hcta-choice, .hcta-pill');
-        if (label) label.classList.toggle('is-selected', radio.checked);
+    const paintProgress = () => {
+      $$('.node').forEach((node) => {
+        const idx = Number(node.dataset.node);
+        node.classList.toggle('done', idx < current);
+        node.classList.toggle('current', idx === current);
+        node.innerHTML = idx < current
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>'
+          : String(idx);
+      });
+      $$('.bar').forEach((bar) => {
+        bar.classList.toggle('filled', Number(bar.dataset.bar) < current);
       });
     };
 
-    const updateReview = () => {
-      const pairs = {
-        project_type: getValue('project_type') || 'Software',
-        budget: getValue('budget') || '75-150k',
-        timeline: getValue('timeline') || '2-6 uger'
-      };
-      Object.keys(pairs).forEach((key) => {
-        form.querySelectorAll(`[data-review="${key}"], [data-meter="${key}"]`).forEach((el) => {
-          el.textContent = pairs[key];
-        });
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"]/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;'
+    })[char]);
+
+    const renderReview = () => {
+      const review = $('#review');
+      if (!review) return;
+      const isFree = state.type === 'Noget helt andet';
+      const rows = [
+        ['Type', state.type, 1],
+        ['Mål', isFree ? '' : state.outcome, 2],
+        ['Budget', isFree ? '' : state.budget, 2],
+        ['Tidslinje', isFree ? '' : state.timeline, 2],
+        ['Brief', state.brief, 2],
+        ['Navn', state.name, 3],
+        ['Firma', state.company, 3],
+        ['Email', state.email, 3],
+        ['Telefon', state.phone, 3]
+      ];
+      review.innerHTML = rows.map(([key, value, targetStep]) => {
+        const hasValue = value && value.length;
+        return '<div class="row"><span class="k">' + key + '</span>' +
+          '<span class="v' + (hasValue ? '' : ' empty') + '">' + (hasValue ? escapeHtml(value) : '—') + '</span>' +
+          '<button type="button" class="edit" data-goto="' + targetStep + '">ret</button></div>';
+      }).join('');
+      $$('.edit', review).forEach((button) => {
+        button.addEventListener('click', () => showStep(Number(button.dataset.goto)));
       });
     };
 
-    const showStep = (idx) => {
-      current = Math.max(0, Math.min(idx, steps.length - 1));
-      steps.forEach((step, i) => {
-        step.hidden = i !== current;
-        step.classList.toggle('is-active', i === current);
+    const showStep = (step) => {
+      current = Math.max(1, Math.min(step, TOTAL));
+      steps.forEach((panel) => {
+        const idx = Number(panel.dataset.step);
+        panel.classList.toggle('is-active', idx === current);
+        panel.classList.toggle('is-prev', idx < current);
       });
-      form.classList.toggle('is-final', current === steps.length - 1);
-      if (backBtn) backBtn.disabled = current === 0;
-      if (progress) progress.style.width = (((current + 1) / steps.length) * 100) + '%';
-      if (stepMark) stepMark.textContent = String(current + 1).padStart(2, '0') + ' / ' + String(steps.length).padStart(2, '0');
-      const title = document.getElementById('heroFormTitle');
-      if (title) title.textContent = titles[current] || titles[0];
-      setError('');
-      updateReview();
+      const stepNum = $('#stepNum');
+      const stepTitle = $('#stepTitle');
+      if (stepNum) stepNum.textContent = String(current);
+      if (stepTitle) stepTitle.textContent = titles[current] || titles[1];
+      if (backBtn) backBtn.hidden = current === 1;
+      if (nextLabel) nextLabel.textContent = current === TOTAL ? 'Send brief' : 'Næste';
+      paintProgress();
+      if (current === 2) applyScopeMode();
+      if (current === TOTAL) renderReview();
+      requestAnimationFrame(setTrackHeight);
     };
 
-    const firstInvalidInStep = (step) => {
-      const required = Array.from(step.querySelectorAll('input[required], textarea[required], select[required]'));
-      const radioNames = new Set();
-      for (const field of required) {
-        if (field.type === 'radio') {
-          if (radioNames.has(field.name)) continue;
-          radioNames.add(field.name);
-          if (!form.querySelector(`input[name="${field.name}"]:checked`)) return field;
-          continue;
+    const validateStep = (step) => {
+      let ok = true;
+      let firstBad = null;
+      const fields = $$(`.step[data-step="${step}"] .field[data-req]`);
+      fields.forEach((field) => {
+        const key = field.dataset.req;
+        const valid = key === 'email'
+          ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.email)
+          : Boolean(state[key]);
+        if (!valid) {
+          field.classList.add('invalid');
+          if (!firstBad) firstBad = field;
+          ok = false;
+        } else {
+          clearError(field);
         }
-        if (!field.checkValidity()) return field;
+      });
+      if (firstBad) {
+        const input = $('.input, .textarea', firstBad);
+        if (input) {
+          try { input.focus({ preventScroll: true }); }
+          catch { input.focus(); }
+        }
       }
-      return null;
+      return ok;
     };
 
-    const validateStep = (idx) => {
-      const invalid = firstInvalidInStep(steps[idx]);
-      if (!invalid) {
-        setError('');
-        return true;
-      }
-      const msg = invalid.type === 'email'
-        ? 'Smid en rigtig e-mail, så vi kan svare.'
-        : 'Udfyld feltet, så briefet ikke mangler ben.';
-      setError(msg);
-      invalid.focus({ preventScroll: true });
-      return false;
-    };
-
-    const collectPayload = () => ({
-      source: getValue('source') || 'hero',
-      page_path: window.location.pathname || '/',
-      website: getValue('website'),
-      project_type: getValue('project_type'),
-      goal: getValue('goal'),
-      budget: getValue('budget'),
-      timeline: getValue('timeline'),
-      name: getValue('name'),
-      company: getValue('company'),
-      email: getValue('email'),
-      brief: getValue('brief'),
-    });
-
-    const submit = async (e) => {
-      if (e) e.preventDefault();
-      for (let i = 0; i < steps.length; i++) {
-        if (firstInvalidInStep(steps[i])) {
-          showStep(i);
-          validateStep(i);
+    const validateAll = () => {
+      for (let step = 1; step <= TOTAL; step += 1) {
+        if (!validateStep(step)) {
+          showStep(step);
           return false;
         }
       }
+      return true;
+    };
 
-      submitBtn.classList.add('loading');
-      submitBtn.disabled = true;
+    const collectPayload = () => {
+      const isFree = state.type === 'Noget helt andet';
+      const briefParts = [];
+      if (state.brief) briefParts.push(state.brief);
+      if (state.phone) briefParts.push('Telefon: ' + state.phone);
+      return {
+        source: formValue('source') || 'hero',
+        page_path: window.location.pathname || '/',
+        website: formValue('website'),
+        project_type: state.type,
+        goal: isFree ? 'Noget helt andet' : (state.outcome || ''),
+        budget: isFree ? '' : (state.budget || ''),
+        timeline: isFree ? '' : (state.timeline || ''),
+        name: state.name,
+        company: state.company,
+        email: state.email,
+        phone: state.phone,
+        brief: briefParts.join('\n\n')
+      };
+    };
+
+    const submit = async (event) => {
+      if (event) event.preventDefault();
+      if (!validateAll()) return false;
+      nextBtn.classList.add('loading');
+      nextBtn.disabled = true;
       if (backBtn) backBtn.disabled = true;
 
       try {
-        const res = await fetch('/api/leads', {
+        const response = await fetch('/api/leads', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(collectPayload()),
         });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Kunne ikke sende briefet');
-        form.hidden = true;
-        if (done) {
-          done.hidden = false;
-          requestAnimationFrame(() => requestAnimationFrame(() => done.classList.add('anim-in')));
-        }
-      } catch (err) {
-        setError(err.message || 'Noget gik galt. Skriv til hej@mast3kmedia.dk.');
-        submitBtn.classList.remove('loading');
-        submitBtn.disabled = false;
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Kunne ikke sende briefet');
+        const ref = data.id ? 'M3K-' + String(data.id).padStart(4, '0') : 'M3K-' + String(Math.floor(1000 + Math.random() * 8999));
+        if (refEl) refEl.textContent = 'REF · ' + ref;
+        if (success) success.classList.add('show');
+      } catch (error) {
+        nextBtn.classList.remove('loading');
+        nextBtn.disabled = false;
         if (backBtn) backBtn.disabled = false;
+        const emailField = $('#f-email')?.closest('.field');
+        if (emailField && /email/i.test(error.message || '')) {
+          showStep(3);
+          emailField.classList.add('invalid');
+          $('#f-email')?.focus({ preventScroll: true });
+        } else {
+          const briefField = $('#field-brief');
+          showStep(2);
+          briefField?.classList.add('invalid');
+        }
       }
       return false;
     };
 
-    window.heroQuickContact = submit;
+    $$('.type').forEach((button) => {
+      button.addEventListener('click', () => {
+        $$('.type').forEach((item) => {
+          item.classList.remove('sel');
+          item.setAttribute('aria-checked', 'false');
+        });
+        button.classList.add('sel');
+        button.setAttribute('aria-checked', 'true');
+        state.type = button.dataset.value;
+        clearError(button.closest('.field'));
+        applyScopeMode();
+      });
+    });
+
+    $$('.chip').forEach((button) => {
+      button.addEventListener('click', () => {
+        const field = button.dataset.field;
+        $$(`.chip[data-field="${field}"]`).forEach((chip) => chip.classList.remove('sel'));
+        button.classList.add('sel');
+        state[field] = button.dataset.value;
+        clearError(button.closest('.field'));
+      });
+    });
+
+    $$('[data-field]').forEach((field) => {
+      if (field.tagName !== 'INPUT' && field.tagName !== 'TEXTAREA') return;
+      field.addEventListener('input', () => {
+        state[field.dataset.field] = field.value.trim();
+        clearError(field.closest('.field'));
+        if (current === TOTAL) renderReview();
+      });
+    });
 
     nextBtn?.addEventListener('click', () => {
-      if (validateStep(current)) showStep(current + 1);
+      if (!validateStep(current)) return;
+      if (current === TOTAL) submit();
+      else showStep(current + 1);
     });
-    backBtn?.addEventListener('click', () => showStep(current - 1));
+    backBtn?.addEventListener('click', () => {
+      if (current > 1) showStep(current - 1);
+    });
     form.addEventListener('submit', submit);
+    window.heroQuickContact = submit;
 
-    ['project_type', 'budget', 'timeline'].forEach((name) => {
-      syncChoiceState(name);
-      form.querySelectorAll(`input[type="radio"][name="${name}"]`).forEach((radio) => {
-        radio.addEventListener('change', () => {
-          syncChoiceState(name);
-          updateReview();
-          const label = radio.closest('.hcta-choice, .hcta-pill');
-          if (label && !reduce) {
-            label.animate(
-              [{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-3px) scale(1.03)' }, { transform: 'translateY(0) scale(1)' }],
-              { duration: 260, easing: 'cubic-bezier(.16,1,.3,1)' }
-            );
-          }
-        });
+    if (!reduce && cockpit && window.matchMedia('(min-width: 981px)').matches) {
+      let frame = null;
+      let tiltX = 0;
+      let tiltY = 0;
+      const applyTilt = () => {
+        frame = null;
+        cockpit.style.setProperty('--ry', (tiltX * 9).toFixed(2) + 'deg');
+        cockpit.style.setProperty('--rx', (-tiltY * 7).toFixed(2) + 'deg');
+      };
+      stage.addEventListener('pointermove', (event) => {
+        const rect = cockpit.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        tiltX = (event.clientX - cx) / rect.width;
+        tiltY = (event.clientY - cy) / rect.height;
+        cockpit.style.setProperty('--mx', (((event.clientX - rect.left) / rect.width) * 100) + '%');
+        cockpit.style.setProperty('--my', (((event.clientY - rect.top) / rect.height) * 100) + '%');
+        if (!frame) frame = requestAnimationFrame(applyTilt);
       });
-    });
-
-    form.querySelectorAll('input, textarea').forEach((field) => {
-      field.addEventListener('input', updateReview);
-    });
-
-    if (!reduce && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-      form.addEventListener('mousemove', (e) => {
-        const r = form.getBoundingClientRect();
-        const px = (e.clientX - r.left) / r.width - 0.5;
-        const py = (e.clientY - r.top) / r.height - 0.5;
-        form.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
-        form.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
-        form.style.transform = `perspective(1200px) rotateY(${px * 7}deg) rotateX(${-py * 5}deg)`;
-      });
-      form.addEventListener('mouseleave', () => {
-        form.style.transform = '';
+      stage.addEventListener('pointerleave', () => {
+        tiltX = 0;
+        tiltY = 0;
+        if (!frame) frame = requestAnimationFrame(applyTilt);
       });
     }
 
-    showStep(0);
+    paintProgress();
+    applyScopeMode();
+    if (document.fonts?.ready) document.fonts.ready.then(setTrackHeight);
+    window.addEventListener('load', setTrackHeight);
+    window.addEventListener('resize', setTrackHeight);
+    requestAnimationFrame(setTrackHeight);
   }
 
   /* ---- Pinned horizontal process ---- */
