@@ -94,23 +94,52 @@
       const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 40);
       onScroll(); addEventListener('scroll', onScroll, { passive: true });
     }
+
+    // Mark the current page in the bar and the mobile menu.
+    const here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    document.querySelectorAll('.nav-links a, .menu a').forEach((a) => {
+      const href = (a.getAttribute('href') || '').split('/').pop().split('?')[0].toLowerCase();
+      if (href && href === here) {
+        a.classList.add('active');
+        a.setAttribute('aria-current', 'page');
+      }
+    });
+
     const burger = document.querySelector('.nav-burger');
     const menu = document.querySelector('.menu');
     if (burger && menu) {
+      burger.setAttribute('aria-expanded', 'false');
       burger.addEventListener('click', () => {
         const open = menu.classList.toggle('open');
         burger.classList.toggle('is-open', open);
+        burger.setAttribute('aria-expanded', String(open));
+        burger.setAttribute('aria-label', open ? 'Luk menu' : 'Menu');
+        menu.setAttribute('aria-hidden', String(!open));
         document.documentElement.classList.toggle('lenis-stopped', open);
+        document.body.style.overflow = open ? 'hidden' : '';
         if (lenis) open ? lenis.stop() : lenis.start();
+        if (open) { const first = menu.querySelector('a'); if (first) first.focus(); }
       });
+      menu.setAttribute('aria-hidden', 'true');
       menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', closeMenu));
+      addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && menu.classList.contains('open')) { closeMenu(); burger.focus(); }
+      });
     }
   }
   function closeMenu() {
     const menu = document.querySelector('.menu');
     const burger = document.querySelector('.nav-burger');
     if (menu && menu.classList.contains('open')) {
-      menu.classList.remove('open'); if (burger) burger.classList.remove('is-open');
+      menu.classList.remove('open');
+      menu.setAttribute('aria-hidden', 'true');
+      if (burger) {
+        burger.classList.remove('is-open');
+        burger.setAttribute('aria-expanded', 'false');
+        burger.setAttribute('aria-label', 'Menu');
+      }
+      document.documentElement.classList.remove('lenis-stopped');
+      document.body.style.overflow = '';
       if (lenis) lenis.start();
     }
   }
@@ -167,10 +196,19 @@
     });
   }
 
-  /* ---------- Counters ---------- */
+  /* ---------- Counters ----------
+     The markup ships the real figure as text, so a stat never reads "0" when JS
+     is slow, blocked, or the element never crosses the observer threshold. The
+     count-up only starts once we know we can finish it. */
   function initCounters() {
     const els = document.querySelectorAll('[data-count]');
     if (!els.length) return;
+    const fmt = (val, dec) => dec ? val.toFixed(dec) : Math.round(val).toLocaleString('da-DK');
+    const final = (el) => fmt(parseFloat(el.dataset.count), el.dataset.dec ? parseInt(el.dataset.dec) : 0);
+
+    // Reduced motion: make sure the final value is on screen, then stop.
+    if (reduce) { els.forEach((el) => { el.textContent = final(el); }); return; }
+
     const run = (el) => {
       const target = parseFloat(el.dataset.count);
       const dec = (el.dataset.dec ? parseInt(el.dataset.dec) : 0);
@@ -178,9 +216,9 @@
       const tick = (t) => {
         const p = Math.min(1, (t - t0) / dur);
         const e = 1 - Math.pow(1 - p, 3);
-        const val = target * e;
-        el.textContent = dec ? val.toFixed(dec) : Math.round(val).toLocaleString('da-DK');
+        el.textContent = fmt(target * e, dec);
         if (p < 1) requestAnimationFrame(tick);
+        else el.textContent = final(el);
       };
       requestAnimationFrame(tick);
     };

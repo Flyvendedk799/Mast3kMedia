@@ -5,6 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>SaaS — Mast3kMedia</title>
 <meta name="description" content="SaaS-produkter fra Mast3kMedia. Software vi bygger, ejer og sælger — bootstrapped og profitable." />
+<link rel="canonical" href="https://mast3kmedia.dk/saas.html" />
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+<meta name="theme-color" content="#07070A" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Mast3kMedia" />
+<meta property="og:locale" content="da_DK" />
+<meta property="og:url" content="https://mast3kmedia.dk/saas.html" />
+<meta property="og:title" content="SaaS — Mast3kMedia" />
+<meta property="og:description" content="SaaS-produkter fra Mast3kMedia. Software vi bygger, ejer og sælger — bootstrapped og profitable." />
+<meta property="og:image" content="https://mast3kmedia.dk/assets/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Mast3kMedia — mindre snak, mere kode, rigtig vækst." />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="SaaS — Mast3kMedia" />
+<meta name="twitter:description" content="SaaS-produkter fra Mast3kMedia. Software vi bygger, ejer og sælger — bootstrapped og profitable." />
+<meta name="twitter:image" content="https://mast3kmedia.dk/assets/og-image.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
@@ -32,15 +50,16 @@
   --bg-2:        var(--color-surface-2);   /* #16161E */
   --bg-3:        var(--color-surface-3);   /* #1E1E28 */
 
-  /* Text */
+  /* Text — values come from base.css so this page can't drift out of the
+     accessible palette (it used to pin the old, sub-AA greys). */
   --paper:       var(--color-white);       /* #FFFFFF */
-  --muted:       var(--color-muted);       /* #6A6A82 */
-  --faint:       #3A3A52;
+  --muted:       var(--color-muted);       /* #9494AE */
+  --faint:       #8484A0;
 
-  /* Borders — DS uses #28283A (cool-tinted) */
+  /* Borders */
   --line:        var(--color-border);
-  --line-soft:   rgba(40, 40, 58, 0.55);
-  --line-strong: rgba(255, 255, 255, 0.16);
+  --line-soft:   rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.20);
 
   /* Accents */
   --lime:        var(--color-green);       /* #00FF88 */
@@ -189,6 +208,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main">Spring til indhold</a>
 
 <div class="preloader">
   <div class="preloader__word">Mast3kMedia® — SaaS</div>
@@ -223,10 +243,11 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
   <a href="saas.html">SaaS</a>
   <a href="om.html">Om os</a>
   <a href="kontakt.html">Kontakt</a>
+  <div class="menu-cta"><a href="kontakt.html" class="btn btn-solid"><span class="btn-label">Start projekt <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a></div>
   <div class="menu-meta"><span class="mono">hej@mast3kmedia.dk</span><span class="mono">København · DK</span></div>
 </div>
 
-<main>
+<main id="main">
 
 <!-- HERO -->
 <section class="page-hero">
@@ -252,19 +273,19 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
   <div class="shell">
     <div class="metric-band" data-reveal="stagger">
       <div class="metric">
-        <div class="metric-n"><span data-count="148">0</span>k</div>
+        <div class="metric-n"><span data-count="148">148</span>k</div>
         <div class="metric-l">MRR (DKK)</div>
       </div>
       <div class="metric">
-        <div class="metric-n"><span data-count="3241">0</span></div>
+        <div class="metric-n"><span data-count="3241">3.241</span></div>
         <div class="metric-l">Betalende brugere</div>
       </div>
       <div class="metric">
-        <div class="metric-n"><span data-count="6">0</span></div>
+        <div class="metric-n"><span data-count="6">6</span></div>
         <div class="metric-l">Live produkter</div>
       </div>
       <div class="metric">
-        <div class="metric-n">&lt; <span data-count="2">0</span>%</div>
+        <div class="metric-n">&lt; <span data-count="2">2</span>%</div>
         <div class="metric-l">Månedlig churn</div>
       </div>
     </div>
@@ -507,14 +528,14 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
         <i style="width:21%;background:#00CFFF"></i>
         <i style="width:15%;background:rgba(0,207,255,0.45)"></i>
         <i style="width:12%;background:rgba(0,255,136,0.3)"></i>
-        <i style="width:5%;background:#3A3A52"></i>
+        <i style="width:5%;background:#7A7A95"></i>
       </div>
       <div class="mrrbar-key">
         <span><span class="ldot" style="background:#00FF88"></span>Fakturo 47%</span>
         <span><span class="ldot" style="background:#00CFFF"></span>Logtrace 21%</span>
         <span><span class="ldot" style="background:rgba(0,207,255,0.45)"></span>Tidsspor 15%</span>
         <span><span class="ldot" style="background:rgba(0,255,136,0.3)"></span>Sendpost 12%</span>
-        <span><span class="ldot" style="background:#3A3A52"></span>Briefr 5%</span>
+        <span><span class="ldot" style="background:#7A7A95"></span>Briefr 5%</span>
       </div>
     </div>
   </div>
