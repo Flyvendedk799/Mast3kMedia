@@ -10,7 +10,7 @@
 .crumb { display: inline-flex; gap: 0.6em; align-items: center; color: var(--faint); }
 .crumb a:hover { color: var(--paper); }
 .page-title { font-size: clamp(2.4rem, 5vw, 4.2rem); margin-top: 1.5rem; max-width: 20ch; }
-.page-title .line-wrap { display: block; overflow: hidden; padding-bottom: 0.04em; }
+/* Descender clearance comes from base.css .line-wrap */
 .page-intro { max-width: 52ch; margin-top: 2rem; font-size: clamp(1.05rem, 1.6vw, 1.35rem); color: var(--muted); }
 
 .page-hero-meta { display: flex; gap: clamp(2rem,5vw,4rem); flex-wrap: wrap; margin-top: clamp(2.5rem,5vw,4rem); padding-top: 2rem; border-top: 1px solid var(--line-soft); }
@@ -61,6 +61,21 @@
 .svc-row-aside { display: flex; flex-direction: column; gap: 0.5rem; }
 .svc-row-aside .tag { width: fit-content; }
 @media (max-width: 860px) { .svc-row { grid-template-columns: 1fr; gap: 1.2rem; } .svc-row-num { font-size: 3rem; } }
+
+/* Two-column variants of .svc-row (FAQ answers, numbered process steps).
+   These used to be inline `style="grid-template-columns:…"`, which outranks the
+   stacking media query above and left the columns cramped on phones. */
+.svc-row.row-2col { grid-template-columns: 1fr 1.4fr; }
+.svc-row.row-step { grid-template-columns: 0.4fr 1fr; }
+.svc-row.row-flush { padding-block: clamp(1.4rem, 3vw, 2.4rem); }
+.svc-row.row-flush .svc-row-main { padding: 0; }
+.svc-row.row-flush .svc-row-main > h3 { font-size: clamp(1.3rem, 2.4vw, 1.8rem); }
+.svc-row.row-flush .svc-row-main > p { margin: 0; }
+.svc-row.row-topline { border-top: 1px solid var(--line-soft); }
+@media (max-width: 860px) {
+  .svc-row.row-2col, .svc-row.row-step { grid-template-columns: 1fr; }
+  .svc-row.row-2col .svc-row-main > h3 { font-size: 1.25rem; }
+}
 
 /* pricing tiers */
 .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }

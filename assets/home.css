@@ -29,7 +29,7 @@
   max-width: 16ch;
   margin-bottom: clamp(1.6rem, 3vw, 2.2rem);
 }
-.hero-title .line-wrap { display: block; overflow: hidden; padding-bottom: 0.04em; }
+/* Descender clearance comes from base.css .line-wrap */
 
 /* two-column hero */
 .hero-grid {
@@ -540,7 +540,7 @@
   --brief-line-strong: rgba(255,255,255,0.16);
   --brief-text: #f3f5f4;
   --brief-muted: #878d93;
-  --brief-muted-2: #5d646b;
+  --brief-muted-2: #7a8188;  /* 4.7:1 on --brief-surface — was #5d646b at 3.1:1 */
   --brief-lime-ink: #04130c;
   --brief-lime-glow: rgba(0,255,136,0.35);
   --brief-danger: #ff4d52;
@@ -734,6 +734,12 @@
 }
 .hero-cta .type {
   text-align: left;
+  /* Buttons centre their content vertically by UA default, so the shorter
+     cards floated their icon down and nothing lined up across the row. */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   border: 1px solid var(--brief-line);
   background: var(--brief-surface-2);
   border-radius: var(--brief-r-sm);
@@ -743,6 +749,9 @@
   color: var(--brief-text);
   transition: transform 0.25s cubic-bezier(.16,1,.3,1), border-color 0.2s, background 0.2s, box-shadow 0.25s;
 }
+.hero-cta .type .ic { flex: none; }
+/* Pin the badge to the bottom so it can't push the copy around */
+.hero-cta .type-badge { margin-top: auto; align-self: flex-start; }
 .hero-cta .type .ic {
   width: 22px;
   height: 22px;
@@ -818,6 +827,7 @@
 .hero-cta .type-wide {
   grid-column: 1 / -1;
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 14px;
   padding: 15px 14px;
@@ -1328,7 +1338,40 @@
 .proc-num { font-size: 4.5rem; color: transparent; -webkit-text-stroke: 1.5px var(--line-strong); margin-bottom: auto; }
 .proc-card h3 { font-size: 2rem; margin-bottom: 0.7rem; }
 .proc-card p { color: var(--muted); font-size: 1rem; }
-@media (max-width: 760px) { .proc-card { min-height: 280px; padding: 1.8rem; } }
+
+/* The scrub-pinned track only runs above 760px with motion allowed. Everywhere
+   else the flex row was simply clipped by .proc-pin's overflow:hidden, so steps
+   02–05 were unreachable. Fall back to a snapping swipe rail. */
+.proc-rail { --proc-rail: 1; }
+.proc-rail .proc-pin { min-height: 0; overflow: visible; padding-block: clamp(4rem, 9vw, 7rem); gap: 2.2rem; }
+.proc-rail .proc-track {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--pad);
+  padding-bottom: 1.2rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-3) transparent;
+}
+.proc-rail .proc-track::-webkit-scrollbar { height: 4px; }
+.proc-rail .proc-track::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 99px; }
+.proc-rail .proc-card { scroll-snap-align: start; }
+/* Trailing spacer so the last card can snap clear of the right edge */
+.proc-rail .proc-track::after { content: ""; flex: 0 0 calc(var(--pad) - 1.5rem); }
+.proc-hint {
+  display: none;
+  align-items: center; gap: 0.6em;
+  margin-top: 1rem; padding-inline: var(--pad);
+  color: var(--faint);
+}
+.proc-rail .proc-hint { display: flex; }
+.proc-hint svg { width: 1.1em; height: 1.1em; }
+
+@media (max-width: 760px) {
+  .proc-card { flex-basis: min(78vw, 340px); min-height: 280px; padding: 1.8rem; }
+  .proc-num { font-size: 3.6rem; }
+  .proc-card h3 { font-size: 1.7rem; }
+}
 
 /* ---- Why ---- */
 .why { background: var(--bg-1); border-block: 1px solid var(--line-soft); }
@@ -1346,30 +1389,14 @@
 /* ---- Big quote ---- */
 .quote-sec { text-align: center; }
 .bigquote { font-size: clamp(1.7rem, 3.2vw, 2.8rem); max-width: 22ch; margin-inline: auto; }
-.bigquote .line-wrap { overflow: hidden; }
 .quote-by { display: inline-flex; align-items: center; gap: 1rem; margin-top: 2.5rem; }
-.quote-av { width: 54px; height: 54px; border-radius: 50%; }
+.quote-av { width: 54px; height: 54px; border-radius: 50%; flex-shrink: 0; }
 .quote-by div { text-align: left; }
 .quote-by strong { display: block; }
 .quote-by .mono { font-size: 0.66rem; }
 
-/* ---- Footer extras ---- */
-.footer-cta { text-align: center; padding-bottom: clamp(3rem, 7vw, 6rem); border-bottom: 1px solid var(--line-soft); }
-.footer-cta .eyebrow { justify-content: center; }
-.footer-big-link { display: block; margin: 1.5rem 0 2.5rem; }
-.footer-big-link .footer-big { display: block; transition: color 0.4s; }
-.footer-big-link:hover .footer-big { color: var(--lime); }
-.footer-cta-row { display: flex; align-items: center; justify-content: center; gap: 2rem; flex-wrap: wrap; }
-.footer-mail { font-size: 0.8rem; color: var(--muted); }
-
-.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2rem; padding-block: clamp(3rem, 6vw, 5rem); }
-.footer-brand .brand { margin-bottom: 1rem; }
-.footer-brand p { max-width: 32ch; font-size: 0.94rem; }
-.footer-col { display: flex; flex-direction: column; gap: 0.7rem; align-items: flex-start; }
-.footer-col .mono { color: var(--faint); margin-bottom: 0.4rem; }
-.footer-col a:hover { color: var(--lime); }
-.footer-bottom { display: flex; justify-content: space-between; padding-top: 2rem; border-top: 1px solid var(--line-soft); flex-wrap: wrap; gap: 1rem; }
-@media (max-width: 760px) { .footer-grid { grid-template-columns: 1fr 1fr; gap: 2.5rem 1.5rem; } }
+/* Footer layout now lives in base.css so every page gets it — see the
+   "Footer" block there. */
 
 /* ============================================================
    Personal touches

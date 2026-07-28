@@ -14,16 +14,19 @@
   --bg-2:      #16161E;
   --bg-3:      #1E1E28;
 
-  /* ── DS Text ── */
+  /* ── DS Text ──
+     muted and faint carry body copy and labels, so both clear WCAG AA (4.5:1)
+     on every surface in the scale — faint is 5.6:1 on --bg down to 4.6:1 on
+     --bg-3, which is the tightest case. */
   --paper:     #FFFFFF;
-  --muted:     #6A6A82;
-  --faint:     #3A3A52;
+  --muted:     #9494AE;
+  --faint:     #8484A0;
 
   /* ── DS Borders ── */
-  --line:        #28283A;
-  --line-soft:   rgba(40, 40, 58, 0.55);
-  --line-strong: rgba(255, 255, 255, 0.16);
-  --color-border: #28283A;
+  --line:        #32324A;
+  --line-soft:   rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.20);
+  --color-border: #32324A;
 
   /* ── DS Accents ── */
   --lime:      #00FF88;
@@ -39,7 +42,7 @@
   --color-surface-2: #16161E;
   --color-surface-3: #1E1E28;
   --color-white:     #FFFFFF;
-  --color-muted:     #6A6A82;
+  --color-muted:     #9494AE;
   --color-success:   #00FF88;
   --color-warning:   #FFB547;
   --color-error:     #FF5060;
@@ -116,6 +119,36 @@ img, svg, video { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
 ::selection { background: var(--lime); color: #14130f; }
+
+/* ---- Keyboard focus ----
+   One brand ring for everything focusable. Mouse/touch users never see it. */
+:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+.btn:focus-visible, .filter:focus-visible, .chip:focus-visible, .tag:focus-visible {
+  outline-offset: 4px;
+  border-radius: var(--radius-full);
+}
+/* Form fields already light their border on focus, but several page sheets kill
+   the outline outright. A ring drawn with box-shadow survives `outline: none`,
+   so every field keeps a visible focus cue regardless of sheet order. */
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  box-shadow: 0 0 0 3px var(--lime-dim), 0 0 0 1px var(--lime);
+}
+
+/* ---- Skip to content ---- */
+.skip-link {
+  position: fixed; top: 0; left: 50%; transform: translate(-50%, -120%);
+  z-index: 9500;
+  background: var(--lime); color: #14130f;
+  font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em;
+  padding: 0.9em 1.6em;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  transition: transform 0.3s var(--ease);
+}
+.skip-link:focus-visible { transform: translate(-50%, 0); outline-offset: -4px; }
 
 /* ---- Custom scrollbar ---- */
 ::-webkit-scrollbar { width: 9px; }
@@ -247,23 +280,61 @@ section { position: relative; }
   white-space: nowrap;
 }
 
-/* placeholder media */
+/* Placeholder media.
+   Reads as a deliberate blueprint surface rather than an empty grey box:
+   dot-grid + a soft lime bloom, so a case without a screenshot still looks
+   designed. */
 .ph {
   position: relative;
   background:
-    repeating-linear-gradient(135deg,
-      rgba(255,255,255,0.022) 0 2px,
-      transparent 2px 11px),
-    var(--bg-2);
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,255,136,0.07), transparent 70%),
+    var(--pattern-dots) 0 0 / 22px 22px,
+    linear-gradient(160deg, var(--bg-2), var(--bg-1));
   border: 1px solid var(--line-soft);
   overflow: hidden;
   display: grid; place-items: center;
+  isolation: isolate;
+}
+.ph::after {
+  content: "";
+  position: absolute; inset: 0; z-index: 0;
+  background: repeating-linear-gradient(-45deg, transparent 0 22px, rgba(255,255,255,0.014) 22px 23px);
+  pointer-events: none;
 }
 .ph .ph-label {
+  position: relative; z-index: 1;
   font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--faint);
+  text-transform: uppercase; color: var(--muted);
   border: 1px solid var(--line); border-radius: 100px;
-  padding: 0.5em 1em; background: var(--bg);
+  padding: 0.5em 1em;
+  background: color-mix(in oklab, var(--bg) 82%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Avatar fallback — initials beat an empty circle */
+.ph[data-initials]::before {
+  content: attr(data-initials);
+  position: relative; z-index: 1;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 0.9rem; letter-spacing: 0.04em;
+  color: var(--lime);
+}
+
+/* Portrait fallback — a monogram tile instead of eight identical "FOTO" boxes */
+.ph[data-monogram]::before {
+  content: attr(data-monogram);
+  position: relative; z-index: 1;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(2rem, 4.5vw, 3.2rem); letter-spacing: -0.02em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(0, 255, 136, 0.55);
+  transition: color 0.45s var(--ease), -webkit-text-stroke-color 0.45s var(--ease);
+}
+.member:hover .ph[data-monogram]::before,
+a:hover .ph[data-monogram]::before {
+  color: var(--lime);
+  -webkit-text-stroke-color: transparent;
 }
 
 /* ============================================================
@@ -279,8 +350,16 @@ section { position: relative; }
 [data-reveal] { will-change: transform, opacity; }
 .no-js [data-reveal], .reduce [data-reveal] { opacity: 1 !important; transform: none !important; clip-path: none !important; }
 
-/* line clip for headings */
-.line-wrap { display: block; overflow: hidden; }
+/* Line clip for headings.
+   The mask has to sit below the baseline or Space Grotesk descenders (g, y, j)
+   get sliced off at line-height 0.94. Pad the box, pull the space back with a
+   negative margin so vertical rhythm is unchanged. */
+.line-wrap {
+  display: block;
+  overflow: hidden;
+  padding-bottom: var(--line-wrap-pad, 0.16em);
+  margin-bottom: calc(var(--line-wrap-pad, 0.16em) * -1);
+}
 .line-inner { display: block; }
 
 /* ============================================================
@@ -326,9 +405,20 @@ body.has-cursor a, body.has-cursor button { cursor: none; }
 .nav-links a { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); transition: color 0.3s; white-space: nowrap; }
 .nav-links a:hover, .nav-links a.active { color: var(--paper); }
 .nav-cta { display: flex; align-items: center; gap: 1.2rem; }
-.nav-burger { display: none; width: 30px; height: 16px; position: relative; }
-.nav-burger span { position: absolute; left: 0; width: 100%; height: 1.5px; background: var(--paper); transition: transform 0.4s var(--ease), opacity 0.3s; }
-.nav-burger span:nth-child(1) { top: 0; } .nav-burger span:nth-child(2) { bottom: 0; }
+.nav-burger {
+  display: none; position: relative;
+  width: 44px; height: 44px;  /* 44px tap target; the bars stay 30×16 visually */
+  margin-right: -8px;
+}
+.nav-burger span {
+  position: absolute; left: 7px; width: 30px; height: 1.5px;
+  background: var(--paper); border-radius: 2px;
+  transition: transform 0.4s var(--ease), opacity 0.3s;
+}
+.nav-burger span:nth-child(1) { top: 14px; }
+.nav-burger span:nth-child(2) { bottom: 14px; }
+.nav-burger.is-open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-burger.is-open span:nth-child(2) { transform: translateY(-7px) rotate(-45deg); }
 @media (max-width: 1040px) {
   .nav-links, .nav-cta .btn { display: none; }
   .nav-burger { display: block; }
@@ -344,9 +434,27 @@ body.has-cursor a, body.has-cursor button { cursor: none; }
   pointer-events: none;
 }
 .menu.open { clip-path: inset(0 0 0% 0); pointer-events: auto; }
-.menu a { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.4rem, 9vw, 5rem); letter-spacing: -0.03em; color: var(--paper); line-height: 1.05; transition: color 0.3s, transform 0.5s var(--ease); }
-.menu a:hover { color: var(--lime); }
-.menu .menu-meta { margin-top: 3rem; display: flex; gap: 2rem; flex-wrap: wrap; }
+/* Direct children only — the CTA button below keeps its own type and colours */
+.menu > a {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(2rem, 8vw, 4.2rem); letter-spacing: -0.03em;
+  color: var(--paper); line-height: 1.15;
+  transition: color 0.3s, transform 0.5s var(--ease);
+  width: fit-content;
+}
+.menu > a:hover { color: var(--lime); }
+/* Current page gets the lime tick so you always know where you are */
+.menu > a.active { color: var(--lime); }
+.menu > a.active::before {
+  content: ""; display: inline-block;
+  width: 0.34em; height: 0.34em; border-radius: 50%;
+  background: var(--lime); vertical-align: 0.32em;
+  margin-right: 0.3em;
+}
+/* The primary CTA is hidden from the bar below 1040px — it lives here instead */
+.menu .menu-cta { margin-top: 2.2rem; }
+.menu .menu-cta .btn { font-size: 0.85rem; padding: 1.15em 1.9em; }
+.menu .menu-meta { margin-top: 2.5rem; display: flex; gap: 2rem; flex-wrap: wrap; }
 
 /* ============================================================
    Preloader
@@ -368,6 +476,43 @@ body.has-cursor a, body.has-cursor button { cursor: none; }
 .footer-big { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.035em; line-height: 0.95; font-size: clamp(2.4rem, 6vw, 5rem); color: var(--paper); }
 .footer-big .o { color: transparent; -webkit-text-stroke: 1.5px var(--line-strong); }
 
+/* The footer markup is identical on every page, so its layout lives here in the
+   shared sheet. It used to live in home.css only, which left every inner page
+   shipping an unstyled run-together footer. */
+.footer-cta { text-align: center; padding-bottom: clamp(3rem, 7vw, 6rem); border-bottom: 1px solid var(--line-soft); }
+.footer-cta .eyebrow { justify-content: center; }
+.footer-big-link { display: block; margin: 1.5rem 0 2.5rem; }
+.footer-big-link .footer-big { display: block; transition: color 0.4s; }
+.footer-big-link:hover .footer-big { color: var(--lime); }
+.footer-cta-row { display: flex; align-items: center; justify-content: center; gap: 2rem; flex-wrap: wrap; }
+.footer-mail { font-size: 0.8rem; color: var(--muted); }
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.2fr;
+  gap: clamp(2rem, 4vw, 3rem);
+  padding-block: clamp(3rem, 6vw, 5rem);
+}
+.footer-brand .brand { margin-bottom: 1rem; }
+.footer-brand p { max-width: 32ch; font-size: 0.94rem; color: var(--muted); }
+.footer-col { display: flex; flex-direction: column; gap: 0.7rem; align-items: flex-start; }
+.footer-col .mono { color: var(--faint); margin-bottom: 0.4rem; }
+.footer-col a { color: var(--muted); transition: color 0.3s; }
+.footer-col a:hover { color: var(--lime); }
+.footer-col span.faint { color: var(--muted); font-size: 0.94rem; }
+.footer-bottom { display: flex; justify-content: space-between; padding-top: 2rem; border-top: 1px solid var(--line-soft); flex-wrap: wrap; gap: 1rem; }
+@media (max-width: 880px) { .footer-grid { grid-template-columns: 1fr 1fr; gap: 2.5rem 1.5rem; } .footer-brand { grid-column: 1 / -1; } }
+@media (max-width: 480px) { .footer-grid { grid-template-columns: 1fr; gap: 2.2rem; } }
+
+/* Section CTA that precedes the footer on inner pages.
+   The eyebrow and the link are both inline-level, so without this they render
+   on the same line ("— HAR DU ET PROJEKT? Lad os bygge det →"). */
+.next-cta .eyebrow { display: inline-flex; }
+.next-cta .next-link { display: block; }
+/* .next-cta and .footer both draw an accent hairline on top. When they sit
+   next to each other that reads as a doubled rule — keep only the upper one. */
+.next-cta + .footer::before { display: none; }
+
 /* ============================================================
    Misc
    ============================================================ */
@@ -388,3 +533,21 @@ body.has-cursor a, body.has-cursor button { cursor: none; }
 .spin { animation: spin 14s linear infinite; }
 
 .hover-target { } /* marker class for cursor */
+
+/* ============================================================
+   Reduced motion
+   The JS layer already opts out of Lenis/GSAP/marquee; this stops the
+   purely-CSS loops (ping, spin, grain) and neutralises transitions.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .pill-live .dot::after, .case-play .ring { display: none; }
+  .spin { animation: none; }
+  .marquee { -webkit-mask-image: none; mask-image: none; }
+  .preloader { display: none; }
+}

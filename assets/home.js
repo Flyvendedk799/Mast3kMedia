@@ -386,13 +386,19 @@
     requestAnimationFrame(setTrackHeight);
   }
 
-  /* ---- Pinned horizontal process ---- */
+  /* ---- Pinned horizontal process ----
+     When the scrub-pin can't run (small screen, reduced motion, no GSAP) the
+     section falls back to a snapping swipe rail — .proc-rail on <section>
+     switches the CSS. Without it the track is just clipped and steps 02–05
+     become unreachable. */
   function processScroll() {
-    if (!window.gsap || !window.ScrollTrigger || reduce) return;
     const track = document.querySelector('.proc-track');
     const pin = document.querySelector('.proc-pin');
     if (!track || !pin) return;
-    if (window.innerWidth < 760) return; // vertical scroll on mobile
+    const section = pin.closest('.process') || pin.parentElement;
+    const canPin = !!(window.gsap && window.ScrollTrigger) && !reduce && window.innerWidth >= 760;
+    if (!canPin) { if (section) section.classList.add('proc-rail'); return; }
+    if (section) section.classList.remove('proc-rail');
     const getScroll = () => track.scrollWidth - window.innerWidth + (window.innerWidth * 0.08);
     gsap.to(track, {
       x: () => -getScroll(),
