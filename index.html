@@ -25,26 +25,18 @@
 <meta name="twitter:image" content="https://mast3kmedia.dk/assets/og-image.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="assets/base.css?v=20260619-cloud-form" />
-<link rel="stylesheet" href="assets/home.css?v=20260619-cloud-form" />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="assets/base.css?v=20260810-ds" />
+<link rel="stylesheet" href="assets/home.css?v=20260810-ds" />
 </head>
 <body>
 <a class="skip-link" href="#main">Spring til indhold</a>
 
-<!-- ===== Preloader ===== -->
-<div class="preloader">
-  <div class="preloader__word">Mast3kMedia® — indlæser</div>
-  <div class="preloader__count">00</div>
-  <div class="preloader__bar"></div>
-</div>
-
-<div class="grain"></div>
+<div class="blueprint" aria-hidden="true"></div>
 <div class="scroll-prog"></div>
 
 <!-- ===== Nav ===== -->
 <nav class="nav">
-  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
+  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="22" height="22" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
   <div class="nav-links">
     <a href="ydelser.html">Ydelser</a>
     <a href="pris.html">Priser</a>
@@ -55,8 +47,8 @@
     <a href="kontakt.html">Kontakt</a>
   </div>
   <div class="nav-cta">
-    <a href="kontakt.html" class="btn" data-magnetic="0.3"><span class="btn-label">Start projekt
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+    <a href="kontakt.html" class="btn btn-solid" data-magnetic="0.3"><span class="btn-label">Start projekt
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
     <button class="nav-burger" aria-label="Menu"><span></span><span></span></button>
   </div>
 </nav>
@@ -64,13 +56,13 @@
 <!-- ===== Mobile menu ===== -->
 <div class="menu">
   <a href="ydelser.html">Ydelser</a>
-    <a href="pris.html">Priser</a>
+  <a href="pris.html">Priser</a>
   <a href="arbejde.html">Arbejde</a>
-    <a href="oss.html">Open Source</a>
-    <a href="saas.html">SaaS</a>
+  <a href="oss.html">Open Source</a>
+  <a href="saas.html">SaaS</a>
   <a href="om.html">Om os</a>
   <a href="kontakt.html">Kontakt</a>
-  <div class="menu-cta"><a href="kontakt.html" class="btn btn-solid"><span class="btn-label">Start projekt <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a></div>
+  <div class="menu-cta"><a href="kontakt.html" class="btn btn-solid"><span class="btn-label">Start projekt <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a></div>
   <div class="menu-meta">
     <span class="mono">hej@mast3kmedia.dk</span>
     <span class="mono">København · DK</span>
@@ -81,14 +73,9 @@
 
 <!-- ===== HERO ===== -->
 <header class="hero" data-hero>
-  <div class="field-line">
-    <span class="v" style="left:20%"></span><span class="v" style="left:40%"></span>
-    <span class="v" style="left:60%"></span><span class="v" style="left:80%"></span>
-  </div>
-  <canvas class="hero-canvas" id="heroCanvas"></canvas>
-  <div class="hero-glow"></div>
-
   <div class="shell hero-inner">
+    <span class="coord hero-coord" data-hero-fade>55.6761°N · 12.5683°E</span>
+
     <div class="hero-top" data-hero-fade>
       <span class="eyebrow">Kodebureau · København · siden 2026</span>
       <span class="pill-live"><span class="dot"></span>Plads til 2 nye i Q3</span>
@@ -102,215 +89,58 @@
           <span class="line-wrap" data-hero-line><span class="line-inner">Rigtig <span class="lime">vækst</span>.</span></span>
         </h1>
         <p class="hero-lead" data-hero-fade>
-          Mast3kMedia er et lille kodebureau i København. Vi bygger software, SaaS,
-          AI og marketing for folk der hellere vil have noget der <span class="hl">virker</span> end et slide
-          der lover det. Og du taler med dem der bygger — ikke en sælger i jakkesæt.
+          Vi er et lille kodebureau i København. Vi bygger software, SaaS, AI og
+          marketing for folk der hellere vil have noget der <b>virker</b> end et slide
+          der lover det. Du taler med dem der bygger — ikke en sælger i jakkesæt.
         </p>
         <div class="hero-actions" data-hero-fade>
           <a href="arbejde.html" class="btn btn-solid" data-magnetic="0.25"><span class="btn-label">Se vores arbejde
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
-          <a href="#services" class="btn" data-magnetic="0.25"><span class="btn-label">Sådan arbejder vi
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+          <a href="#proces" class="btn" data-magnetic="0.25"><span class="btn-label">Sådan arbejder vi
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
         </div>
       </div>
 
-      <aside class="hero-cta" data-hero-fade>
-        <div class="stage">
-          <div class="cockpit" id="heroCockpit">
-            <div class="cockpit__glow"></div>
-
-            <form class="brief" id="heroForm" novalidate>
-              <input type="hidden" name="source" value="hero" />
-              <input type="hidden" name="page_path" value="/" />
-              <input class="hp-field" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
-
-              <div class="brief__head">
-                <div class="brief__title">Byg din brief
-                  <small id="stepTitle">Hvad skal vi bygge?</small>
-                </div>
-                <div class="brief__count">trin <b id="stepNum">1</b>/4</div>
-              </div>
-
-              <div class="progress" id="progress" aria-hidden="true">
-                <div class="node current" data-node="1">1</div>
-                <div class="bar" data-bar="1"></div>
-                <div class="node" data-node="2">2</div>
-                <div class="bar" data-bar="2"></div>
-                <div class="node" data-node="3">3</div>
-                <div class="bar" data-bar="3"></div>
-                <div class="node" data-node="4">4</div>
-              </div>
-
-              <div class="track" id="track">
-                <div class="step is-active" data-step="1">
-                  <div class="field" data-req="type">
-                    <div class="label">Projekttype <span class="hint">vælg én</span></div>
-                    <div class="types" role="radiogroup" aria-label="Projekttype">
-                      <button type="button" class="type" data-field="type" data-value="Software" role="radio" aria-checked="false">
-                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 9-4 3 4 3"/><path d="m16 9 4 3-4 3"/><path d="m13 6-2 12"/></svg>
-                        <div class="name">Software</div>
-                        <div class="desc">Skræddersyet, fra bunden.</div>
-                        <div class="type-badge">Psst — skal du have lavet en hjemmeside? Det er også her.</div>
-                        <span class="tick"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 5 5L20 7"/></svg></span>
-                      </button>
-                      <button type="button" class="type" data-field="type" data-value="SaaS" role="radio" aria-checked="false">
-                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18a4 4 0 0 1-.9-7.9A5 5 0 0 1 15 8a4 4 0 0 1 1 7.9"/><path d="M12 12v8"/><path d="m9 17 3 3 3-3"/></svg>
-                        <div class="name">SaaS</div>
-                        <div class="desc">Produkt med brugere &amp; abonnement.</div>
-                        <span class="tick"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 5 5L20 7"/></svg></span>
-                      </button>
-                      <button type="button" class="type" data-field="type" data-value="AI" role="radio" aria-checked="false">
-                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="14" height="12" rx="2"/><path d="M12 7V4"/><circle cx="9.5" cy="13" r="1"/><circle cx="14.5" cy="13" r="1"/><path d="M3 12v3M21 12v3"/></svg>
-                        <div class="name">AI</div>
-                        <div class="desc">Modeller, agenter, automatik.</div>
-                        <span class="tick"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 5 5L20 7"/></svg></span>
-                      </button>
-                      <button type="button" class="type" data-field="type" data-value="Marketing" role="radio" aria-checked="false">
-                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
-                        <div class="name">Marketing</div>
-                        <div class="desc">Sites, kampagner, vækst.</div>
-                        <span class="tick"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 5 5L20 7"/></svg></span>
-                      </button>
-                      <button type="button" class="type type-wide" data-field="type" data-value="Noget helt andet" role="radio" aria-checked="false">
-                        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></svg>
-                        <div class="txt">
-                          <div class="name">Noget helt andet</div>
-                          <div class="desc">Passer ikke i en kasse? Beskriv det frit i næste trin.</div>
-                        </div>
-                        <span class="tick"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 5 5L20 7"/></svg></span>
-                      </button>
-                    </div>
-                    <div class="err">Vælg en type så vi ved hvor vi starter.</div>
-                  </div>
-                </div>
-
-                <div class="step" data-step="2">
-                  <div class="field" data-req="outcome" id="field-outcome">
-                    <div class="label">Målet <span class="hint">hvad skal rykke?</span></div>
-                    <div class="chips" data-group="outcome">
-                      <button type="button" class="chip chip-web" data-field="outcome" data-value="Hjemmeside"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg>Ny hjemmeside</button>
-                      <button type="button" class="chip" data-field="outcome" data-value="Lancér nyt">Lancér noget nyt</button>
-                      <button type="button" class="chip" data-field="outcome" data-value="Skalér">Skalér det vi har</button>
-                      <button type="button" class="chip" data-field="outcome" data-value="Automatisér">Automatisér arbejde</button>
-                      <button type="button" class="chip" data-field="outcome" data-value="Voks">Få flere kunder</button>
-                    </div>
-                    <div class="err">Vælg hvad målet er.</div>
-                  </div>
-
-                  <div class="field" data-req="budget" id="field-budget">
-                    <div class="label">Budget <span class="hint">DKK, cirka</span></div>
-                    <div class="seg" data-group="budget">
-                      <button type="button" class="chip" data-field="budget" data-value="&lt; 100k">&lt; 100k</button>
-                      <button type="button" class="chip" data-field="budget" data-value="100–300k">100–300k</button>
-                      <button type="button" class="chip" data-field="budget" data-value="300k–1M">300k–1M</button>
-                      <button type="button" class="chip" data-field="budget" data-value="1M+">1M+</button>
-                    </div>
-                    <div class="err">Et groft estimat er nok — det binder dig ikke.</div>
-                  </div>
-
-                  <div class="field" data-req="timeline" id="field-timeline">
-                    <div class="label">Tidslinje <span class="hint">hvornår?</span></div>
-                    <div class="seg" data-group="timeline">
-                      <button type="button" class="chip" data-field="timeline" data-value="ASAP">ASAP</button>
-                      <button type="button" class="chip" data-field="timeline" data-value="1–3 mdr">1–3 mdr</button>
-                      <button type="button" class="chip" data-field="timeline" data-value="3–6 mdr">3–6 mdr</button>
-                      <button type="button" class="chip" data-field="timeline" data-value="Fleksibel">Fleksibel</button>
-                    </div>
-                    <div class="err">Sæt en retning på tidslinjen.</div>
-                  </div>
-
-                  <div class="field" id="field-brief">
-                    <div class="label" id="brief-label">Kort om projektet <span class="hint">valgfrit, men hjælper</span></div>
-                    <div class="control">
-                      <textarea class="textarea" id="f-brief" data-field="brief" placeholder="Hvad skal det kunne? Hvad er problemet i dag? Hvad findes der allerede?"></textarea>
-                    </div>
-                    <div class="err">Skriv lidt om hvad det er — det er hele pointen her.</div>
-                  </div>
-                </div>
-
-                <div class="step" data-step="3">
-                  <div class="two">
-                    <div class="field" data-req="name">
-                      <div class="label">Navn</div>
-                      <div class="control"><input class="input" id="f-name" data-field="name" type="text" placeholder="Dit navn" autocomplete="name"></div>
-                      <div class="err">Vi skal vide hvem vi skriver til.</div>
-                    </div>
-                    <div class="field">
-                      <div class="label">Firma <span class="hint">valgfrit</span></div>
-                      <div class="control"><input class="input" id="f-company" data-field="company" type="text" placeholder="Firma / projekt" autocomplete="organization"></div>
-                    </div>
-                  </div>
-                  <div class="field" data-req="email">
-                    <div class="label">Email</div>
-                    <div class="control"><input class="input" id="f-email" data-field="email" type="email" placeholder="dig@firma.dk" autocomplete="email" inputmode="email"></div>
-                    <div class="err" id="emailErr">Skriv en email vi kan svare på.</div>
-                  </div>
-                  <div class="field">
-                    <div class="label">Telefon <span class="hint">valgfrit — hvis det haster</span></div>
-                    <div class="control"><input class="input" id="f-phone" data-field="phone" type="tel" placeholder="+45 …" autocomplete="tel"></div>
-                  </div>
-                </div>
-
-                <div class="step" data-step="4">
-                  <div class="field">
-                    <div class="label">Tjek og send <span class="hint">ret hvad som helst</span></div>
-                    <div class="review" id="review" aria-live="polite"></div>
-                    <label class="consent">
-                      <span>Vi bruger kun det her til at svare dig. Ingen lister, ingen spam.</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div class="brief-nav">
-                <button type="button" class="brief-btn brief-btn-ghost" id="back" hidden>← Tilbage</button>
-                <button type="button" class="brief-btn brief-btn-primary" id="next">
-                  <span class="lbl">Næste</span>
-                  <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                  <span class="spin"></span>
-                </button>
-              </div>
-              <div class="fine">Krypteret · Ingen forpligtelser · Du ejer din kode</div>
-
-              <div class="success" id="success">
-                <div class="ring"><svg viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></svg></div>
-                <h3>Modtaget. Vi er på sagen.</h3>
-                <p>Vi læser din brief og vender tilbage inden for 24 timer — med konkrete næste skridt, ikke et standardsvar.</p>
-                <div class="ref" id="ref">REF · M3K-0000</div>
-              </div>
-            </form>
+      <!-- Studio datasheet: the facts a buyer actually weighs, on one panel. -->
+      <aside class="hero-spec" data-hero-fade>
+        <div class="spec">
+          <div class="spec-head">
+            <span class="spec-id">M3K · Studio spec</span>
+            <span class="spec-live">Online</span>
           </div>
+          <div class="spec-row"><span class="spec-k">Team</span><span class="spec-v">Kun seniorer</span></div>
+          <div class="spec-row"><span class="spec-k">Kode-ejerskab</span><span class="spec-v">Dig · fra dag ét</span></div>
+          <div class="spec-row"><span class="spec-k">Idé → live</span><span class="spec-v">6 uger i snit</span></div>
+          <div class="spec-row"><span class="spec-k">Svartid</span><span class="spec-v is-accent">&lt; 24 timer</span></div>
+          <a href="kontakt.html#brief" class="spec-foot">Byg din brief
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></a>
         </div>
       </aside>
     </div>
 
-    <div class="hero-stats" data-hero-fade>
-      <div class="hstat"><div class="hstat-n display"><span data-count="42">42</span>+</div><div class="mono">Projekter leveret</div></div>
-      <div class="hstat"><div class="hstat-n display"><span data-count="12">12</span></div><div class="mono">SaaS i drift</div></div>
-      <div class="hstat"><div class="hstat-n display"><span data-count="98">98</span>%</div><div class="mono">Kundeloyalitet</div></div>
+    <div class="rail rail-void rail-3 hero-stats" data-hero-fade>
+      <div class="rail-stat"><div class="stat-n"><span data-count="42">42</span>+</div><div class="stat-l">Projekter leveret</div></div>
+      <div class="rail-stat"><div class="stat-n"><span data-count="12">12</span></div><div class="stat-l">SaaS i drift</div></div>
+      <div class="rail-stat"><div class="stat-n"><span data-count="98">98</span>%</div><div class="stat-l">Kundeloyalitet</div></div>
     </div>
   </div>
-
-  <a href="#services" class="hero-scroll mono">Scroll
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
-  </a>
 </header>
 
 <!-- ===== Marquee strip ===== -->
 <div class="strip">
   <div class="marquee" data-speed="0.5">
     <div class="marquee__track">
-      <span class="marquee__item strip-word">Softwareudvikling <i class="sep" aria-hidden="true"></i></span>
-      <span class="marquee__item strip-word">SaaS-produkter <i class="sep" aria-hidden="true"></i></span>
-      <span class="marquee__item strip-word">AI &amp; Automatisering <i class="sep" aria-hidden="true"></i></span>
-      <span class="marquee__item strip-word">Marketing &amp; Vækst <i class="sep" aria-hidden="true"></i></span>
-      <span class="marquee__item strip-word">SEO <i class="sep" aria-hidden="true"></i></span>
-      <span class="marquee__item strip-word">Brand &amp; Design <i class="sep" aria-hidden="true"></i></span>
+      <span class="marquee__item strip-word">Softwareudvikling <i class="sep" aria-hidden="true">/</i></span>
+      <span class="marquee__item strip-word">SaaS-produkter <i class="sep" aria-hidden="true">/</i></span>
+      <span class="marquee__item strip-word">AI &amp; Automatisering <i class="sep" aria-hidden="true">/</i></span>
+      <span class="marquee__item strip-word">Marketing &amp; Vækst <i class="sep" aria-hidden="true">/</i></span>
+      <span class="marquee__item strip-word">SEO <i class="sep" aria-hidden="true">/</i></span>
+      <span class="marquee__item strip-word">Brand &amp; Design <i class="sep" aria-hidden="true">/</i></span>
     </div>
   </div>
 </div>
 
-<!-- ===== SERVICES ===== -->
+<!-- ===== 01 — SERVICES ===== -->
 <section id="services" class="section-pad">
   <div class="shell">
     <div class="sec-head">
@@ -322,34 +152,34 @@
       <p class="sec-sub" data-reveal="up">Fra første commit til den annonce der lander kunden. Du slipper for at jonglere fem leverandører, der peger fingre ad hinanden.</p>
     </div>
 
-    <div class="svc-grid" data-reveal="stagger">
-      <a href="ydelser.html" class="svc-card" data-tilt="4">
-        <span class="svc-num mono">01</span>
-        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg></div>
+    <div class="rail rail-4" data-reveal="up">
+      <a href="ydelser.html" class="svc-card">
+        <span class="svc-num">01</span>
+        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg></div>
         <h3 class="svc-name">Softwareudvikling</h3>
         <p class="svc-desc">Skræddersyet software, web og apps. Håndkodet — ikke et no-code-korthus der vælter, dagen du begynder at skalere.</p>
-        <span class="svc-go mono">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
+        <span class="svc-go">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
       </a>
-      <a href="ydelser.html" class="svc-card" data-tilt="4">
-        <span class="svc-num mono">02</span>
-        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
+      <a href="ydelser.html" class="svc-card">
+        <span class="svc-num">02</span>
+        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
         <h3 class="svc-name">SaaS-produkter</h3>
         <p class="svc-desc">Færdige platforme du kan sælge i morgen. White-label, hvis dit eget logo skal på. Vi bygger, hoster og passer dem.</p>
-        <span class="svc-go mono">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
+        <span class="svc-go">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
       </a>
-      <a href="ydelser.html" class="svc-card" data-tilt="4">
-        <span class="svc-num mono">03</span>
-        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></div>
+      <a href="ydelser.html" class="svc-card">
+        <span class="svc-num">03</span>
+        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></div>
         <h3 class="svc-name">AI &amp; Automatisering</h3>
         <p class="svc-desc">AI der laver arbejde — ikke bare imponerer på et slide. Agenter, workflows og integrationer, fra prompt til produktion.</p>
-        <span class="svc-go mono">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
+        <span class="svc-go">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
       </a>
-      <a href="ydelser.html" class="svc-card" data-tilt="4">
-        <span class="svc-num mono">04</span>
-        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 17l5-5 4 4 8-9M21 7v5M21 7h-5"/></svg></div>
+      <a href="ydelser.html" class="svc-card">
+        <span class="svc-num">04</span>
+        <div class="svc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 17l5-5 4 4 8-9M21 7v5M21 7h-5"/></svg></div>
         <h3 class="svc-name">Marketing &amp; Vækst</h3>
         <p class="svc-desc">SEO og annoncer der måles i kroner, ikke i likes. Vi får produktet ud over rampen — og holder gang i det.</p>
-        <span class="svc-go mono">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
+        <span class="svc-go">Udforsk <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span>
       </a>
     </div>
 
@@ -366,8 +196,8 @@
   </div>
 </section>
 
-<!-- ===== FEATURED WORK ===== -->
-<section id="work" class="section-pad work">
+<!-- ===== 02 — FEATURED WORK ===== -->
+<section id="work" class="section-pad">
   <div class="shell">
     <div class="sec-head row">
       <div>
@@ -377,95 +207,91 @@
           <span class="line-wrap"><span class="line-inner"><span class="lime">bygget</span>.</span></span>
         </h2>
       </div>
-      <a href="arbejde.html" class="btn btn-ghost" data-magnetic="0.3"><span class="btn-label">Alle cases
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+      <a href="arbejde.html" class="golink" data-magnetic="0.3">Alle cases
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></a>
     </div>
-  </div>
 
-  <div class="shell case-list">
-    <!-- case 1 -->
-    <a href="case.html" class="case" data-reveal="up">
-      <div class="case-media ph" data-parallax-scope>
-        <div class="ph-inner" data-parallax="-0.12"><span class="ph-label">Produkt-screenshot</span></div>
-        <span class="case-index mono">01 / 06</span>
-      </div>
-      <div class="case-info">
-        <div class="case-head"><h3 class="case-title">NordSync</h3><span class="case-cat mono">SaaS · Dashboard</span></div>
-        <p class="case-desc">Realtids analytics-platform med live datastreaming og interaktive dashboards til cloud-infrastruktur.</p>
-        <div class="case-tags"><span class="tag">React</span><span class="tag">D3.js</span><span class="tag">WebSocket</span><span class="tag">Redis</span></div>
-      </div>
-    </a>
-    <!-- case 2 -->
-    <a href="case.html" class="case alt" data-reveal="up">
-      <div class="case-media ph" data-parallax-scope>
-        <div class="ph-inner" data-parallax="-0.12"><span class="ph-label">App-mockup</span></div>
-        <span class="case-index mono">02 / 06</span>
-      </div>
-      <div class="case-info">
-        <div class="case-head"><h3 class="case-title">Flux Mobile</h3><span class="case-cat mono">App · Produktivitet</span></div>
-        <p class="case-desc">Cross-platform produktivitets-app med offline-first sync, realtids-samarbejde og dyb integration.</p>
-        <div class="case-tags"><span class="tag">React Native</span><span class="tag">Firebase</span><span class="tag">Redux</span></div>
-      </div>
-    </a>
-    <!-- case 3 -->
-    <a href="case.html" class="case" data-reveal="up">
-      <div class="case-media ph" data-parallax-scope>
-        <div class="ph-inner" data-parallax="-0.12"><span class="ph-label">Arkitektur-diagram</span></div>
-        <span class="case-index mono">03 / 06</span>
-      </div>
-      <div class="case-info">
-        <div class="case-head"><h3 class="case-title">PayHub</h3><span class="case-cat mono">Fintech · API</span></div>
-        <p class="case-desc">Samlet betalings-gateway der integrerer Stripe, MobilePay og krypto bag ét PCI-compliant API.</p>
-        <div class="case-tags"><span class="tag">Python</span><span class="tag">FastAPI</span><span class="tag">PostgreSQL</span></div>
-      </div>
-    </a>
-    <!-- case 4 -->
-    <a href="case.html" class="case alt" data-reveal="up">
-      <div class="case-media ph" data-parallax-scope>
-        <div class="ph-inner" data-parallax="-0.12"><span class="ph-label">AI-flow</span></div>
-        <span class="case-index mono">04 / 06</span>
-      </div>
-      <div class="case-info">
-        <div class="case-head"><h3 class="case-title">Vela AI</h3><span class="case-cat mono">AI · Automatisering</span></div>
-        <p class="case-desc">Autonom AI-assistent der håndterer support, salg og workflows med menneskelig præcision.</p>
-        <div class="case-tags"><span class="tag">Next.js</span><span class="tag">OpenAI</span><span class="tag">Vercel</span></div>
-      </div>
-    </a>
+    <div class="case-grid">
+      <a href="case.html" class="card case-card" data-reveal="up">
+        <div class="ph case-plate" data-parallax-scope>
+          <div class="ph-inner" data-parallax="-0.06"><span class="ph-label">Produkt-screenshot</span></div>
+          <span class="ph-index">01 / 06</span>
+        </div>
+        <div class="case-body">
+          <div class="case-head"><h3 class="case-title">NordSync</h3><span class="case-cat">SaaS · Dashboard</span></div>
+          <p class="case-desc">Realtids analytics-platform med live datastreaming og interaktive dashboards til cloud-infrastruktur.</p>
+          <div class="case-tags"><span class="tag">React</span><span class="tag">D3.js</span><span class="tag">WebSocket</span></div>
+        </div>
+      </a>
+      <a href="case.html" class="card case-card" data-reveal="up">
+        <div class="ph case-plate" data-parallax-scope>
+          <div class="ph-inner" data-parallax="-0.06"><span class="ph-label">App-mockup</span></div>
+          <span class="ph-index">02 / 06</span>
+        </div>
+        <div class="case-body">
+          <div class="case-head"><h3 class="case-title">Flux Mobile</h3><span class="case-cat">App · Produktivitet</span></div>
+          <p class="case-desc">Cross-platform produktivitets-app med offline-first sync, realtids-samarbejde og dyb integration.</p>
+          <div class="case-tags"><span class="tag">React Native</span><span class="tag">Firebase</span><span class="tag">Redux</span></div>
+        </div>
+      </a>
+      <a href="case.html" class="card case-card" data-reveal="up">
+        <div class="ph case-plate" data-parallax-scope>
+          <div class="ph-inner" data-parallax="-0.06"><span class="ph-label">Arkitektur-diagram</span></div>
+          <span class="ph-index">03 / 06</span>
+        </div>
+        <div class="case-body">
+          <div class="case-head"><h3 class="case-title">PayHub</h3><span class="case-cat">Fintech · API</span></div>
+          <p class="case-desc">Samlet betalings-gateway der integrerer Stripe, MobilePay og krypto bag ét PCI-compliant API.</p>
+          <div class="case-tags"><span class="tag">Python</span><span class="tag">FastAPI</span><span class="tag">PostgreSQL</span></div>
+        </div>
+      </a>
+      <a href="case.html" class="card case-card" data-reveal="up">
+        <div class="ph case-plate" data-parallax-scope>
+          <div class="ph-inner" data-parallax="-0.06"><span class="ph-label">AI-flow</span></div>
+          <span class="ph-index">04 / 06</span>
+        </div>
+        <div class="case-body">
+          <div class="case-head"><h3 class="case-title">Vela AI</h3><span class="case-cat">AI · Automatisering</span></div>
+          <p class="case-desc">Autonom AI-assistent der håndterer support, salg og workflows med menneskelig præcision.</p>
+          <div class="case-tags"><span class="tag">Next.js</span><span class="tag">OpenAI</span><span class="tag">Vercel</span></div>
+        </div>
+      </a>
+    </div>
   </div>
 </section>
 
 <!-- ===== STATS BAND ===== -->
 <section class="stats-band">
-  <div class="shell stats-inner" data-reveal="stagger">
-    <div class="stat"><div class="stat-n display"><span data-count="42">42</span>+</div><div class="stat-l mono">Produkter sendt i drift</div></div>
-    <div class="stat"><div class="stat-n display"><span data-count="3.4" data-dec="1">3.4</span>M€</div><div class="stat-l mono">Omsætning skabt for kunder</div></div>
-    <div class="stat"><div class="stat-n display"><span data-count="96">96</span>%</div><div class="stat-l mono">Ville anbefale os</div></div>
-    <div class="stat"><div class="stat-n display"><span data-count="6">6</span> uger</div><div class="stat-l mono">Fra idé til live i snit</div></div>
+  <div class="shell">
+    <div class="rail rail-4" data-reveal="up">
+      <div class="rail-stat"><div class="stat-n"><span data-count="42">42</span>+</div><div class="stat-l">Produkter sendt i drift</div></div>
+      <div class="rail-stat"><div class="stat-n"><span data-count="3.4" data-dec="1">3.4</span>M€</div><div class="stat-l">Omsætning skabt for kunder</div></div>
+      <div class="rail-stat"><div class="stat-n"><span data-count="96">96</span>%</div><div class="stat-l">Ville anbefale os</div></div>
+      <div class="rail-stat is-accent"><div class="stat-n"><span data-count="6">6</span> uger</div><div class="stat-l">Fra idé til live i snit</div></div>
+    </div>
   </div>
 </section>
 
-<!-- ===== PROCESS (pinned horizontal) ===== -->
-<section id="process" class="process">
-  <div class="proc-pin">
-    <div class="proc-head shell">
-      <span class="eyebrow">03 — Proces</span>
-      <h2 class="display proc-title">Fra idé<br>til <span class="lime">live</span>.</h2>
+<!-- ===== 03 — PROCESS ===== -->
+<section id="proces" class="section-pad process">
+  <div class="shell">
+    <div class="sec-head">
+      <span class="eyebrow" data-reveal="up">03 — Proces</span>
+      <h2 class="sec-title display" data-reveal="lines">
+        <span class="line-wrap"><span class="line-inner">Fra idé til <span class="lime">live</span>.</span></span>
+      </h2>
     </div>
-    <div class="proc-track">
-      <article class="proc-card"><span class="proc-num display">01</span><h3>Afdæk</h3><p>Vi spørger “hvorfor”, før vi spørger “hvordan”. Strategi før en eneste linje kode.</p></article>
-      <article class="proc-card"><span class="proc-num display">02</span><h3>Design</h3><p>Vi tegner produktet, før det koster noget at bygge. Du ser det — og kan rette det.</p></article>
-      <article class="proc-card"><span class="proc-num display">03</span><h3>Byg</h3><p>Seniorer der commit’er hver uge. Ren kode, du ejer fra dag ét — ingen sort boks.</p></article>
-      <article class="proc-card"><span class="proc-num display">04</span><h3>Lancér</h3><p>I produktion med analytics og overvågning. Ikke “det virker på min maskine”.</p></article>
-      <article class="proc-card"><span class="proc-num display">05</span><h3>Skalér</h3><p>Vi forsvinder ikke efter launch. Marketing, SEO og små forbedringer, uge efter uge.</p></article>
+    <div class="rail rail-5" data-reveal="up">
+      <div class="rail-step"><span class="step-n">01</span><h3>Afdæk</h3><p>Vi spørger “hvorfor”, før vi spørger “hvordan”. Strategi før en eneste linje kode.</p></div>
+      <div class="rail-step"><span class="step-n">02</span><h3>Design</h3><p>Vi tegner produktet, før det koster noget at bygge. Du ser det — og kan rette det.</p></div>
+      <div class="rail-step"><span class="step-n">03</span><h3>Byg</h3><p>Seniorer der commit’er hver uge. Ren kode, du ejer fra dag ét — ingen sort boks.</p></div>
+      <div class="rail-step"><span class="step-n">04</span><h3>Lancér</h3><p>I produktion med analytics og overvågning. Ikke “det virker på min maskine”.</p></div>
+      <div class="rail-step is-last"><span class="step-n">05</span><h3>Skalér</h3><p>Vi forsvinder ikke efter launch. Marketing, SEO og små forbedringer, uge efter uge.</p></div>
     </div>
-    <p class="proc-hint mono">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h16M14 6l6 6-6 6"/></svg>
-      Swipe for alle fem trin
-    </p>
   </div>
 </section>
 
-<!-- ===== APPROACH / WHY ===== -->
+<!-- ===== 04 — APPROACH / WHY ===== -->
 <section class="section-pad why">
   <div class="shell why-grid">
     <div class="why-left">
@@ -477,19 +303,13 @@
       </h2>
       <p class="why-lead" data-reveal="up">Du arbejder med dem der rent faktisk bygger. Ingen account managers, ingen junior-bænk, ingen overlevering hvor halvdelen går tabt. Bare folk der har sendt rigtige produkter i markedet.</p>
       <a href="om.html" class="btn" data-magnetic="0.25" data-reveal="up"><span class="btn-label">Mød holdet
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
-      <div class="stickers" data-reveal="up">
-        <span class="sticker fill">// senior only</span>
-        <span class="sticker">no-bullshit™</span>
-        <span class="sticker">kaffe → kode</span>
-        <span class="sticker">made in KBH</span>
-      </div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
     </div>
     <div class="why-right" data-reveal="stagger">
-      <div class="why-item"><span class="why-n mono">/01</span><div><h4>Seniorer, hele vejen</h4><p>Dem du møder til mødet, er dem der skriver koden. Ingen bait-and-switch.</p></div></div>
-      <div class="why-item"><span class="why-n mono">/02</span><div><h4>Du ejer det hele</h4><p>Din kode i dit eget GitHub fra dag ét. Vi gør dig ikke afhængig af os.</p></div></div>
-      <div class="why-item"><span class="why-n mono">/03</span><div><h4>Hurtigt, men ikke sjusket</h4><p>Vi leverer i uger, ikke kvartaler — uden at det kommer til at ligne det.</p></div></div>
-      <div class="why-item"><span class="why-n mono">/04</span><div><h4>Vækst er ikke en eftertanke</h4><p>SEO og konvertering tænkes ind fra første skitse — ikke bolt’et på til sidst.</p></div></div>
+      <div class="why-item"><span class="why-n">/01</span><div><h4>Seniorer, hele vejen</h4><p>Dem du møder til mødet, er dem der skriver koden. Ingen bait-and-switch.</p></div></div>
+      <div class="why-item"><span class="why-n">/02</span><div><h4>Du ejer det hele</h4><p>Din kode i dit eget GitHub fra dag ét. Vi gør dig ikke afhængig af os.</p></div></div>
+      <div class="why-item"><span class="why-n">/03</span><div><h4>Hurtigt, men ikke sjusket</h4><p>Vi leverer i uger, ikke kvartaler — uden at det kommer til at ligne det.</p></div></div>
+      <div class="why-item"><span class="why-n">/04</span><div><h4>Vækst er ikke en eftertanke</h4><p>SEO og konvertering tænkes ind fra første skitse — ikke bolt’et på til sidst.</p></div></div>
     </div>
   </div>
 </section>
@@ -498,10 +318,9 @@
 <section class="section-pad quote-sec">
   <div class="shell">
     <blockquote class="bigquote display" data-reveal="lines">
-      <span class="line-wrap"><span class="line-inner">“De byggede vores</span></span>
-      <span class="line-wrap"><span class="line-inner">platform på <span class="lime">6 uger</span> —</span></span>
-      <span class="line-wrap"><span class="line-inner">og væksten kom</span></span>
-      <span class="line-wrap"><span class="line-inner">af sig selv.”</span></span>
+      <span class="line-wrap"><span class="line-inner">“De byggede vores platform</span></span>
+      <span class="line-wrap"><span class="line-inner">på <span class="lime">6 uger</span> — og væksten</span></span>
+      <span class="line-wrap"><span class="line-inner">kom af sig selv.”</span></span>
     </blockquote>
     <div class="quote-by" data-reveal="up">
       <div class="ph quote-av" data-initials="MS" aria-hidden="true"></div>
@@ -520,7 +339,7 @@
       </a>
       <div class="footer-cta-row">
         <a href="kontakt.html" class="btn btn-solid" data-magnetic="0.25"><span class="btn-label">Start et projekt
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
         <a href="mailto:hej@mast3kmedia.dk" class="ulink mono footer-mail">hej@mast3kmedia.dk</a>
       </div>
       <p class="ps-note"><b>P.S.</b> Vi svarer faktisk på mails. Som regel samme dag.</p>
@@ -529,12 +348,11 @@
 
     <div class="footer-grid">
       <div class="footer-brand">
-        <span class="brand"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
-        <p class="faint">Kodebureau fra København. Software, SaaS, AI og marketing — uden varm luft.</p>
-        <p class="footer-coord">55.6761° N · 12.5683° E — København, DK</p>
+        <span class="brand"><svg class="m-mark" width="22" height="22" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
+        <p>Kodebureau fra København. Software, SaaS, AI og marketing — uden varm luft.</p>
+        <p class="coord footer-coord">55.6761° N · 12.5683° E — København, DK</p>
       </div>
-      <div class="footer-col"><span class="mono">Sitemap</span><a href="ydelser.html" class="ulink">Ydelser</a>
-    <a href="pris.html">Priser</a><a href="arbejde.html" class="ulink">Arbejde</a><a href="oss.html" class="ulink">Open Source</a><a href="saas.html" class="ulink">SaaS</a><a href="om.html" class="ulink">Om os</a><a href="kontakt.html" class="ulink">Kontakt</a></div>
+      <div class="footer-col"><span class="mono">Sitemap</span><a href="ydelser.html" class="ulink">Ydelser</a><a href="pris.html" class="ulink">Priser</a><a href="arbejde.html" class="ulink">Arbejde</a><a href="oss.html" class="ulink">Open Source</a><a href="saas.html" class="ulink">SaaS</a><a href="om.html" class="ulink">Om os</a><a href="kontakt.html" class="ulink">Kontakt</a></div>
       <div class="footer-col"><span class="mono">Social</span><a href="#" class="ulink">LinkedIn</a><a href="#" class="ulink">GitHub</a><a href="#" class="ulink">Instagram</a><a href="#" class="ulink">Dribbble</a></div>
       <div class="footer-col"><span class="mono">Kontor</span><span class="faint">København · DK</span><span class="faint">hej@mast3kmedia.dk</span><span class="faint">+45 00 00 00 00</span></div>
     </div>
@@ -552,65 +370,65 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-<script src="assets/anim.js?v=20260619-cloud-form"></script>
-<script src="assets/home.js?v=20260619-cloud-form"></script>
+<script src="assets/anim.js?v=20260810-ds"></script>
 <script>
-  /* ── Dynamic project loading from API ── */
-  (function() {
-    var ESC = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  /* ── Featured projects from the API, rendered as design-system case cards ── */
+  (function () {
+    var ESC = function (s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
 
-    function buildCaseCard(p, idx, total, alt) {
-      var mediaContent;
+    function buildCaseCard(p, idx, total) {
+      var plate;
       if (p.thumbnail_url) {
-        mediaContent = '<img src="' + ESC(p.thumbnail_url) + '" alt="' + ESC(p.title) + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" />';
+        plate = '<img src="' + ESC(p.thumbnail_url) + '" alt="' + ESC(p.title) + '" class="case-shot" loading="lazy" />';
       } else {
-        mediaContent = '<span class="ph-label">' + ESC(p.category) + '</span>';
+        plate = '<span class="ph-label">' + ESC(p.category) + '</span>';
       }
-      var num = String(idx + 1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0');
-      var tags = (p.tags||[]).slice(0,4).map(function(t){ return '<span class="tag">' + ESC(t) + '</span>'; }).join('');
-      return '<a href="case.html?slug=' + ESC(p.slug) + '" class="case' + (alt?' alt':'') + '" data-reveal="up">' +
-        '<div class="case-media' + (p.thumbnail_url ? '' : ' ph') + '" data-parallax-scope>' +
-          '<div class="ph-inner" data-parallax="-0.12">' + mediaContent + '</div>' +
-          '<span class="case-index mono">' + num + '</span>' +
-        '</div>' +
-        '<div class="case-info">' +
-          '<div class="case-head"><h3 class="case-title">' + ESC(p.title) + '</h3>' +
-          '<span class="case-cat mono">' + ESC(p.category) + ' · ' + ESC(p.year) + '</span></div>' +
-          '<p class="case-desc">' + ESC(p.description || '') + '</p>' +
-          '<div class="case-tags">' + tags + '</div>' +
-        '</div>' +
-      '</a>';
+      var num = String(idx + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+      var tags = (p.tags || []).slice(0, 3).map(function (t) { return '<span class="tag">' + ESC(t) + '</span>'; }).join('');
+      return '<a href="case.html?slug=' + ESC(p.slug) + '" class="card case-card" data-reveal="up">' +
+          '<div class="case-plate' + (p.thumbnail_url ? ' has-shot' : ' ph') + '" data-parallax-scope>' +
+            '<div class="ph-inner" data-parallax="-0.06">' + plate + '</div>' +
+            '<span class="ph-index">' + num + '</span>' +
+          '</div>' +
+          '<div class="case-body">' +
+            '<div class="case-head"><h3 class="case-title">' + ESC(p.title) + '</h3>' +
+            '<span class="case-cat">' + ESC(p.category) + ' · ' + ESC(p.year) + '</span></div>' +
+            '<p class="case-desc">' + ESC(p.description || '') + '</p>' +
+            '<div class="case-tags">' + tags + '</div>' +
+          '</div>' +
+        '</a>';
     }
 
     fetch('/api/projects?featured=1')
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(projects) {
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (projects) {
         if (!projects || !projects.length) return;
-        var list = document.querySelector('.shell.case-list');
+        var list = document.querySelector('.case-grid');
         if (!list) return;
-        list.innerHTML = projects.map(function(p, i) {
-          return buildCaseCard(p, i, projects.length, i % 2 === 1);
+        list.innerHTML = projects.map(function (p, i) {
+          return buildCaseCard(p, i, projects.length);
         }).join('');
-        // Re-initialise reveals for the new elements if GSAP is ready
+        // Re-run the reveal + parallax passes over the freshly injected cards.
         if (window.gsap && window.ScrollTrigger) {
-          list.querySelectorAll('[data-reveal="up"]').forEach(function(el) {
-            gsap.fromTo(el, { y:42, opacity:0 }, {
-              y:0, opacity:1, duration:1, ease:'power3.out',
-              scrollTrigger: { trigger: el, start:'top 88%' }
+          list.querySelectorAll('[data-reveal="up"]').forEach(function (el) {
+            gsap.fromTo(el, { y: 42, opacity: 0 }, {
+              y: 0, opacity: 1, duration: 1, ease: 'power3.out',
+              scrollTrigger: { trigger: el, start: 'top 88%' }
             });
           });
-          list.querySelectorAll('[data-parallax]').forEach(function(el) {
+          list.querySelectorAll('[data-parallax]').forEach(function (el) {
             var amt = parseFloat(el.dataset.parallax);
-            gsap.to(el, { yPercent: amt*100, ease:'none',
-              scrollTrigger: { trigger: el.closest('[data-parallax-scope]')||el,
-                start:'top bottom', end:'bottom top', scrub:true }
+            gsap.to(el, {
+              yPercent: amt * 100, ease: 'none',
+              scrollTrigger: {
+                trigger: el.closest('[data-parallax-scope]') || el,
+                start: 'top bottom', end: 'bottom top', scrub: true
+              }
             });
           });
         }
-        // Re-init tilt
-        if (window.MAST3K) return;
       })
-      .catch(function(){});
+      .catch(function () {});
   })();
 </script>
 </body>

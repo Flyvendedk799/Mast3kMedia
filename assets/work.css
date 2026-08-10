@@ -1,34 +1,36 @@
 /* ─────────────────────────────────────────────────────────────
-   work.css — search + tag filtering for arbejde.html (workstream E)
-   Dark + lime design language; tokens from assets/base.css.
-   Do NOT edit base.css.
+   work.css — case index for arbejde.html
+   Toolbar (search + category filters + tag chips) and the card grid.
+   Tokens and the card/plate primitives come from assets/base.css.
    ───────────────────────────────────────────────────────────── */
 
-/* Toolbar wrapper above the work grid */
-.work-toolbar { margin-bottom: 2.5rem; }
+/* ============================================================
+   Toolbar
+   ============================================================ */
+.work-toolbar { margin-bottom: clamp(1.8rem, 4vw, 2.4rem); }
 
-/* ── Search input ── */
+/* ── Search ── */
 .work-search { position: relative; max-width: 460px; margin-bottom: 1.4rem; }
-.work-search svg {
+.work-search > svg {
   position: absolute; left: 1.1rem; top: 50%; transform: translateY(-50%);
-  width: 18px; height: 18px; color: var(--faint); pointer-events: none;
+  width: 18px; height: 18px; color: var(--dim); pointer-events: none;
 }
 .work-search input {
   width: 100%;
-  padding: 0.95em 2.6em 0.95em 2.9em;
-  background: var(--bg-2);
+  padding: 0.9em 2.6em 0.9em 2.9em;
+  background: var(--bg-1);
   border: 1px solid var(--line);
   border-radius: var(--radius-full);
   color: var(--paper);
   font-family: var(--font-body);
-  font-size: 1rem;
+  font-size: 0.98rem;
   transition: border-color 0.3s var(--ease), background 0.3s var(--ease);
 }
-.work-search input::placeholder { color: var(--faint); }
+.work-search input::placeholder { color: var(--dim); }
 .work-search input:focus {
   outline: none;
   border-color: var(--lime);
-  background: var(--bg-3);
+  background: var(--bg-2);
 }
 .work-search-clear {
   position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%);
@@ -42,11 +44,25 @@
 .work-search-clear:hover { color: var(--paper); border-color: var(--line-strong); }
 .work-search-clear svg { width: 13px; height: 13px; position: static; transform: none; }
 
-/* ── Tag / tech filter chips ── */
-.work-chips {
-  display: flex; flex-wrap: wrap; gap: 0.55rem;
-  margin-bottom: 1.6rem;
+/* ── Filter row: categories left, live count right, one hairline under ── */
+.work-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1.5rem; flex-wrap: wrap;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--hair);
 }
+.work-count {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.work-count b { color: var(--lime); font-weight: 500; }
+
+/* ── Tag / tech chips ── */
+.work-chips { display: flex; flex-wrap: wrap; gap: 0.55rem; margin-top: 1.4rem; }
 .work-chips:empty { display: none; }
 .work-chip {
   font-family: var(--font-mono);
@@ -62,24 +78,96 @@
   white-space: nowrap;
 }
 .work-chip:hover { color: var(--paper); border-color: var(--line-strong); }
-.work-chip.active {
-  background: var(--lime-dim);
-  color: var(--lime);
-  border-color: var(--lime);
-}
+.work-chip.active { background: var(--lime-dim); color: var(--lime); border-color: var(--lime); }
 
-/* ── Result count ── */
-.work-count {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+/* ============================================================
+   Card grid
+   ============================================================ */
+.work-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; }
+@media (max-width: 1040px) { .work-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 680px)  { .work-grid { grid-template-columns: 1fr; } }
+
+.wcard {
+  display: flex; flex-direction: column;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  transition: border-color 0.35s var(--ease), transform 0.35s var(--ease);
+}
+.wcard:hover { border-color: var(--lime-edge); transform: translateY(-4px); }
+.wcard.hide { display: none; }
+
+.wcard-media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  display: grid; place-items: center;
+}
+/* Flush inside the card — the card already draws the frame. */
+.wcard-media.ph { border: 0; border-radius: 0; }
+.wcard-media .ph-inner {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  transition: transform 0.7s var(--ease);
+}
+.wcard:hover .wcard-media .ph-inner { transform: scale(1.04); }
+.wcard-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+.wcard-badge {
+  position: absolute; top: 0.9rem; left: 0.9rem; z-index: 2;
+  font-family: var(--font-mono); font-size: 0.62rem; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--faint);
-  margin-bottom: 1.6rem;
+  border: 1px solid var(--line); border-radius: var(--radius-full);
+  padding: 0.35em 0.8em;
+  background: rgba(7, 7, 10, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  white-space: nowrap;
 }
-.work-count b { color: var(--lime); font-weight: 600; }
 
-/* ── Empty state ── */
+.wcard-arrow {
+  position: absolute; top: 0.9rem; right: 0.9rem; z-index: 2;
+  width: 38px; height: 38px; border-radius: var(--radius-full);
+  background: rgba(7, 7, 10, 0.7);
+  border: 1px solid var(--line);
+  display: grid; place-items: center;
+  color: var(--paper);
+  opacity: 0; transform: translate(-6px, 6px);
+  transition: all 0.45s var(--ease);
+}
+.wcard-arrow svg { width: 15px; height: 15px; }
+.wcard:hover .wcard-arrow {
+  opacity: 1; transform: translate(0, 0);
+  background: var(--lime); color: var(--on-lime); border-color: var(--lime);
+}
+
+.wcard-info {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 0.8rem;
+  padding: 1.3rem 1.3rem 0;
+}
+.wcard-title {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: 1.2rem; letter-spacing: -0.01em;
+  transition: color 0.35s var(--ease);
+}
+.wcard:hover .wcard-title { color: var(--lime); }
+.wcard-cat {
+  font-family: var(--font-mono); font-size: 0.66rem;
+  letter-spacing: 0.1em; color: var(--dim);
+  flex-shrink: 0;
+}
+.wcard-desc {
+  color: var(--muted); font-size: 0.92rem;
+  margin-top: 0.55rem;
+  padding: 0 1.3rem 1.5rem;
+}
+
+/* ============================================================
+   Empty state
+   ============================================================ */
 .work-empty {
   display: none;
   text-align: center;
@@ -101,14 +189,14 @@
   display: inline-block;
   margin-top: 1.4rem;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   letter-spacing: 0.08em;
   color: var(--lime);
   border: 1px solid var(--lime);
   border-radius: var(--radius-full);
-  padding: 0.6em 1.2em;
+  padding: 0.7em 1.3em;
   cursor: pointer;
   background: transparent;
   transition: all 0.3s var(--ease);
 }
-.work-empty .work-reset:hover { background: var(--lime); color: #14130f; }
+.work-empty .work-reset:hover { background: var(--lime); color: var(--on-lime); }

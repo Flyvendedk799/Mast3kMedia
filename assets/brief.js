@@ -1,83 +1,18 @@
 /* ============================================================
-   Home — hero canvas field + pinned process scroll
+   Brief — the four-step project intake on kontakt.html
+
+   Posts to /api/leads. Moved off the home hero, where the design
+   system now shows a studio datasheet instead: the form belongs on
+   the page a visitor reaches when they have already decided to write.
    ============================================================ */
 (function () {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ---- Hero canvas: drifting connected node field ---- */
-  function heroField() {
-    const cv = document.getElementById('heroCanvas');
-    if (!cv) return;
-    const ctx = cv.getContext('2d');
-    let w, h, dpr, nodes = [], mouse = { x: -999, y: -999 };
-    const COUNT = window.innerWidth < 760 ? 34 : 70;
-
-    function size() {
-      dpr = Math.min(2, window.devicePixelRatio || 1);
-      w = cv.clientWidth; h = cv.clientHeight;
-      cv.width = w * dpr; cv.height = h * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-    function init() {
-      nodes = [];
-      for (let i = 0; i < COUNT; i++) {
-        nodes.push({
-          x: Math.random() * w, y: Math.random() * h,
-          vx: (Math.random() - 0.5) * 0.22, vy: (Math.random() - 0.5) * 0.22,
-          r: Math.random() * 1.6 + 0.5
-        });
-      }
-    }
-    function frame() {
-      ctx.clearRect(0, 0, w, h);
-      for (const n of nodes) {
-        n.x += n.vx; n.y += n.vy;
-        if (n.x < 0 || n.x > w) n.vx *= -1;
-        if (n.y < 0 || n.y > h) n.vy *= -1;
-        // mouse repel
-        const dx = n.x - mouse.x, dy = n.y - mouse.y;
-        const d = Math.hypot(dx, dy);
-        if (d < 130) { n.x += dx / d * 0.8; n.y += dy / d * 0.8; }
-      }
-      // links
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const a = nodes[i], b = nodes[j];
-          const dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < 130) {
-            const o = (1 - dist / 130) * 0.16;
-            ctx.strokeStyle = `rgba(214,243,124,${o})`;
-            ctx.lineWidth = 0.6;
-            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-          }
-        }
-      }
-      // nodes
-      for (const n of nodes) {
-        ctx.fillStyle = 'rgba(220,230,210,0.5)';
-        ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2); ctx.fill();
-      }
-      raf = requestAnimationFrame(frame);
-    }
-    let raf;
-    function start() { cancelAnimationFrame(raf); size(); init(); if (!reduce) frame(); else { /* draw one static frame */ frameOnce(); } }
-    function frameOnce() { ctx.clearRect(0,0,w,h); for (const n of nodes){ ctx.fillStyle='rgba(220,230,210,0.4)'; ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2); ctx.fill(); } }
-    window.addEventListener('resize', () => { size(); init(); });
-    window.addEventListener('mousemove', (e) => {
-      const r = cv.getBoundingClientRect();
-      mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top;
-    });
-    start();
-  }
-
-  /* ---- Hero intake cockpit ---- */
-  function heroIntake() {
-    const form = document.getElementById('heroForm');
+  function brief() {
+    const form = document.getElementById('briefForm');
     if (!form) return;
     const $ = (selector, root = form) => root.querySelector(selector);
     const $$ = (selector, root = form) => Array.from(root.querySelectorAll(selector));
-    const cockpit = document.getElementById('heroCockpit');
-    const stage = form.closest('.stage') || form;
     const track = $('#track');
     const steps = $$('.step');
     const backBtn = $('#back');
@@ -257,8 +192,8 @@
       if (state.brief) briefParts.push(state.brief);
       if (state.phone) briefParts.push('Telefon: ' + state.phone);
       return {
-        source: formValue('source') || 'hero',
-        page_path: window.location.pathname || '/',
+        source: formValue('source') || 'kontakt',
+        page_path: window.location.pathname || '/kontakt.html',
         website: formValue('website'),
         project_type: state.type,
         goal: isFree ? 'Noget helt andet' : (state.outcome || ''),
@@ -350,33 +285,8 @@
       if (current > 1) showStep(current - 1);
     });
     form.addEventListener('submit', submit);
-    window.heroQuickContact = submit;
 
-    if (!reduce && cockpit && window.matchMedia('(min-width: 981px)').matches) {
-      let frame = null;
-      let tiltX = 0;
-      let tiltY = 0;
-      const applyTilt = () => {
-        frame = null;
-        cockpit.style.setProperty('--ry', (tiltX * 9).toFixed(2) + 'deg');
-        cockpit.style.setProperty('--rx', (-tiltY * 7).toFixed(2) + 'deg');
-      };
-      stage.addEventListener('pointermove', (event) => {
-        const rect = cockpit.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        tiltX = (event.clientX - cx) / rect.width;
-        tiltY = (event.clientY - cy) / rect.height;
-        cockpit.style.setProperty('--mx', (((event.clientX - rect.left) / rect.width) * 100) + '%');
-        cockpit.style.setProperty('--my', (((event.clientY - rect.top) / rect.height) * 100) + '%');
-        if (!frame) frame = requestAnimationFrame(applyTilt);
-      });
-      stage.addEventListener('pointerleave', () => {
-        tiltX = 0;
-        tiltY = 0;
-        if (!frame) frame = requestAnimationFrame(applyTilt);
-      });
-    }
+    if (reduce && track) track.style.transition = 'none';
 
     paintProgress();
     applyScopeMode();
@@ -386,41 +296,6 @@
     requestAnimationFrame(setTrackHeight);
   }
 
-  /* ---- Pinned horizontal process ----
-     When the scrub-pin can't run (small screen, reduced motion, no GSAP) the
-     section falls back to a snapping swipe rail — .proc-rail on <section>
-     switches the CSS. Without it the track is just clipped and steps 02–05
-     become unreachable. */
-  function processScroll() {
-    const track = document.querySelector('.proc-track');
-    const pin = document.querySelector('.proc-pin');
-    if (!track || !pin) return;
-    const section = pin.closest('.process') || pin.parentElement;
-    const canPin = !!(window.gsap && window.ScrollTrigger) && !reduce && window.innerWidth >= 760;
-    if (!canPin) { if (section) section.classList.add('proc-rail'); return; }
-    if (section) section.classList.remove('proc-rail');
-    const getScroll = () => track.scrollWidth - window.innerWidth + (window.innerWidth * 0.08);
-    gsap.to(track, {
-      x: () => -getScroll(),
-      ease: 'none',
-      scrollTrigger: {
-        trigger: pin,
-        start: 'top top',
-        end: () => '+=' + getScroll(),
-        scrub: 0.6,
-        pin: true,
-        anticipatePin: 1,
-        invalidateOnRefresh: true
-      }
-    });
-  }
-
-  window.heroQuickContact = function(e) {
-    if (e) e.preventDefault();
-    return false;
-  };
-
-  const boot = () => { heroField(); heroIntake(); processScroll(); };
-  if (document.readyState !== 'loading') boot();
-  else document.addEventListener('DOMContentLoaded', boot);
+  if (document.readyState !== 'loading') brief();
+  else document.addEventListener('DOMContentLoaded', brief);
 })();

@@ -1,6 +1,10 @@
 /* ============================================================
-   MAST3K — Kinetic Atelier design system
-   Warm charcoal · warm-white ink · electric lime signature
+   MAST3KMEDIA — precision engineering studio
+   Blueprint grid · datasheet rails · Neon Mint as a single accent
+
+   Implements the Mast3kMedia design system
+   (_ds/mast3kmedia-design-system-…/) across the whole site.
+   Dark-first. Space Grotesk / DM Sans / JetBrains Mono.
    ============================================================ */
 
 /* ---- Fonts ---- */
@@ -8,59 +12,82 @@
 
 /* ---- Tokens ---- */
 :root {
-  /* ── DS Surface Scale ── */
+  /* ── Surface scale ──
+     void → deep → surface → surface-2 → surface-3. `--bg-deep` is the cell
+     fill inside hairline rails, one step above the page so the 1px gaps read. */
   --bg:        #07070A;
+  --bg-deep:   #0B0B10;
   --bg-1:      #0E0E14;
   --bg-2:      #16161E;
   --bg-3:      #1E1E28;
 
-  /* ── DS Text ──
-     muted and faint carry body copy and labels, so both clear WCAG AA (4.5:1)
-     on every surface in the scale — faint is 5.6:1 on --bg down to 4.6:1 on
-     --bg-3, which is the tightest case. */
+  /* ── Text ramp ──
+     The design system's ramp bottoms out at #6E6E86, which is 4.1:1 on --bg and
+     misses WCAG AA for text. Every step here carries real copy, so the bottom
+     rung is lifted to #7A7A94 (4.8:1) and the rest kept verbatim. Contrast on
+     --bg: lead 10.6:1 · muted 7.3:1 · faint 6.0:1 · dim 4.8:1. */
   --paper:     #FFFFFF;
-  --muted:     #9494AE;
-  --faint:     #8484A0;
+  --ink-2:     #E8E8F0;
+  --lead:      #C4C4D6;
+  --muted:     #9A9AB2;
+  --faint:     #8A8AA2;
+  --dim:       #7A7A94;
 
-  /* ── DS Borders ── */
-  --line:        #32324A;
-  --line-soft:   rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.20);
-  --color-border: #32324A;
+  /* ── Borders ──
+     hair = section rules and rail gaps · line-soft = card edges ·
+     line = chips and inputs · line-strong = ghost buttons and outline type. */
+  --hair:         #16161E;
+  --line-soft:    #1C1C26;
+  --line:         #23232F;
+  --line-strong:  #2C2C3C;
+  --color-border: #28283A;
 
-  /* ── DS Accents ── */
+  /* ── Accents ──
+     Mint leads, cyan supports. Never equal weight. */
   --lime:      #00FF88;
+  --lime-lift: #1AFFAA;
   --lime-deep: #00CC6A;
   --lime-dim:  rgba(0, 255, 136, 0.10);
+  --lime-edge: rgba(0, 255, 136, 0.35);
+  --cyan:      #00CFFF;
   --coral:     #FF5060;
-  --color-green: #00FF88;
-  --color-cyan:  #00CFFF;
+  --on-lime:   #07070A;
 
-  /* ── DS Semantic ── */
+  /* ── Design-system aliases (kept for markup that names them directly) ── */
+  --color-green:      #00FF88;
+  --color-green-dim:  #00CC6A;
+  --color-cyan:       #00CFFF;
+  --color-cyan-dim:   #009FCC;
   --color-void:      #07070A;
   --color-surface:   #0E0E14;
   --color-surface-2: #16161E;
   --color-surface-3: #1E1E28;
   --color-white:     #FFFFFF;
-  --color-muted:     #9494AE;
+  --color-muted:     #9A9AB2;
   --color-success:   #00FF88;
   --color-warning:   #FFB547;
   --color-error:     #FF5060;
   --color-info:      #00CFFF;
 
-  /* ── DS Shadows & Glows ── */
-  --shadow-sm:      0 1px 3px rgba(0,0,0,.4);
-  --shadow-md:      0 4px 16px rgba(0,0,0,.5);
-  --shadow-lg:      0 16px 48px rgba(0,0,0,.6);
-  --shadow-green:   0 0 24px rgba(0, 255, 136, 0.3);
-  --shadow-cyan:    0 0 24px rgba(0, 207, 255, 0.25);
+  /* ── Shadows & glows ── */
+  --shadow-sm:    0 1px 3px rgba(0,0,0,.4);
+  --shadow-md:    0 4px 16px rgba(0,0,0,.5);
+  --shadow-lg:    0 16px 48px rgba(0,0,0,.6);
+  --shadow-xl:    0 32px 80px rgba(0,0,0,.7);
+  --shadow-green: 0 0 24px rgba(0, 255, 136, 0.3);
+  --shadow-cyan:  0 0 24px rgba(0, 207, 255, 0.25);
 
-  /* ── DS Background Patterns ── */
-  --pattern-dots:       radial-gradient(circle, rgba(0,255,136,.22) 1px, transparent 1px);
-  --pattern-dots-size:  24px 24px;
-  --pattern-grid:       linear-gradient(rgba(0,255,136,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,136,.1) 1px, transparent 1px);
-  --pattern-grid-size:  32px 32px;
-  --pattern-diagonal:   repeating-linear-gradient(-45deg, transparent, transparent 18px, rgba(0,255,136,.07) 18px, rgba(0,255,136,.07) 19px);
+  /* ── Brand background patterns ── */
+  --pattern-dots:      radial-gradient(circle, rgba(0,255,136,.22) 1px, transparent 1px);
+  --pattern-dots-size: 24px 24px;
+  /* Plate dots sit under content, so they run at the same effective weight the
+     design uses (a .16 dot layer at 50% opacity) without a second element. */
+  --plate-dots:        radial-gradient(circle, rgba(0,255,136,.09) 1px, transparent 1px);
+  --plate-dots-size:   22px 22px;
+  --pattern-grid:      linear-gradient(rgba(0,255,136,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,136,.1) 1px, transparent 1px);
+  --pattern-grid-size: 32px 32px;
+  --pattern-diagonal:  repeating-linear-gradient(-45deg, transparent, transparent 18px, rgba(0,255,136,.07) 18px, rgba(0,255,136,.07) 19px);
+  --pattern-blueprint: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
 
   /* ── Typography ── */
   --font-display: 'Space Grotesk', system-ui, sans-serif;
@@ -68,19 +95,24 @@
   --font-sans:    'Space Grotesk', system-ui, sans-serif;
   --font-mono:    'JetBrains Mono', ui-monospace, monospace;
 
-  --ease:      cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-io:   cubic-bezier(0.65, 0, 0.35, 1);
-  --transition-spring: 400ms cubic-bezier(.16,1,.3,1);
+  /* ── Motion ──
+     One brand ease everywhere: smooth, decisive, slight overshoot. */
+  --ease:      cubic-bezier(.16, 1, .3, 1);
+  --ease-io:   cubic-bezier(.65, 0, .35, 1);
+  --t-fast:    150ms ease;
+  --t-base:    200ms ease;
+  --t-slow:    350ms ease;
+  --transition-spring: 400ms cubic-bezier(.16, 1, .3, 1);
 
-  /* ── DS Radius Tokens ── */
+  /* ── Radius ── */
   --radius-sm:   4px;
   --radius-md:   8px;
   --radius-lg:   12px;
-  --radius-xl:   20px;
-  --radius-2xl:  28px;
+  --radius-xl:   14px;   /* the card radius this design settles on */
+  --radius-2xl:  16px;
   --radius-full: 9999px;
 
-  /* ── DS Spacing Scale ── */
+  /* ── Spacing (4px grid) ── */
   --space-1:   4px;
   --space-2:   8px;
   --space-3:   12px;
@@ -92,8 +124,10 @@
   --space-9:   96px;
   --space-10:  128px;
 
-  --pad: clamp(1.25rem, 5vw, 6rem);
+  /* ── Layout ── */
+  --pad:  clamp(1.25rem, 5vw, 4rem);
   --maxw: 1480px;
+  --readw: 1180px;
 }
 
 /* ---- Reset ---- */
@@ -107,6 +141,7 @@ body {
   line-height: 1.6;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
 }
@@ -118,7 +153,7 @@ html.lenis, html.lenis body { height: auto; }
 img, svg, video { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
-::selection { background: var(--lime); color: #14130f; }
+::selection { background: var(--lime); color: var(--on-lime); }
 
 /* ---- Keyboard focus ----
    One brand ring for everything focusable. Mouse/touch users never see it. */
@@ -142,7 +177,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 .skip-link {
   position: fixed; top: 0; left: 50%; transform: translate(-50%, -120%);
   z-index: 9500;
-  background: var(--lime); color: #14130f;
+  background: var(--lime); color: var(--on-lime);
   font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em;
   padding: 0.9em 1.6em;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
@@ -153,8 +188,25 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 /* ---- Custom scrollbar ---- */
 ::-webkit-scrollbar { width: 9px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 99px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; border: 2px solid var(--bg); }
 ::-webkit-scrollbar-thumb:hover { background: var(--lime-deep); }
+
+/* ============================================================
+   Blueprint grid
+   The one ambient motif in the system: a 72px engineering grid,
+   fixed behind everything, faded out below the fold by a radial mask
+   so it frames the top of a page and never competes with content.
+   ============================================================ */
+.blueprint {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none;
+  background-image: var(--pattern-blueprint);
+  background-size: 72px 72px;
+  -webkit-mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 30%, transparent 78%);
+          mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 30%, transparent 78%);
+}
+/* Everything the reader touches sits above the motif. */
+main { position: relative; z-index: 1; }
 
 /* ============================================================
    Typography
@@ -166,16 +218,25 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
   letter-spacing: -0.04em;
   text-wrap: balance;
 }
-h1,h2,h3,h4 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.025em; line-height: 1.0; text-wrap: balance; }
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.0;
+  text-wrap: balance;
+}
 
+/* Mono label — ALL CAPS, tracked out. Nav links, captions, table keys. */
 .mono {
   font-family: var(--font-mono);
   font-weight: 500;
   font-size: 0.72rem;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--faint);
 }
+
+/* Indexed section label: `01 — Ydelser`, preceded by a short mint rule. */
 .eyebrow {
   font-family: var(--font-mono);
   font-weight: 500;
@@ -185,71 +246,92 @@ h1,h2,h3,h4 { font-family: var(--font-display); font-weight: 700; letter-spacing
   color: var(--lime);
   display: inline-flex;
   align-items: center;
-  gap: 0.7em;
+  gap: 0.8em;
 }
 .eyebrow::before {
   content: "";
-  width: 1.6em; height: 1px;
+  width: 1.8em; height: 1px;
   background: var(--lime);
   display: inline-block;
+  flex-shrink: 0;
 }
-.lime { color: var(--lime); }
+
+.lime  { color: var(--lime); }
+.lead  { color: var(--lead); }
 .muted { color: var(--muted); }
 .faint { color: var(--faint); }
+.dim   { color: var(--dim); }
 
-/* outline text */
+/* Outline type — the second half of a two-tone headline. */
 .outline-text {
   color: transparent;
-  -webkit-text-stroke: 1px var(--line-strong);
+  -webkit-text-stroke: 1.5px var(--line-strong);
 }
 
 /* ============================================================
    Layout
    ============================================================ */
 .shell { width: 100%; max-width: var(--maxw); margin-inline: auto; padding-inline: var(--pad); }
+.shell-read { max-width: var(--readw); }
 section { position: relative; }
-.section-pad { padding-block: clamp(5rem, 11vw, 11rem); }
+.section-pad { padding-block: clamp(4rem, 8vw, 7rem); }
 
-.rule { height: 1px; background: var(--line-soft); width: 100%; }
+.rule { height: 1px; background: var(--hair); width: 100%; }
 .grid { display: grid; }
 
 /* ============================================================
    Buttons
+   Mint fill is the single dominant action per screen; everything
+   else is a hairline pill that lights mint on hover.
    ============================================================ */
 .btn {
-  --bdr: var(--line-strong);
   position: relative;
   display: inline-flex; align-items: center; gap: 0.7em;
   font-family: var(--font-mono); font-weight: 500;
-  font-size: 0.78rem; letter-spacing: 0.08em;
-  padding: 1.05em 1.6em;
+  font-size: 0.8rem; letter-spacing: 0.06em;
+  padding: 1.05em 1.7em;
   border-radius: var(--radius-full);
-  border: 1px solid var(--bdr);
+  border: 1px solid var(--line-strong);
   color: var(--paper);
-  overflow: hidden;
-  transition: color 0.4s var(--ease), border-color 0.4s var(--ease);
   white-space: nowrap;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease),
+              background 0.3s var(--ease), transform 0.3s var(--ease),
+              box-shadow 0.3s var(--ease);
 }
-.btn .btn-label { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 0.6em; }
-.btn::after {
-  content: ""; position: absolute; inset: 0; z-index: 1;
-  background: var(--lime);
-  transform: translateY(101%);
-  transition: transform var(--transition-spring);
-}
-.btn:hover { color: #14130f; border-color: var(--lime); }
-.btn:hover::after { transform: translateY(0); }
-.btn svg { width: 1.05em; height: 1.05em; transition: transform 0.4s var(--ease); }
-.btn:hover svg { transform: translate(2px,-2px); }
+.btn .btn-label { display: inline-flex; align-items: center; gap: 0.6em; }
+.btn svg { width: 1.05em; height: 1.05em; flex-shrink: 0; transition: transform 0.35s var(--ease); }
+.btn:hover { color: var(--lime); border-color: var(--lime); }
+.btn:hover svg { transform: translate(2px, -2px); }
 
-.btn-solid { background: var(--lime); color: #14130f; border-color: var(--lime); }
-.btn-solid::after { background: var(--paper); }
-.btn-solid:hover { color: #14130f; border-color: var(--paper); }
+.btn-solid {
+  background: var(--lime);
+  color: var(--on-lime);
+  border-color: var(--lime);
+}
+.btn-solid:hover {
+  background: var(--lime-lift);
+  border-color: var(--lime-lift);
+  color: var(--on-lime);
+  box-shadow: var(--shadow-green);
+  transform: translateY(-1px);
+}
+.btn-solid:active { transform: translateY(0); box-shadow: none; }
 
 .btn-ghost { border-color: transparent; padding-inline: 0.4em; }
-.btn-ghost::after { display: none; }
 .btn-ghost:hover { color: var(--lime); border-color: transparent; }
-.btn-ghost:hover svg { transform: translate(3px,-3px); }
+.btn-ghost:hover svg { transform: translate(3px, -3px); }
+
+/* Compact mono link with a trailing arrow — "Alle cases →" */
+.golink {
+  display: inline-flex; align-items: center; gap: 0.6em;
+  font-family: var(--font-mono); font-size: 0.78rem;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--paper);
+  transition: color 0.3s var(--ease);
+}
+.golink svg { width: 15px; height: 15px; transition: transform 0.35s var(--ease); }
+.golink:hover { color: var(--lime); }
+.golink:hover svg { transform: translate(2px, -2px); }
 
 /* link with animated underline */
 .ulink { position: relative; display: inline-block; }
@@ -262,54 +344,205 @@ section { position: relative; }
 .ulink:hover::after { transform: scaleX(1); transform-origin: left; }
 
 /* ============================================================
-   Cards / surfaces
+   Surfaces
    ============================================================ */
 .panel {
   background: var(--bg-1);
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-xl);
 }
+.card {
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  transition: border-color 0.35s var(--ease), transform 0.35s var(--ease);
+}
+.card:hover { border-color: var(--lime-edge); transform: translateY(-4px); }
 
 .tag {
   font-family: var(--font-mono); font-size: 0.68rem; font-weight: 500;
   letter-spacing: 0.06em;
-  color: var(--muted);
+  color: var(--faint);
   padding: 0.42em 0.85em;
   border: 1px solid var(--line);
   border-radius: var(--radius-full);
   white-space: nowrap;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+a:hover > .tag, .tag-hover:hover { color: var(--lime); border-color: var(--lime); }
+
+/* ============================================================
+   Hairline rail
+   The datasheet primitive: cells separated by 1px of border colour
+   inside a single rounded frame. Stats, spec rows, process steps
+   and service cards all use it, so the whole site shares one seam.
+   ============================================================ */
+.rail {
+  display: grid;
+  gap: 1px;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+.rail > * { background: var(--bg-deep); }
+/* On the page ground rather than a raised panel — used in heroes. */
+.rail-void > * { background: var(--bg); }
+.rail-2 { grid-template-columns: repeat(2, 1fr); }
+.rail-3 { grid-template-columns: repeat(3, 1fr); }
+.rail-4 { grid-template-columns: repeat(4, 1fr); }
+.rail-5 { grid-template-columns: repeat(5, 1fr); }
+@media (max-width: 1040px) {
+  .rail-4, .rail-5 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 620px) {
+  .rail-2, .rail-3, .rail-4, .rail-5 { grid-template-columns: 1fr; }
 }
 
-/* Placeholder media.
-   Reads as a deliberate blueprint surface rather than an empty grey box:
-   dot-grid + a soft lime bloom, so a case without a screenshot still looks
-   designed. */
+/* Stat cell */
+.rail-stat { padding: 1.6rem 1.4rem; }
+.rail-stat .stat-n {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(2rem, 4vw, 2.8rem); line-height: 1;
+  letter-spacing: -0.03em;
+}
+.rail-stat .stat-l {
+  font-family: var(--font-mono); font-size: 0.7rem;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--faint); margin-top: 0.5rem;
+}
+.rail-stat.is-accent .stat-n { color: var(--lime); }
+
+/* Key/value cell — case metadata, plan facts */
+.rail-kv { padding: 1.3rem 1.4rem; }
+.rail-kv .kv-k {
+  font-family: var(--font-mono); font-size: 0.66rem;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim);
+}
+.rail-kv .kv-v {
+  font-family: var(--font-display); font-weight: 600;
+  margin-top: 0.5rem;
+}
+.rail-kv.is-accent .kv-v { color: var(--lime); }
+
+/* Numbered step cell — process, method, roadmap */
+.rail-step { padding: 1.8rem 1.4rem 2rem; }
+.rail-step .step-n {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 2.4rem; line-height: 1; letter-spacing: -0.03em;
+  color: var(--bg-3);
+}
+.rail-step.is-last .step-n { color: var(--lime); }
+.rail-step h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; margin-top: 0.5rem; }
+.rail-step p { color: var(--muted); font-size: 0.9rem; margin-top: 0.6rem; }
+
+/* ============================================================
+   Spec panel
+   A literal datasheet: header strip with a live dot, label/value
+   rows on hairlines, and a footer row that doubles as a CTA.
+   ============================================================ */
+.spec {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+.spec-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.95rem 1.15rem;
+  border-bottom: 1px solid var(--hair);
+}
+.spec-head .spec-id {
+  font-family: var(--font-mono); font-size: 0.66rem;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim);
+}
+.spec-head .spec-live {
+  display: inline-flex; align-items: center; gap: 0.5em;
+  font-family: var(--font-mono); font-size: 0.66rem;
+  letter-spacing: 0.14em; color: var(--lime);
+}
+.spec-head .spec-live::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--lime); box-shadow: 0 0 8px var(--lime);
+}
+.spec-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--hair);
+}
+.spec-row:last-child { border-bottom: none; }
+.spec-row .spec-k {
+  font-family: var(--font-mono); font-size: 0.7rem;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint);
+}
+.spec-row .spec-v {
+  font-family: var(--font-display); font-weight: 600; font-size: 0.92rem;
+  text-align: right;
+}
+.spec-row .spec-v.is-accent { color: var(--lime); }
+.spec-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-top: 1px solid var(--line);
+  background: var(--bg-deep);
+  font-family: var(--font-mono); font-size: 0.74rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--paper);
+  transition: color 0.3s var(--ease), background 0.3s var(--ease);
+}
+.spec-foot svg { width: 15px; height: 15px; transition: transform 0.35s var(--ease); }
+.spec-foot:hover { color: var(--lime); background: var(--bg-2); }
+.spec-foot:hover svg { transform: translate(2px, -2px); }
+
+/* ============================================================
+   Placeholder media
+   Reads as a deliberate blueprint surface rather than an empty box:
+   mint dot-grid over a raised gradient, with a mono caption chip.
+   ============================================================ */
 .ph {
   position: relative;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,255,136,0.07), transparent 70%),
-    var(--pattern-dots) 0 0 / 22px 22px,
+    var(--plate-dots) 0 0 / var(--plate-dots-size),
     linear-gradient(160deg, var(--bg-2), var(--bg-1));
   border: 1px solid var(--line-soft);
   overflow: hidden;
   display: grid; place-items: center;
   isolation: isolate;
 }
-.ph::after {
-  content: "";
-  position: absolute; inset: 0; z-index: 0;
-  background: repeating-linear-gradient(-45deg, transparent 0 22px, rgba(255,255,255,0.014) 22px 23px);
-  pointer-events: none;
+/* Hero-scale plates get a soft mint bloom from the top edge. Both pseudo
+   elements stay free here — the pattern is a background layer — because
+   the initials/monogram fallbacks below render through ::before. */
+.ph-bloom {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 10%, rgba(0,255,136,.08), transparent 65%),
+    var(--plate-dots) 0 0 / var(--plate-dots-size),
+    linear-gradient(160deg, var(--bg-2), var(--bg-1));
 }
 .ph .ph-label {
   position: relative; z-index: 1;
   font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--muted);
-  border: 1px solid var(--line); border-radius: 100px;
+  text-transform: uppercase; color: var(--faint);
+  border: 1px solid var(--line); border-radius: var(--radius-full);
   padding: 0.5em 1em;
-  background: color-mix(in oklab, var(--bg) 82%, transparent);
+  background: rgba(7, 7, 10, 0.7);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+}
+/* Plate index — "01 / 06" top-left of a case image, "FIG · 02" on a figure. */
+.ph-index, .fig-index {
+  position: absolute; top: 1rem; left: 1rem; z-index: 1;
+  font-family: var(--font-mono); font-size: 0.64rem;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim);
+}
+/* Category chip pinned to the plate */
+.ph-cat {
+  position: absolute; top: 0.9rem; left: 0.9rem; z-index: 1;
+  font-family: var(--font-mono); font-size: 0.62rem;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint);
+  border: 1px solid var(--line); border-radius: var(--radius-full);
+  padding: 0.35em 0.8em;
+  background: rgba(7, 7, 10, 0.7);
 }
 
 /* Avatar fallback — initials beat an empty circle */
@@ -320,7 +553,6 @@ section { position: relative; }
   font-size: 0.9rem; letter-spacing: 0.04em;
   color: var(--lime);
 }
-
 /* Portrait fallback — a monogram tile instead of eight identical "FOTO" boxes */
 .ph[data-monogram]::before {
   content: attr(data-monogram);
@@ -340,7 +572,11 @@ a:hover .ph[data-monogram]::before {
 /* ============================================================
    Marquee
    ============================================================ */
-.marquee { display: flex; overflow: hidden; width: 100%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.marquee {
+  display: flex; overflow: hidden; width: 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
 .marquee__track { display: flex; flex-shrink: 0; gap: var(--mq-gap, 3.5rem); padding-right: var(--mq-gap, 3.5rem); will-change: transform; }
 .marquee__item { display: inline-flex; align-items: center; gap: 1rem; white-space: nowrap; }
 
@@ -362,61 +598,69 @@ a:hover .ph[data-monogram]::before {
 }
 .line-inner { display: block; }
 
-/* ============================================================
-   Custom cursor
-   ============================================================ */
-.cursor-dot, .cursor-ring { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999; border-radius: 50%; mix-blend-mode: difference; }
-.cursor-dot { width: 6px; height: 6px; background: #fff; transform: translate(-50%,-50%); }
-.cursor-ring { width: 38px; height: 38px; border: 1px solid rgba(255,255,255,0.6); transform: translate(-50%,-50%); transition: width 0.3s var(--ease), height 0.3s var(--ease), background 0.3s, border-color 0.3s; }
-.cursor-ring.is-active { width: 64px; height: 64px; background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.9); }
-.cursor-ring.is-hidden { opacity: 0; }
-body.has-cursor { cursor: none; }
-body.has-cursor a, body.has-cursor button { cursor: none; }
-@media (hover: none) { .cursor-dot, .cursor-ring { display: none; } body.has-cursor { cursor: auto; } }
-@media (max-width: 760px) {
-  body.has-cursor,
-  body.has-cursor a,
-  body.has-cursor button { cursor: auto; }
-  .cursor-dot, .cursor-ring { display: none !important; }
-}
+/* Entrance for above-the-fold content that must not wait on an observer. */
+@keyframes m3k-rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+.rise    { animation: m3k-rise 0.8s var(--ease) both; }
+.rise-1  { animation: m3k-rise 0.8s 0.08s var(--ease) both; }
+.rise-2  { animation: m3k-rise 0.8s 0.16s var(--ease) both; }
+.rise-3  { animation: m3k-rise 0.8s 0.24s var(--ease) both; }
+.rise-4  { animation: m3k-rise 0.8s 0.32s var(--ease) both; }
 
 /* ============================================================
    Navbar
+   Transparent over the blueprint grid at rest; frosted only once
+   the page has moved. Blur is used here and nowhere else.
    ============================================================ */
 .nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 200;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 1.4rem var(--pad);
+  padding: 1.25rem var(--pad);
   transition: padding 0.5s var(--ease), background 0.5s var(--ease), border-color 0.5s;
   border-bottom: 1px solid transparent;
 }
 .nav.scrolled {
-  padding-block: 0.9rem;
-  background: color-mix(in oklab, var(--bg) 72%, transparent);
+  padding-block: 0.85rem;
+  background: rgba(7, 7, 10, 0.72);
   backdrop-filter: blur(16px) saturate(1.4);
   -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom-color: rgba(255, 255, 255, 0.07);
 }
-.brand { font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: 0.18em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 0; color: var(--paper); text-decoration: none; white-space: nowrap; }
+.brand {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 14px; letter-spacing: 0.2em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 0;
+  color: var(--paper); white-space: nowrap;
+}
 .brand .dot { display: none; }
-.brand .m-mark { flex-shrink: 0; margin-right: 14px; }
+.brand .m-mark { flex-shrink: 0; margin-right: 13px; }
+/* The 3 in MAST3KMEDIA is always Neon Mint. */
 .brand b, .brand .wm-accent { color: var(--lime); }
+
 .nav-links { display: flex; align-items: center; gap: 1.8rem; }
-.nav-links a { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); transition: color 0.3s; white-space: nowrap; }
-.nav-links a:hover, .nav-links a.active { color: var(--paper); }
-.nav-cta { display: flex; align-items: center; gap: 1.2rem; }
+.nav-links a {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted); white-space: nowrap;
+  transition: color 0.3s;
+}
+.nav-links a:hover { color: var(--paper); }
+.nav-links a.active { color: var(--lime); }
+.nav-cta { display: flex; align-items: center; gap: 1rem; }
+/* The bar CTA is the compact variant of the mint pill. */
+.nav-cta .btn { font-size: 0.74rem; letter-spacing: 0.08em; padding: 0.85em 1.35em; }
+
 .nav-burger {
   display: none; position: relative;
-  width: 44px; height: 44px;  /* 44px tap target; the bars stay 30×16 visually */
+  width: 44px; height: 44px;  /* 44px tap target; the bars stay 26×16 visually */
   margin-right: -8px;
 }
 .nav-burger span {
-  position: absolute; left: 7px; width: 30px; height: 1.5px;
+  position: absolute; left: 9px; width: 26px; height: 1.5px;
   background: var(--paper); border-radius: 2px;
   transition: transform 0.4s var(--ease), opacity 0.3s;
 }
-.nav-burger span:nth-child(1) { top: 14px; }
-.nav-burger span:nth-child(2) { bottom: 14px; }
+.nav-burger span:nth-child(1) { top: 16px; }
+.nav-burger span:nth-child(2) { bottom: 16px; }
 .nav-burger.is-open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .nav-burger.is-open span:nth-child(2) { transform: translateY(-7px) rotate(-45deg); }
 @media (max-width: 1040px) {
@@ -437,13 +681,13 @@ body.has-cursor a, body.has-cursor button { cursor: none; }
 /* Direct children only — the CTA button below keeps its own type and colours */
 .menu > a {
   font-family: var(--font-display); font-weight: 700;
-  font-size: clamp(2rem, 8vw, 4.2rem); letter-spacing: -0.03em;
+  font-size: clamp(2rem, 8vw, 3.6rem); letter-spacing: -0.03em;
   color: var(--paper); line-height: 1.15;
   transition: color 0.3s, transform 0.5s var(--ease);
   width: fit-content;
 }
 .menu > a:hover { color: var(--lime); }
-/* Current page gets the lime tick so you always know where you are */
+/* Current page gets the mint tick so you always know where you are */
 .menu > a.active { color: var(--lime); }
 .menu > a.active::before {
   content: ""; display: inline-block;
@@ -457,50 +701,44 @@ body.has-cursor a, body.has-cursor button { cursor: none; }
 .menu .menu-meta { margin-top: 2.5rem; display: flex; gap: 2rem; flex-wrap: wrap; }
 
 /* ============================================================
-   Preloader
-   ============================================================ */
-.preloader {
-  position: fixed; inset: 0; z-index: 9000; background: var(--bg);
-  display: flex; align-items: flex-end; justify-content: space-between;
-  padding: var(--pad);
-}
-.preloader__count { font-family: var(--font-display); font-weight: 800; font-size: clamp(5rem, 22vw, 18rem); line-height: 0.8; letter-spacing: -0.05em; color: var(--paper); }
-.preloader__word { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); padding-bottom: 0.6rem; }
-.preloader__bar { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--lime); }
-
-/* ============================================================
    Footer
    ============================================================ */
-.footer { position: relative; border-top: none; padding-top: clamp(4rem,8vw,7rem); padding-bottom: 2.5rem; overflow: hidden; }
-.footer::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(to right, var(--color-green), var(--color-cyan), transparent); }
+.footer { position: relative; border-top: 1px solid var(--hair); padding-top: clamp(4rem, 8vw, 7rem); padding-bottom: 2.5rem; overflow: hidden; }
+.footer::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(to right, var(--lime), var(--cyan), transparent); }
 .footer-big { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.035em; line-height: 0.95; font-size: clamp(2.4rem, 6vw, 5rem); color: var(--paper); }
 .footer-big .o { color: transparent; -webkit-text-stroke: 1.5px var(--line-strong); }
 
 /* The footer markup is identical on every page, so its layout lives here in the
    shared sheet. It used to live in home.css only, which left every inner page
    shipping an unstyled run-together footer. */
-.footer-cta { text-align: center; padding-bottom: clamp(3rem, 7vw, 6rem); border-bottom: 1px solid var(--line-soft); }
+.footer-cta { text-align: center; padding-bottom: clamp(3rem, 6vw, 5rem); border-bottom: 1px solid var(--hair); }
 .footer-cta .eyebrow { justify-content: center; }
-.footer-big-link { display: block; margin: 1.5rem 0 2.5rem; }
+.footer-big-link { display: block; margin: 1.5rem 0 2.4rem; }
 .footer-big-link .footer-big { display: block; transition: color 0.4s; }
 .footer-big-link:hover .footer-big { color: var(--lime); }
 .footer-cta-row { display: flex; align-items: center; justify-content: center; gap: 2rem; flex-wrap: wrap; }
-.footer-mail { font-size: 0.8rem; color: var(--muted); }
+.footer-mail { font-size: 0.8rem; color: var(--muted); letter-spacing: 0.06em; }
+.footer-mail:hover { color: var(--lime); }
 
 .footer-grid {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1.2fr;
   gap: clamp(2rem, 4vw, 3rem);
-  padding-block: clamp(3rem, 6vw, 5rem);
+  padding-block: clamp(3rem, 5vw, 4.5rem);
 }
 .footer-brand .brand { margin-bottom: 1rem; }
-.footer-brand p { max-width: 32ch; font-size: 0.94rem; color: var(--muted); }
+.footer-brand p { max-width: 34ch; font-size: 0.94rem; color: var(--muted); }
 .footer-col { display: flex; flex-direction: column; gap: 0.7rem; align-items: flex-start; }
-.footer-col .mono { color: var(--faint); margin-bottom: 0.4rem; }
+.footer-col .mono { color: var(--dim); margin-bottom: 0.3rem; letter-spacing: 0.16em; font-size: 0.7rem; }
 .footer-col a { color: var(--muted); transition: color 0.3s; }
 .footer-col a:hover { color: var(--lime); }
 .footer-col span.faint { color: var(--muted); font-size: 0.94rem; }
-.footer-bottom { display: flex; justify-content: space-between; padding-top: 2rem; border-top: 1px solid var(--line-soft); flex-wrap: wrap; gap: 1rem; }
+.footer-bottom {
+  display: flex; justify-content: space-between;
+  padding-top: 2rem; border-top: 1px solid var(--hair);
+  flex-wrap: wrap; gap: 1rem;
+}
+.footer-bottom .mono { color: var(--dim); letter-spacing: 0.12em; font-size: 0.7rem; }
 @media (max-width: 880px) { .footer-grid { grid-template-columns: 1fr 1fr; gap: 2.5rem 1.5rem; } .footer-brand { grid-column: 1 / -1; } }
 @media (max-width: 480px) { .footer-grid { grid-template-columns: 1fr; gap: 2.2rem; } }
 
@@ -517,27 +755,35 @@ body.has-cursor a, body.has-cursor button { cursor: none; }
    Misc
    ============================================================ */
 .scroll-prog { position: fixed; top: 0; left: 0; height: 2px; background: var(--lime); z-index: 300; width: 0%; box-shadow: 0 0 10px var(--lime); }
-.m3k-divider-accent { height: 1px; background: linear-gradient(to right, var(--color-green), var(--color-cyan), transparent); border: none; margin: 0; display: block; }
-.grain { position: fixed; inset: -50%; z-index: 1; pointer-events: none; opacity: 0.04; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.m3k-divider-accent { height: 1px; background: linear-gradient(to right, var(--lime), var(--cyan), transparent); border: none; margin: 0; display: block; }
 
-.field-line { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.field-line .v { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line-soft); }
+/* Coordinates / small technical footnote */
+.coord {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  letter-spacing: 0.24em; text-transform: uppercase; color: var(--dim);
+}
 
-.pill-live { display: inline-flex; align-items: center; gap: 0.6em; white-space: nowrap; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 100px; padding: 0.5em 0.95em; }
-.pill-live .dot { position: relative; width: 7px; height: 7px; }
-.pill-live .dot::before { content:""; position:absolute; inset:0; border-radius:50%; background: var(--lime); }
-.pill-live .dot::after { content:""; position:absolute; inset:0; border-radius:50%; background: var(--lime); animation: ping 1.8s var(--ease-io) infinite; }
-@keyframes ping { 0%{ transform: scale(1); opacity: 0.7; } 80%,100%{ transform: scale(2.6); opacity: 0; } }
+.pill-live {
+  display: inline-flex; align-items: center; gap: 0.55em; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--line); border-radius: var(--radius-full);
+  padding: 0.45em 0.9em;
+}
+.pill-live .dot { position: relative; width: 7px; height: 7px; flex-shrink: 0; }
+.pill-live .dot::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--lime); }
+.pill-live .dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--lime); animation: ping 1.8s var(--ease-io) infinite; }
+@keyframes ping { 0% { transform: scale(1); opacity: 0.7; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 14s linear infinite; }
 
-.hover-target { } /* marker class for cursor */
+.hover-target { } /* marker class for cursor-free hover targets */
 
 /* ============================================================
    Reduced motion
    The JS layer already opts out of Lenis/GSAP/marquee; this stops the
-   purely-CSS loops (ping, spin, grain) and neutralises transitions.
+   purely-CSS loops (ping, spin, rise) and neutralises transitions.
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -549,5 +795,4 @@ body.has-cursor a, body.has-cursor button { cursor: none; }
   .pill-live .dot::after, .case-play .ring { display: none; }
   .spin { animation: none; }
   .marquee { -webkit-mask-image: none; mask-image: none; }
-  .preloader { display: none; }
 }

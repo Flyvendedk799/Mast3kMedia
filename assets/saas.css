@@ -16,17 +16,17 @@
 @media (max-width: 880px) { .saas-feature { grid-template-columns: 1fr; } }
 
 /* ---- browser / app mock ---- */
-.browser-mock { background: oklch(0.135 0.005 75); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 40px 80px -45px rgba(0,0,0,0.8); }
+.browser-mock { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-2xl); overflow: hidden; box-shadow: var(--shadow-lg); }
 .browser-bar { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1rem; border-bottom: 1px solid var(--line-soft); }
 .browser-dots { display: flex; gap: 0.4rem; }
 .browser-dots span { width: 11px; height: 11px; border-radius: 50%; background: var(--bg-3); }
-.browser-url { font-family: var(--font-mono); font-size: 0.64rem; color: var(--faint); letter-spacing: 0.04em; margin: 0 auto; background: var(--bg-2); border: 1px solid var(--line-soft); border-radius: 6px; padding: 0.28em 0.95em; }
+.browser-url { font-family: var(--font-mono); font-size: 0.64rem; color: var(--faint); letter-spacing: 0.04em; margin: 0 auto; background: var(--bg-2); border: 1px solid var(--line-soft); border-radius: var(--radius-sm); padding: 0.28em 0.95em; }
 .browser-body { display: grid; grid-template-columns: 136px 1fr; min-height: 260px; }
 
 .mock-sidebar { background: var(--bg-2); border-right: 1px solid var(--line-soft); padding: 1.1rem 0.85rem; display: flex; flex-direction: column; gap: 1.1rem; }
 .mock-logo { font-family: var(--font-display); font-weight: 700; font-size: 0.92rem; letter-spacing: -0.04em; color: var(--lime); padding: 0 0.3rem 0.4rem; border-bottom: 1px solid var(--line-soft); }
 .mock-nav { display: flex; flex-direction: column; gap: 0.15rem; }
-.mock-nav-item { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; color: var(--faint); padding: 0.52em 0.65em; border-radius: 7px; }
+.mock-nav-item { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; color: var(--faint); padding: 0.52em 0.65em; border-radius: var(--radius-md); }
 .mock-nav-item.active { background: var(--bg-3); color: var(--paper); }
 
 .mock-main { padding: 1.1rem; display: flex; flex-direction: column; gap: 0.85rem; overflow: hidden; }
@@ -34,7 +34,7 @@
 .mock-title { font-family: var(--font-display); font-weight: 600; font-size: 0.84rem; }
 .mock-date { font-family: var(--font-mono); font-size: 0.57rem; color: var(--faint); }
 .mock-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
-.mock-kpi { background: var(--bg-2); border: 1px solid var(--line-soft); border-radius: 9px; padding: 0.7rem 0.8rem; display: flex; flex-direction: column; gap: 0.18rem; }
+.mock-kpi { background: var(--bg-2); border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 0.7rem 0.8rem; display: flex; flex-direction: column; gap: 0.18rem; }
 .mock-kpi-label { font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
 .mock-kpi-val { font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--paper); line-height: 1; }
 .mock-kpi-delta { font-family: var(--font-mono); font-size: 0.55rem; color: var(--faint); }
@@ -49,13 +49,15 @@
 /* ---- product grid ---- */
 .saas-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
 .saas-card { display: flex; flex-direction: column; gap: 0.9rem; padding: 1.7rem; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: var(--radius-xl); transition: border-color 0.4s var(--ease), background 0.4s var(--ease), transform 0.4s var(--ease); }
-.saas-card:hover { border-color: var(--line-strong); background: var(--bg-2); transform: translateY(-4px); }
+.saas-card:hover { border-color: var(--lime-edge); background: var(--bg-2); transform: translateY(-4px); }
 .saas-card-head { display: flex; align-items: center; justify-content: space-between; }
 .saas-card-icon { width: 44px; height: 44px; border-radius: var(--radius-lg); border: 1px solid var(--line); display: grid; place-items: center; color: var(--lime); flex-shrink: 0; }
 .saas-card-icon svg { width: 20px; height: 20px; }
 .saas-status { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.3em 0.75em; border-radius: var(--radius-full); border: 1px solid; white-space: nowrap; }
-.saas-status.live { color: var(--lime); border-color: oklch(0.88 0.205 124 / 0.3); background: oklch(0.88 0.205 124 / 0.08); }
-.saas-status.beta { color: var(--coral); border-color: oklch(0.74 0.16 42 / 0.3); background: oklch(0.74 0.16 42 / 0.08); }
+.saas-status.live { color: var(--lime); border-color: var(--lime-edge); background: var(--lime-dim); }
+/* Beta is a caution, not a failure — it takes the design system's own
+   semantic warning colour rather than the error red. */
+.saas-status.beta { color: var(--color-warning); border-color: rgba(255, 181, 71, 0.32); background: rgba(255, 181, 71, 0.08); }
 .saas-status.wip { color: var(--muted); border-color: var(--line); }
 .saas-card-name { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; letter-spacing: -0.02em; transition: color 0.3s; }
 .saas-card:hover .saas-card-name { color: var(--lime); }
@@ -67,7 +69,7 @@
 .saas-mrr-soon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.08em; color: var(--faint); }
 .saas-arrow { width: 32px; height: 32px; border-radius: var(--radius-full); border: 1px solid var(--line); display: grid; place-items: center; color: var(--muted); opacity: 0; transform: translateX(-6px); transition: all 0.4s var(--ease); flex-shrink: 0; }
 .saas-arrow svg { width: 14px; height: 14px; }
-.saas-card:hover .saas-arrow { opacity: 1; transform: translateX(0); color: var(--lime); border-color: oklch(0.88 0.205 124 / 0.4); }
+.saas-card:hover .saas-arrow { opacity: 1; transform: translateX(0); color: var(--lime); border-color: var(--lime); }
 @media (max-width: 960px) { .saas-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .saas-grid { grid-template-columns: 1fr; } }
 
@@ -81,7 +83,8 @@
 
 /* ---- principles (shared with oss) ---- */
 .principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
-.principle { padding: 1.8rem; border: 1px solid var(--line-soft); border-radius: 18px; background: var(--bg-1); }
+.principle { padding: 1.8rem; border: 1px solid var(--line-soft); border-radius: var(--radius-xl); background: var(--bg-1); transition: border-color 0.35s var(--ease), transform 0.35s var(--ease); }
+.principle:hover { border-color: var(--lime-edge); transform: translateY(-4px); }
 .principle .pn { font-family: var(--font-mono); color: var(--lime); font-size: 0.72rem; letter-spacing: 0.06em; }
 .principle h4 { font-size: 1.3rem; margin: 0.9rem 0 0.6rem; }
 .principle p { color: var(--muted); font-size: 0.96rem; }

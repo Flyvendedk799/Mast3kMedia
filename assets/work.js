@@ -59,18 +59,18 @@
   function buildWcard(p) {
     var filter = catToFilter(p.category);
     var media = p.thumbnail_url
-      ? '<img src="' + ESC(p.thumbnail_url) + '" alt="' + ESC(p.title) + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" />'
+      ? '<div class="ph-inner"><img src="' + ESC(p.thumbnail_url) + '" alt="' + ESC(p.title) + '" loading="lazy" /></div>'
       : '<div class="ph-inner"><span class="ph-label">' + ESC(p.category) + '</span></div>';
     var badge = ESC(p.category) + (p.year ? ' · ' + ESC(p.year) : '');
 
     return '<a href="case.html?slug=' + ESC(p.slug) + '" class="wcard" data-cat="' + ESC(filter) + '" data-reveal="up">' +
       '<div class="wcard-media' + (p.thumbnail_url ? '' : ' ph') + '">' +
         media +
-        '<span class="wcard-badge tag">' + badge + '</span>' +
-        '<span class="wcard-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span>' +
+        '<span class="wcard-badge">' + badge + '</span>' +
+        '<span class="wcard-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span>' +
       '</div>' +
       '<div class="wcard-info"><h3 class="wcard-title">' + ESC(p.title) + '</h3>' +
-        '<span class="wcard-cat mono">' + ESC(p.year || '') + '</span></div>' +
+        '<span class="wcard-cat">' + ESC(p.year || '') + '</span></div>' +
       '<p class="wcard-desc">' + ESC(p.description || '') + '</p>' +
       '</a>';
   }

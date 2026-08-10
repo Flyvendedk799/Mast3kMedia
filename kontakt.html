@@ -25,22 +25,18 @@
 <meta name="twitter:image" content="https://mast3kmedia.dk/assets/og-image.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="assets/base.css" />
-<link rel="stylesheet" href="assets/sub.css" />
+<link rel="stylesheet" href="assets/base.css?v=20260810-ds" />
+<link rel="stylesheet" href="assets/sub.css?v=20260810-ds" />
+<link rel="stylesheet" href="assets/brief.css?v=20260810-ds" />
 </head>
 <body>
 <a class="skip-link" href="#main">Spring til indhold</a>
 
-<div class="preloader">
-  <div class="preloader__word">Mast3kMedia® — kontakt</div>
-  <div class="preloader__count">00</div>
-  <div class="preloader__bar"></div>
-</div>
-<div class="grain"></div>
+<div class="blueprint" aria-hidden="true"></div>
 <div class="scroll-prog"></div>
 
 <nav class="nav">
-  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
+  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="22" height="22" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
   <div class="nav-links">
     <a href="ydelser.html">Ydelser</a>
     <a href="pris.html">Priser</a>
@@ -51,29 +47,28 @@
     <a href="kontakt.html" class="active">Kontakt</a>
   </div>
   <div class="nav-cta">
-    <a href="#form" class="btn" data-magnetic="0.3"><span class="btn-label">Skriv til os
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+    <a href="#brief" class="btn btn-solid" data-magnetic="0.3"><span class="btn-label">Byg din brief
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
     <button class="nav-burger" aria-label="Menu"><span></span><span></span></button>
   </div>
 </nav>
 <div class="menu">
   <a href="ydelser.html">Ydelser</a>
-    <a href="pris.html">Priser</a>
+  <a href="pris.html">Priser</a>
   <a href="arbejde.html">Arbejde</a>
-    <a href="oss.html">Open Source</a>
-    <a href="saas.html">SaaS</a>
+  <a href="oss.html">Open Source</a>
+  <a href="saas.html">SaaS</a>
   <a href="om.html">Om os</a>
   <a href="kontakt.html">Kontakt</a>
-  <div class="menu-cta"><a href="kontakt.html" class="btn btn-solid"><span class="btn-label">Start projekt <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a></div>
+  <div class="menu-cta"><a href="#brief" class="btn btn-solid"><span class="btn-label">Byg din brief <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a></div>
   <div class="menu-meta"><span class="mono">hej@mast3kmedia.dk</span><span class="mono">København · DK</span></div>
 </div>
 
 <main id="main">
 
 <section class="page-hero">
-  <div class="hero-glow"></div>
   <div class="shell">
-    <span class="crumb mono"><a href="index.html">Forside</a> / Kontakt</span>
+    <span class="crumb mono"><a href="index.html">Forside</a> <span class="sep">/</span> Kontakt</span>
     <h1 class="page-title display" data-reveal="lines">
       <span class="line-wrap"><span class="line-inner">Lad os bygge</span></span>
       <span class="line-wrap"><span class="line-inner">noget <span class="lime">sammen</span>.</span></span>
@@ -82,52 +77,192 @@
   </div>
 </section>
 
-<section class="section-pad" id="form" style="padding-top:clamp(2rem,4vw,3rem)">
+<!-- ===== 01 — BRIEF ===== -->
+<section class="section-pad" id="brief" style="padding-top:clamp(1rem,3vw,2rem)">
+  <div class="shell">
+    <div class="ih ih-tight" data-reveal="up"><span class="eyebrow">01 — Brief</span></div>
+  </div>
   <div class="shell contact-grid">
+
     <!-- FORM -->
-    <form class="contact-form" data-reveal="up" onsubmit="return mast3kSubmit(event)">
-      <div class="field">
-        <label>Hvad drejer det sig om?</label>
-        <div class="chip-row" id="chips">
-          <span class="chip on" data-chip>Software</span>
-          <span class="chip" data-chip>SaaS</span>
-          <span class="chip" data-chip>AI &amp; automatisering</span>
-          <span class="chip" data-chip>Marketing &amp; SEO</span>
-          <span class="chip" data-chip>Andet</span>
+    <div class="brief-panel" data-reveal="up">
+      <form class="brief" id="briefForm" novalidate>
+        <input type="hidden" name="source" value="kontakt" />
+        <input type="hidden" name="page_path" value="/kontakt.html" />
+        <input class="hp-field" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+        <div class="brief__head">
+          <div class="brief__title">Byg din brief
+            <small id="stepTitle">Hvad skal vi bygge?</small>
+          </div>
+          <div class="brief__count">trin <b id="stepNum">1</b>/4</div>
         </div>
-      </div>
-      <div class="field">
-        <label for="name">Navn</label>
-        <input id="name" type="text" placeholder="Dit fulde navn" required />
-      </div>
-      <div class="field">
-        <label for="email">E-mail</label>
-        <input id="email" type="email" placeholder="dig@firma.dk" required />
-      </div>
-      <div class="field">
-        <label for="company">Virksomhed</label>
-        <input id="company" type="text" placeholder="Firmanavn (valgfrit)" />
-      </div>
-      <div class="field">
-        <label for="budget">Budget</label>
-        <select id="budget">
-          <option>Under €10.000</option>
-          <option>€10.000 – €25.000</option>
-          <option>€25.000 – €75.000</option>
-          <option>Over €75.000</option>
-          <option>Ikke fastlagt endnu</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="msg">Fortæl om projektet</label>
-        <textarea id="msg" placeholder="Hvad vil du gerne bygge? Hvor er I henne nu?" required></textarea>
-      </div>
-      <button type="submit" class="btn btn-solid" data-magnetic="0.2"><span class="btn-label" id="submitLabel">Send besked
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></button>
-    </form>
+
+        <div class="progress" id="progress" aria-hidden="true">
+          <div class="node current" data-node="1">1</div>
+          <div class="bar" data-bar="1"></div>
+          <div class="node" data-node="2">2</div>
+          <div class="bar" data-bar="2"></div>
+          <div class="node" data-node="3">3</div>
+          <div class="bar" data-bar="3"></div>
+          <div class="node" data-node="4">4</div>
+        </div>
+
+        <div class="track" id="track">
+          <div class="step is-active" data-step="1">
+            <div class="field" data-req="type">
+              <div class="label">Projekttype <span class="hint">vælg én</span></div>
+              <div class="types" role="radiogroup" aria-label="Projekttype">
+                <button type="button" class="type" data-field="type" data-value="Software" role="radio" aria-checked="false">
+                  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 9-4 3 4 3"/><path d="m16 9 4 3-4 3"/><path d="m13 6-2 12"/></svg>
+                  <div class="name">Software</div>
+                  <div class="desc">Skræddersyet, fra bunden.</div>
+                  <div class="type-badge">Skal du have lavet en hjemmeside? Det er også her.</div>
+                  <span class="tick"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span>
+                </button>
+                <button type="button" class="type" data-field="type" data-value="SaaS" role="radio" aria-checked="false">
+                  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 18a4 4 0 0 1-.9-7.9A5 5 0 0 1 15 8a4 4 0 0 1 1 7.9"/><path d="M12 12v8"/><path d="m9 17 3 3 3-3"/></svg>
+                  <div class="name">SaaS</div>
+                  <div class="desc">Produkt med brugere &amp; abonnement.</div>
+                  <span class="tick"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span>
+                </button>
+                <button type="button" class="type" data-field="type" data-value="AI" role="radio" aria-checked="false">
+                  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="7" width="14" height="12" rx="2"/><path d="M12 7V4"/><circle cx="9.5" cy="13" r="1"/><circle cx="14.5" cy="13" r="1"/><path d="M3 12v3M21 12v3"/></svg>
+                  <div class="name">AI</div>
+                  <div class="desc">Modeller, agenter, automatik.</div>
+                  <span class="tick"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span>
+                </button>
+                <button type="button" class="type" data-field="type" data-value="Marketing" role="radio" aria-checked="false">
+                  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+                  <div class="name">Marketing</div>
+                  <div class="desc">Sites, kampagner, vækst.</div>
+                  <span class="tick"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span>
+                </button>
+                <button type="button" class="type type-wide" data-field="type" data-value="Noget helt andet" role="radio" aria-checked="false">
+                  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></svg>
+                  <div class="txt">
+                    <div class="name">Noget helt andet</div>
+                    <div class="desc">Passer ikke i en kasse? Beskriv det frit i næste trin.</div>
+                  </div>
+                  <span class="tick"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span>
+                </button>
+              </div>
+              <div class="err">Vælg en type så vi ved hvor vi starter.</div>
+            </div>
+          </div>
+
+          <div class="step" data-step="2">
+            <div class="field" data-req="outcome" id="field-outcome">
+              <div class="label">Målet <span class="hint">hvad skal rykke?</span></div>
+              <div class="chips" data-group="outcome">
+                <button type="button" class="chip chip-web" data-field="outcome" data-value="Hjemmeside"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg>Ny hjemmeside</button>
+                <button type="button" class="chip" data-field="outcome" data-value="Lancér nyt">Lancér noget nyt</button>
+                <button type="button" class="chip" data-field="outcome" data-value="Skalér">Skalér det vi har</button>
+                <button type="button" class="chip" data-field="outcome" data-value="Automatisér">Automatisér arbejde</button>
+                <button type="button" class="chip" data-field="outcome" data-value="Voks">Få flere kunder</button>
+              </div>
+              <div class="err">Vælg hvad målet er.</div>
+            </div>
+
+            <div class="field" data-req="budget" id="field-budget">
+              <div class="label">Budget <span class="hint">DKK, cirka</span></div>
+              <div class="seg" data-group="budget">
+                <button type="button" class="chip" data-field="budget" data-value="&lt; 100k">&lt; 100k</button>
+                <button type="button" class="chip" data-field="budget" data-value="100–300k">100–300k</button>
+                <button type="button" class="chip" data-field="budget" data-value="300k–1M">300k–1M</button>
+                <button type="button" class="chip" data-field="budget" data-value="1M+">1M+</button>
+              </div>
+              <div class="err">Et groft estimat er nok — det binder dig ikke.</div>
+            </div>
+
+            <div class="field" data-req="timeline" id="field-timeline">
+              <div class="label">Tidslinje <span class="hint">hvornår?</span></div>
+              <div class="seg" data-group="timeline">
+                <button type="button" class="chip" data-field="timeline" data-value="ASAP">ASAP</button>
+                <button type="button" class="chip" data-field="timeline" data-value="1–3 mdr">1–3 mdr</button>
+                <button type="button" class="chip" data-field="timeline" data-value="3–6 mdr">3–6 mdr</button>
+                <button type="button" class="chip" data-field="timeline" data-value="Fleksibel">Fleksibel</button>
+              </div>
+              <div class="err">Sæt en retning på tidslinjen.</div>
+            </div>
+
+            <div class="field" id="field-brief">
+              <div class="label" id="brief-label">Kort om projektet <span class="hint">valgfrit, men hjælper</span></div>
+              <div class="control">
+                <textarea class="textarea" id="f-brief" data-field="brief" placeholder="Hvad skal det kunne? Hvad er problemet i dag? Hvad findes der allerede?"></textarea>
+              </div>
+              <div class="err">Skriv lidt om hvad det er — det er hele pointen her.</div>
+            </div>
+          </div>
+
+          <div class="step" data-step="3">
+            <div class="two">
+              <div class="field" data-req="name">
+                <div class="label">Navn</div>
+                <div class="control"><input class="input" id="f-name" data-field="name" type="text" placeholder="Dit navn" autocomplete="name"></div>
+                <div class="err">Vi skal vide hvem vi skriver til.</div>
+              </div>
+              <div class="field">
+                <div class="label">Firma <span class="hint">valgfrit</span></div>
+                <div class="control"><input class="input" id="f-company" data-field="company" type="text" placeholder="Firma / projekt" autocomplete="organization"></div>
+              </div>
+            </div>
+            <div class="field" data-req="email">
+              <div class="label">Email</div>
+              <div class="control"><input class="input" id="f-email" data-field="email" type="email" placeholder="dig@firma.dk" autocomplete="email" inputmode="email"></div>
+              <div class="err" id="emailErr">Skriv en email vi kan svare på.</div>
+            </div>
+            <div class="field">
+              <div class="label">Telefon <span class="hint">valgfrit — hvis det haster</span></div>
+              <div class="control"><input class="input" id="f-phone" data-field="phone" type="tel" placeholder="+45 …" autocomplete="tel"></div>
+            </div>
+          </div>
+
+          <div class="step" data-step="4">
+            <div class="field">
+              <div class="label">Tjek og send <span class="hint">ret hvad som helst</span></div>
+              <div class="review" id="review" aria-live="polite"></div>
+              <label class="consent">
+                <span>Vi bruger kun det her til at svare dig. Ingen lister, ingen spam.</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="brief-nav">
+          <button type="button" class="brief-btn brief-btn-ghost" id="back" hidden>← Tilbage</button>
+          <button type="button" class="brief-btn brief-btn-primary" id="next">
+            <span class="lbl">Næste</span>
+            <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <span class="spin"></span>
+          </button>
+        </div>
+        <div class="fine">Krypteret · Ingen forpligtelser · Du ejer din kode</div>
+
+        <div class="success" id="success">
+          <div class="ring"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 5 5L20 6"/></svg></div>
+          <h3>Modtaget. Vi er på sagen.</h3>
+          <p>Vi læser din brief og vender tilbage inden for 24 timer — med konkrete næste skridt, ikke et standardsvar.</p>
+          <div class="ref" id="ref">REF · M3K-0000</div>
+        </div>
+      </form>
+    </div>
 
     <!-- ASIDE -->
     <aside class="contact-aside" data-reveal="stagger">
+      <div class="spec">
+        <div class="spec-head">
+          <span class="spec-id">M3K · Kontakt</span>
+          <span class="spec-live">Online</span>
+        </div>
+        <div class="spec-row"><span class="spec-k">Svartid</span><span class="spec-v is-accent">&lt; 24 timer</span></div>
+        <div class="spec-row"><span class="spec-k">Første møde</span><span class="spec-v">Gratis · 30 min</span></div>
+        <div class="spec-row"><span class="spec-k">Opstart</span><span class="spec-v">1–2 uger</span></div>
+        <div class="spec-row"><span class="spec-k">Kapacitet</span><span class="spec-v">2 pladser i Q3</span></div>
+        <a href="mailto:hej@mast3kmedia.dk" class="spec-foot">Skriv direkte
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></a>
+      </div>
+
       <div class="contact-block">
         <span class="mono">E-mail</span>
         <a href="mailto:hej@mast3kmedia.dk" class="ulink">hej@mast3kmedia.dk</a>
@@ -137,26 +272,23 @@
         <a href="#" class="ulink">cal.com/mast3kmedia →</a>
       </div>
       <div class="contact-block">
-        <span class="mono">Kontor</span>
-        <p>København, Danmark</p>
-      </div>
-      <div class="contact-block">
         <span class="mono">Telefon</span>
         <a href="tel:+4500000000" class="ulink">+45 00 00 00 00</a>
       </div>
-      <div class="panel" style="padding:1.6rem;margin-top:1rem">
-        <span class="pill-live"><span class="dot"></span>Booker nye projekter — Q3 2026</span>
-        <p class="muted" style="margin-top:1rem;font-size:0.95rem">Vi tager et begrænset antal projekter ad gangen for at holde kvaliteten oppe. Skriv tidligt.</p>
+      <div class="contact-block">
+        <span class="mono">Kontor</span>
+        <p>København, Danmark</p>
+        <span class="coord">55.6761° N · 12.5683° E</span>
       </div>
     </aside>
   </div>
 </section>
 
-<!-- FAQ -->
-<section class="section-pad" style="border-top:1px solid var(--line-soft)">
+<!-- ===== 02 — FAQ ===== -->
+<section class="section-pad" style="border-top:1px solid var(--hair)">
   <div class="shell">
     <div class="ih" data-reveal="up">
-      <span class="eyebrow">01 — FAQ</span>
+      <span class="eyebrow">02 — FAQ</span>
       <h2 class="ih-title display">Inden du skriver.</h2>
     </div>
     <div data-reveal="up">
@@ -172,11 +304,10 @@
   <div class="shell">
     <div class="footer-grid">
       <div class="footer-brand">
-        <span class="brand"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
-        <p class="faint">Digitalt bureau for software, SaaS, AI &amp; vækst. Bygget i Danmark, sendt til hele verden.</p>
+        <span class="brand"><svg class="m-mark" width="22" height="22" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
+        <p>Digitalt bureau for software, SaaS, AI &amp; vækst. Bygget i Danmark, sendt til hele verden.</p>
       </div>
-      <div class="footer-col"><span class="mono">Sitemap</span><a href="ydelser.html" class="ulink">Ydelser</a>
-    <a href="pris.html">Priser</a><a href="arbejde.html" class="ulink">Arbejde</a><a href="oss.html" class="ulink">Open Source</a><a href="saas.html" class="ulink">SaaS</a><a href="om.html" class="ulink">Om os</a><a href="kontakt.html" class="ulink">Kontakt</a></div>
+      <div class="footer-col"><span class="mono">Sitemap</span><a href="ydelser.html" class="ulink">Ydelser</a><a href="pris.html" class="ulink">Priser</a><a href="arbejde.html" class="ulink">Arbejde</a><a href="oss.html" class="ulink">Open Source</a><a href="saas.html" class="ulink">SaaS</a><a href="om.html" class="ulink">Om os</a><a href="kontakt.html" class="ulink">Kontakt</a></div>
       <div class="footer-col"><span class="mono">Social</span><a href="#" class="ulink">LinkedIn</a><a href="#" class="ulink">GitHub</a><a href="#" class="ulink">Instagram</a><a href="#" class="ulink">Dribbble</a></div>
       <div class="footer-col"><span class="mono">Kontor</span><span class="faint">København · DK</span><span class="faint">hej@mast3kmedia.dk</span><span class="faint">+45 00 00 00 00</span></div>
     </div>
@@ -189,19 +320,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-<script src="assets/anim.js"></script>
-<script>
-  document.querySelectorAll('[data-chip]').forEach(function (c) {
-    c.addEventListener('click', function () { c.classList.toggle('on'); });
-  });
-  function mast3kSubmit(e) {
-    e.preventDefault();
-    var label = document.getElementById('submitLabel');
-    label.innerHTML = 'Tak — vi vender tilbage inden for 1 arbejdsdag';
-    var btn = label.closest('button'); btn.style.pointerEvents = 'none';
-    setTimeout(function () { e.target.reset(); }, 400);
-    return false;
-  }
-</script>
+<script src="assets/anim.js?v=20260810-ds"></script>
+<script src="assets/brief.js?v=20260810-ds"></script>
 </body>
 </html>

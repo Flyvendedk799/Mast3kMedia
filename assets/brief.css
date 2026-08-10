@@ -1,0 +1,420 @@
+/* ============================================================
+   Brief — four-step project intake (kontakt.html)
+
+   Rebuilt on the design-system tokens: JetBrains Mono labels,
+   the shared surface scale and one mint accent. No bespoke
+   palette, no IBM Plex, no 3D tilt.
+   ============================================================ */
+
+.brief-panel { position: relative; }
+
+.brief {
+  position: relative;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: clamp(1.25rem, 2.4vw, 1.75rem);
+  overflow: hidden;
+}
+/* Mint hairline across the top edge — the same accent seam as the footer. */
+.brief::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lime), transparent);
+  opacity: 0.6;
+}
+
+/* Honeypot — off-screen, never focusable. */
+.hp-field {
+  position: absolute !important;
+  left: -9999px !important;
+  width: 1px !important; height: 1px !important;
+  padding: 0 !important; border: 0 !important;
+  opacity: 0 !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+}
+
+/* ---- Head ---- */
+.brief__head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 1rem; margin-bottom: 1.1rem;
+}
+.brief__title {
+  font-family: var(--font-display);
+  font-size: 1.15rem; font-weight: 600; line-height: 1.22;
+  letter-spacing: -0.01em;
+}
+.brief__title small {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem; font-weight: 400; line-height: 1.3;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--faint);
+  margin-top: 0.35rem;
+}
+.brief__count {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--faint); white-space: nowrap;
+}
+.brief__count b { color: var(--lime); font-weight: 500; }
+
+/* ---- Step rail ---- */
+.brief .progress { display: flex; align-items: center; margin-bottom: 1.4rem; }
+.brief .progress .node {
+  flex: none;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 0.7rem; line-height: 1;
+  color: var(--faint);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  transition: all 0.35s var(--ease);
+}
+.brief .progress .node svg { width: 11px; height: 11px; }
+.brief .progress .bar { flex: 1; height: 1px; background: var(--line); position: relative; overflow: hidden; }
+.brief .progress .bar::after {
+  content: ""; position: absolute; inset: 0;
+  background: var(--lime);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.5s var(--ease);
+}
+.brief .progress .bar.filled::after { transform: scaleX(1); }
+.brief .progress .node.done { border-color: var(--lime); color: var(--lime); }
+.brief .progress .node.current {
+  border-color: var(--lime);
+  color: var(--on-lime);
+  background: var(--lime);
+  box-shadow: 0 0 0 4px var(--lime-dim), var(--shadow-green);
+}
+
+/* ---- Step track ---- */
+.brief .track { position: relative; transition: height 0.42s var(--ease); }
+.brief .step {
+  position: absolute; inset: 0;
+  opacity: 0; visibility: hidden;
+  transform: translateX(28px);
+  pointer-events: none;
+  transition: opacity 0.38s var(--ease), transform 0.42s var(--ease), visibility 0s linear 0.42s;
+}
+.brief .step.is-active {
+  position: relative;
+  opacity: 1; visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition: opacity 0.42s var(--ease) 0.06s, transform 0.5s var(--ease) 0.06s;
+}
+.brief .step.is-prev { transform: translateX(-28px); }
+
+/* ---- Fields ---- */
+.brief-panel .field { display: block; margin-bottom: 1.1rem; }
+.brief-panel .field:last-child { margin-bottom: 0; }
+.brief-panel .label {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem; line-height: 1.35;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 0.6rem;
+}
+.brief-panel .label .hint { color: var(--dim); text-transform: none; letter-spacing: 0.02em; }
+
+/* Project type cards */
+.brief .types { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.brief .type {
+  position: relative;
+  display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  border-radius: var(--radius-lg);
+  padding: 14px 14px 13px;
+  overflow: hidden;
+  color: var(--paper);
+  transition: transform 0.25s var(--ease), border-color 0.2s, background 0.2s, box-shadow 0.25s;
+}
+.brief .type .ic {
+  flex: none;
+  width: 22px; height: 22px;
+  color: var(--faint);
+  margin-bottom: 24px;
+  transition: color 0.2s;
+}
+.brief .type .name { font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; line-height: 1.25; }
+.brief .type .desc { font-size: 0.78rem; color: var(--muted); line-height: 1.35; margin-top: 0.2rem; text-wrap: pretty; }
+.brief .type .tick {
+  position: absolute; top: 11px; right: 11px;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  display: grid; place-items: center;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+.brief .type .tick svg {
+  width: 10px; height: 10px;
+  stroke: var(--on-lime); stroke-width: 3;
+  stroke-dasharray: 14; stroke-dashoffset: 14;
+  transition: stroke-dashoffset 0.3s var(--ease) 0.05s;
+}
+/* Pin the badge to the bottom so it can't push the copy around */
+.brief .type-badge {
+  margin-top: auto; align-self: flex-start;
+  display: inline-block;
+  padding-top: 11px;
+  font-family: var(--font-mono); font-size: 0.62rem; line-height: 1.4;
+  color: var(--lime);
+  text-wrap: pretty;
+}
+.brief .type:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--shadow-md); }
+.brief .type:hover .ic { color: var(--paper); }
+.brief .type.sel {
+  border-color: var(--lime);
+  background: var(--lime-dim);
+  box-shadow: inset 0 0 0 1px var(--lime);
+}
+.brief .type.sel .ic { color: var(--lime); }
+.brief .type.sel .tick { background: var(--lime); border-color: var(--lime); opacity: 1; }
+.brief .type.sel .tick svg { stroke-dashoffset: 0; }
+.brief .type-wide {
+  grid-column: 1 / -1;
+  flex-direction: row; align-items: center;
+  gap: 14px; padding: 15px 14px;
+}
+.brief .type-wide .ic { margin-bottom: 0; }
+.brief .type-wide .txt { flex: 1; min-width: 0; padding-right: 26px; }
+.brief .type-wide .tick { top: 50%; margin-top: -9px; }
+
+/* Chips + segmented rows */
+.brief-panel .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.brief-panel .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.brief-panel .chip {
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--muted);
+  border-radius: var(--radius-full);
+  padding: 0.62em 1.05em;
+  font-family: var(--font-body);
+  font-size: 0.85rem; font-weight: 500; line-height: 1.2;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease), color 0.18s, border-color 0.18s, background 0.18s;
+}
+.brief-panel .chip:hover { transform: translateY(-2px); color: var(--paper); border-color: var(--line-strong); }
+.brief-panel .chip svg { display: inline-block; vertical-align: -2px; margin-right: 7px; }
+.brief-panel .chip-web { color: var(--lime); border-color: rgba(0, 255, 136, 0.3); background: var(--lime-dim); }
+.brief-panel .chip-web:hover { color: var(--lime); border-color: var(--lime); }
+.brief-panel .chip.sel { color: var(--lime); border-color: var(--lime); background: var(--lime-dim); }
+.brief-panel .seg .chip { text-align: center; justify-self: stretch; padding: 0.72em 0.4em; border-radius: var(--radius-md); }
+
+/* Text inputs */
+.brief .control { position: relative; }
+.brief-panel .input,
+.brief-panel .textarea {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 0.8em 0.9em;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.brief-panel .textarea {
+  resize: none; min-height: 96px; line-height: 1.5; font-size: 0.9rem;
+  transition: min-height 0.35s var(--ease), border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.brief-panel .textarea.tall { min-height: 150px; }
+.brief-panel .input::placeholder,
+.brief-panel .textarea::placeholder { color: var(--dim); }
+.brief-panel .input:hover,
+.brief-panel .textarea:hover { border-color: var(--line-strong); }
+.brief-panel .input:focus,
+.brief-panel .textarea:focus {
+  border-color: var(--lime);
+  background: var(--bg-3);
+  box-shadow: 0 0 0 3px var(--lime-dim);
+}
+.brief .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Validation */
+.brief .field.invalid .input,
+.brief .field.invalid .textarea {
+  border-color: var(--coral);
+  box-shadow: 0 0 0 3px rgba(255, 80, 96, 0.12);
+}
+.brief .field.invalid .chips,
+.brief .field.invalid .seg,
+.brief .field.invalid .types {
+  outline: 1px solid rgba(255, 80, 96, 0.35);
+  outline-offset: 6px;
+  border-radius: var(--radius-lg);
+}
+.brief .err {
+  display: none; align-items: center; gap: 7px;
+  color: var(--coral);
+  font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.35;
+  margin-top: 8px;
+}
+.brief .field.invalid .err { display: flex; animation: briefShake 0.4s var(--ease); }
+.brief .err::before {
+  content: "!";
+  display: grid; place-items: center;
+  width: 14px; height: 14px; flex: 0 0 14px;
+  border-radius: 50%;
+  background: var(--coral); color: var(--bg);
+  font-size: 10px; font-weight: 700;
+}
+@keyframes briefShake {
+  10%, 90% { transform: translateX(-2px); }
+  30%, 70% { transform: translateX(4px); }
+  50% { transform: translateX(-5px); }
+}
+
+/* Review table */
+.brief .review {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.brief .review .row {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--hair);
+  font-size: 0.9rem;
+}
+.brief .review .row:last-child { border-bottom: 0; }
+.brief .review .row .k {
+  font-family: var(--font-mono); font-size: 0.66rem;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint);
+}
+.brief .review .row .v { color: var(--paper); font-weight: 500; text-align: right; text-wrap: pretty; }
+.brief .review .row .v.empty { color: var(--dim); font-weight: 400; font-style: italic; }
+.brief .review .row button.edit {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--lime);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  transition: all 0.18s;
+}
+.brief .review .row button.edit:hover { border-color: var(--lime); background: var(--lime-dim); }
+.brief .consent {
+  display: flex; gap: 9px; align-items: flex-start;
+  margin-top: 14px;
+  font-size: 0.82rem; color: var(--muted); line-height: 1.45;
+}
+
+/* ---- Nav ---- */
+.brief .brief-nav {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 1.4rem; padding-top: 1.1rem;
+  border-top: 1px solid var(--hair);
+}
+.brief .brief-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono); font-size: 0.78rem; font-weight: 500;
+  letter-spacing: 0.06em; line-height: 1;
+  padding: 1.05em 1.7em;
+  transition: transform 0.2s var(--ease), background 0.2s, color 0.2s, box-shadow 0.2s, border-color 0.2s, opacity 0.2s;
+}
+.brief .brief-btn-ghost { color: var(--muted); border: 1px solid var(--line-strong); }
+.brief .brief-btn-ghost:hover { color: var(--paper); border-color: var(--paper); }
+.brief .brief-btn-ghost[hidden] { display: none; }
+.brief .brief-btn-primary {
+  position: relative;
+  background: var(--lime);
+  border: 1px solid var(--lime);
+  color: var(--on-lime);
+  margin-left: auto;
+}
+.brief .brief-btn-primary:hover {
+  background: var(--lime-lift); border-color: var(--lime-lift);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-green);
+}
+.brief .brief-btn-primary:active { transform: translateY(0); box-shadow: none; }
+.brief .brief-btn .arrow { transition: transform 0.2s var(--ease); }
+.brief .brief-btn-primary:hover .arrow { transform: translateX(3px); }
+.brief .brief-btn[disabled] { opacity: 0.5; pointer-events: none; }
+.brief .brief-btn-primary.loading { color: transparent; pointer-events: none; }
+.brief .brief-btn-primary .spin {
+  display: none;
+  position: absolute; inset: 0; margin: auto;
+  width: 18px; height: 18px;
+  border: 2px solid rgba(7, 7, 10, 0.35);
+  border-top-color: var(--on-lime);
+  border-radius: 50%;
+  animation: briefSpin 0.7s linear infinite;
+}
+.brief .brief-btn-primary.loading .spin { display: block; }
+@keyframes briefSpin { to { transform: rotate(360deg); } }
+
+.brief .fine {
+  font-family: var(--font-mono); font-size: 0.66rem; line-height: 1.3;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--dim);
+  margin-top: 1rem;
+  text-align: center;
+}
+
+/* ---- Success ---- */
+.brief .success {
+  position: absolute; inset: 0; z-index: 6;
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: clamp(1.5rem, 4vw, 2.2rem);
+  background: var(--bg-1);
+  border-radius: var(--radius-xl);
+}
+.brief .success.show { display: flex; animation: briefFadeUp 0.5s var(--ease); }
+@keyframes briefFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.brief .success .ring {
+  width: 74px; height: 74px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 1px solid var(--lime);
+  box-shadow: 0 0 0 8px var(--lime-dim), var(--shadow-green);
+  margin-bottom: 1.4rem;
+}
+.brief .success .ring svg {
+  width: 34px; height: 34px;
+  stroke: var(--lime); stroke-width: 2.4; fill: none;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 40; stroke-dashoffset: 40;
+  animation: briefDraw 0.6s var(--ease) 0.15s forwards;
+}
+@keyframes briefDraw { to { stroke-dashoffset: 0; } }
+.brief .success h3 { font-size: 1.4rem; font-weight: 600; line-height: 1.2; margin-bottom: 0.6rem; }
+.brief .success p { color: var(--muted); font-size: 0.95rem; line-height: 1.5; max-width: 34ch; }
+.brief .success .ref {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--lime);
+  margin-top: 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  padding: 0.5em 1em;
+}
+
+@media (max-width: 620px) {
+  .brief .types { grid-template-columns: 1fr; }
+  .brief .two { grid-template-columns: 1fr; }
+  .brief-panel .seg { grid-template-columns: 1fr 1fr; }
+  .brief__head { align-items: flex-start; }
+  .brief .review .row { align-items: flex-start; gap: 10px; }
+  .brief .review .row .v { text-align: left; }
+  .brief .brief-nav { flex-wrap: wrap; }
+  .brief .brief-btn { flex: 1; }
+}
+
+/* Reduced motion: the track height transition and step slide are the only
+   pieces that would still animate after the global reset. */
+.reduce .brief .track,
+.reduce .brief .step,
+.reduce .brief .success,
+.reduce .brief .type,
+.reduce .brief .chip { animation: none !important; transition: none !important; }
+.reduce .brief .step { transform: none !important; }

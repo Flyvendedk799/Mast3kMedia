@@ -25,23 +25,18 @@
 <meta name="twitter:image" content="https://mast3kmedia.dk/assets/og-image.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="assets/base.css" />
-<link rel="stylesheet" href="assets/sub.css" />
-<link rel="stylesheet" href="assets/oss.css" />
+<link rel="stylesheet" href="assets/base.css?v=20260810-ds" />
+<link rel="stylesheet" href="assets/sub.css?v=20260810-ds" />
+<link rel="stylesheet" href="assets/oss.css?v=20260810-ds" />
 </head>
 <body>
 <a class="skip-link" href="#main">Spring til indhold</a>
 
-<div class="preloader">
-  <div class="preloader__word">Mast3kMedia® — open source</div>
-  <div class="preloader__count">00</div>
-  <div class="preloader__bar"></div>
-</div>
-<div class="grain"></div>
+<div class="blueprint" aria-hidden="true"></div>
 <div class="scroll-prog"></div>
 
 <nav class="nav">
-  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
+  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="22" height="22" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
   <div class="nav-links">
     <a href="ydelser.html">Ydelser</a>
     <a href="pris.html">Priser</a>
@@ -52,8 +47,8 @@
     <a href="kontakt.html">Kontakt</a>
   </div>
   <div class="nav-cta">
-    <a href="kontakt.html" class="btn" data-magnetic="0.3"><span class="btn-label">Start projekt
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+    <a href="kontakt.html" class="btn btn-solid" data-magnetic="0.3"><span class="btn-label">Start projekt
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
     <button class="nav-burger" aria-label="Menu"><span></span><span></span></button>
   </div>
 </nav>
@@ -65,7 +60,7 @@
     <a href="saas.html">SaaS</a>
   <a href="om.html">Om os</a>
   <a href="kontakt.html">Kontakt</a>
-  <div class="menu-cta"><a href="kontakt.html" class="btn btn-solid"><span class="btn-label">Start projekt <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a></div>
+  <div class="menu-cta"><a href="kontakt.html" class="btn btn-solid"><span class="btn-label">Start projekt <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a></div>
   <div class="menu-meta"><span class="mono">hej@mast3kmedia.dk</span><span class="mono">København · DK</span></div>
 </div>
 
@@ -73,9 +68,8 @@
 
 <!-- HERO -->
 <section class="page-hero">
-  <div class="hero-glow"></div>
   <div class="shell">
-    <span class="crumb mono"><a href="index.html">Forside</a> / Open Source</span>
+    <span class="crumb mono"><a href="index.html">Forside</a> <span class="sep">/</span> Open Source</span>
     <h1 class="page-title display" data-reveal="lines">
       <span class="line-wrap"><span class="line-inner">Kode vi</span></span>
       <span class="line-wrap"><span class="line-inner"><span class="lime">giver væk</span>.</span></span>
@@ -85,7 +79,7 @@
       <a href="#repos" class="btn btn-solid" data-magnetic="0.25"><span class="btn-label">Se repos
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span></a>
       <a href="#" class="btn" data-magnetic="0.25"><span class="btn-label">Følg os på GitHub
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
     </div>
   </div>
 </section>
@@ -111,7 +105,7 @@
     </div>
     <div class="oss-feature" data-reveal="up">
       <div class="oss-feature-card">
-        <span class="oss-feature-badge"><span class="glow-dot" style="width:7px;height:7px;border-radius:50%;background:var(--lime);display:inline-block"></span> Mest brugte</span>
+        <span class="oss-feature-badge"><span class="glow-dot"></span> Mest brugte</span>
         <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-5l-4 3v-3H6a3 3 0 0 1-3-3z"/></svg>metricskit</h2>
         <p class="lede">Zero-config monitoring til Node.js. Én linje kode, og du har fuld indsigt i HTTP, database og custom-events. Brugt i produktion af teams over hele verden.</p>
         <div class="oss-feature-stats">
@@ -121,7 +115,7 @@
           <div class="ofs"><b>MIT</b><span>Licens</span></div>
         </div>
         <a href="#" class="btn" data-magnetic="0.2"><span class="btn-label">Åbn på GitHub
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
       </div>
       <div class="terminal">
         <div class="terminal-bar">
@@ -254,7 +248,7 @@
 <section class="next-cta">
   <div class="shell">
     <span class="eyebrow">Vil du være med?</span>
-    <a href="#" class="next-link">Send en PR →</a>
+    <a href="#" class="next-link">Send en PR <span class="lime">→</span></a>
     <p class="mono" style="color:var(--faint);margin-top:1.4rem">Eller sponsorér en repo — det holder lyset tændt.</p>
   </div>
 </section>
@@ -263,8 +257,8 @@
   <div class="shell">
     <div class="footer-grid">
       <div class="footer-brand">
-        <span class="brand"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
-        <p class="faint">Kodebureau fra København. Software, SaaS, AI og marketing — uden varm luft.</p>
+        <span class="brand"><svg class="m-mark" width="22" height="22" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
+        <p>Kodebureau fra København. Software, SaaS, AI og marketing — uden varm luft.</p>
         <p class="footer-coord" style="font-family:var(--font-mono);font-size:0.62rem;color:var(--faint);margin-top:0.85rem;letter-spacing:0.05em">55.6761° N · 12.5683° E — København, DK</p>
       </div>
       <div class="footer-col"><span class="mono">Sitemap</span><a href="ydelser.html" class="ulink">Ydelser</a><a href="pris.html" class="ulink">Priser</a><a href="arbejde.html" class="ulink">Arbejde</a><a href="oss.html" class="ulink">Open Source</a><a href="saas.html" class="ulink">SaaS</a><a href="om.html" class="ulink">Om os</a><a href="kontakt.html" class="ulink">Kontakt</a></div>
@@ -280,7 +274,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-<script src="assets/anim.js"></script>
+<script src="assets/anim.js?v=20260810-ds"></script>
 <script>
   var tc = document.getElementById('tcopy');
   if (tc) tc.addEventListener('click', function () { tc.textContent = 'kopieret ✓'; setTimeout(function(){ tc.textContent = 'kopiér'; }, 1600); });

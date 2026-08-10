@@ -25,23 +25,18 @@
 <meta name="twitter:image" content="https://mast3kmedia.dk/assets/og-image.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="assets/base.css" />
-<link rel="stylesheet" href="assets/sub.css" />
-<link rel="stylesheet" href="assets/case.css" />
+<link rel="stylesheet" href="assets/base.css?v=20260810-ds" />
+<link rel="stylesheet" href="assets/sub.css?v=20260810-ds" />
+<link rel="stylesheet" href="assets/case.css?v=20260810-ds" />
 </head>
-<body>
+<body class="case-page">
 <a class="skip-link" href="#main">Spring til indhold</a>
 
-<div class="preloader">
-  <div class="preloader__word">Mast3kMedia® — case</div>
-  <div class="preloader__count">00</div>
-  <div class="preloader__bar"></div>
-</div>
-<div class="grain"></div>
+<div class="blueprint" aria-hidden="true"></div>
 <div class="scroll-prog"></div>
 
 <nav class="nav">
-  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
+  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="22" height="22" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
   <div class="nav-links">
     <a href="ydelser.html">Ydelser</a>
     <a href="pris.html">Priser</a>
@@ -52,8 +47,8 @@
     <a href="kontakt.html">Kontakt</a>
   </div>
   <div class="nav-cta">
-    <a href="kontakt.html" class="btn" data-magnetic="0.3"><span class="btn-label">Start projekt
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+    <a href="kontakt.html" class="btn btn-solid" data-magnetic="0.3"><span class="btn-label">Start projekt
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
     <button class="nav-burger" aria-label="Menu"><span></span><span></span></button>
   </div>
 </nav>
@@ -61,11 +56,11 @@
   <a href="ydelser.html">Ydelser</a>
   <a href="pris.html">Priser</a>
   <a href="arbejde.html">Arbejde</a>
-    <a href="oss.html">Open Source</a>
-    <a href="saas.html">SaaS</a>
+  <a href="oss.html">Open Source</a>
+  <a href="saas.html">SaaS</a>
   <a href="om.html">Om os</a>
   <a href="kontakt.html">Kontakt</a>
-  <div class="menu-cta"><a href="kontakt.html" class="btn btn-solid"><span class="btn-label">Start projekt <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a></div>
+  <div class="menu-cta"><a href="kontakt.html" class="btn btn-solid"><span class="btn-label">Start projekt <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a></div>
   <div class="menu-meta"><span class="mono">hej@mast3kmedia.dk</span><span class="mono">København · DK</span></div>
 </div>
 
@@ -73,10 +68,9 @@
 
 <!-- HERO -->
 <section class="page-hero">
-  <div class="hero-glow"></div>
-  <div class="shell">
-    <span class="crumb mono"><a href="index.html">Forside</a> / <a href="arbejde.html">Arbejde</a> / NordSync</span>
-    <div style="display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;margin-top:1.5rem" data-reveal="up">
+  <div class="shell shell-read">
+    <span class="crumb mono"><a href="index.html">Forside</a> <span class="sep">/</span> <a href="arbejde.html">Arbejde</a> <span class="sep">/</span> NordSync</span>
+    <div class="case-pills" data-reveal="up">
       <span class="tag">SaaS · Dashboard</span><span class="tag">2025</span><span class="pill-live"><span class="dot"></span>Live i produktion</span>
     </div>
     <h1 class="page-title display" data-reveal="lines">
@@ -84,31 +78,34 @@
     </h1>
     <p class="page-intro" data-reveal="up">En realtids analytics-platform der giver teams øjeblikkelig indsigt i deres cloud-infrastruktur — millioner af datapunkter, renderet på under et sekund.</p>
 
-    <div class="case-hero-media ph" data-reveal="clip">
+    <!-- Datasheet: the four facts a reader checks first -->
+    <dl class="case-meta-list rail rail-4" data-reveal="up">
+      <div class="cml rail-kv"><dt class="kv-k">Kunde</dt><dd class="kv-v">NordSync ApS</dd></div>
+      <div class="cml rail-kv"><dt class="kv-k">Ydelser</dt><dd class="kv-v">Strategi · Design · Engineering</dd></div>
+      <div class="cml rail-kv"><dt class="kv-k">År</dt><dd class="kv-v">2025</dd></div>
+      <div class="cml rail-kv is-accent"><dt class="kv-k">Tidslinje</dt><dd class="kv-v">9 uger</dd></div>
+    </dl>
+
+    <div class="case-hero-media ph ph-bloom" data-reveal="clip">
       <div class="ph-inner"><span class="ph-label">Hero-video / produkt-demo</span></div>
-      <div class="case-play"><span class="ring"></span><button aria-label="Afspil demo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>
+      <span class="fig-index">FIG · 01</span>
+      <div class="case-play"><span class="ring"></span><button aria-label="Afspil demo"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button></div>
     </div>
   </div>
 </section>
 
 <!-- OVERVIEW -->
-<section class="section-pad" style="padding-top:clamp(3rem,6vw,5rem)">
-  <div class="shell case-overview">
+<section class="section-pad" style="padding-top:clamp(2.5rem,5vw,4rem)">
+  <div class="shell shell-read">
     <p class="case-brief" data-reveal="up">NordSync stod over for et velkendt problem: deres data var spredt på tværs af ti værktøjer, og indsigten kom altid for sent. Vi byggede én platform der samler det hele — i realtid, og smukt.</p>
-    <dl class="case-meta-list" data-reveal="up">
-      <div class="cml"><dt>Kunde</dt><dd>NordSync ApS</dd></div>
-      <div class="cml"><dt>Ydelser</dt><dd>Strategi · Design · Engineering</dd></div>
-      <div class="cml"><dt>Tidslinje</dt><dd>9 uger</dd></div>
-      <div class="cml"><dt>Platform</dt><dd>Web · SaaS</dd></div>
-      <div class="cml"><dt>År</dt><dd>2025</dd></div>
-    </dl>
   </div>
 </section>
 
 <!-- METRICS -->
-<section class="section-pad" style="padding-block:clamp(3rem,5vw,4rem);border-block:1px solid var(--line-soft);background:var(--bg-1)">
-  <div class="shell">
-    <div class="metric-band" data-reveal="stagger">
+<section class="section-pad" style="padding-block:clamp(2rem,4vw,3rem)">
+  <div class="shell shell-read">
+    <div class="ih ih-tight" data-reveal="up"><span class="eyebrow">Resultater</span></div>
+    <div class="metric-band" data-reveal="up">
       <div class="metric"><div class="metric-n"><span data-count="840" data-dec="0">840</span>ms</div><div class="metric-l">Render-tid for 2M punkter</div></div>
       <div class="metric"><div class="metric-n"><span data-count="3.2" data-dec="1">3.2</span>×</div><div class="metric-l">Hurtigere beslutninger</div></div>
       <div class="metric"><div class="metric-n">+<span data-count="64">64</span>%</div><div class="metric-l">Stigning i daglige brugere</div></div>
@@ -118,7 +115,7 @@
 </section>
 
 <!-- CHALLENGE / APPROACH -->
-<section class="section-pad">
+<section class="section-pad" style="padding-top:clamp(2rem,4vw,3rem)">
   <div class="shell about-cols">
     <div data-reveal="up">
       <span class="eyebrow">Udfordringen</span>
@@ -333,10 +330,15 @@
 </section>
 
 <!-- NEXT -->
-<section class="next-cta">
+<section class="next-cta next-cta-card">
   <div class="shell">
-    <span class="eyebrow">Næste case</span>
-    <a href="case.html" class="next-link">Flux Mobile →</a>
+    <a href="case.html" class="next-case">
+      <div>
+        <span class="nc-k">Næste case</span>
+        <span class="nc-title" data-next-title>Flux Mobile <span class="lime">→</span></span>
+      </div>
+      <span class="nc-cat" data-next-cat>App · Produktivitet</span>
+    </a>
   </div>
 </section>
 
@@ -344,8 +346,8 @@
   <div class="shell">
     <div class="footer-grid">
       <div class="footer-brand">
-        <span class="brand"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
-        <p class="faint">Digitalt bureau for software, SaaS, AI &amp; vækst. Bygget i Danmark, sendt til hele verden.</p>
+        <span class="brand"><svg class="m-mark" width="22" height="22" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
+        <p>Digitalt bureau for software, SaaS, AI &amp; vækst. Bygget i Danmark, sendt til hele verden.</p>
       </div>
       <div class="footer-col"><span class="mono">Sitemap</span><a href="ydelser.html" class="ulink">Ydelser</a><a href="pris.html" class="ulink">Priser</a><a href="arbejde.html" class="ulink">Arbejde</a><a href="oss.html" class="ulink">Open Source</a><a href="saas.html" class="ulink">SaaS</a><a href="om.html" class="ulink">Om os</a><a href="kontakt.html" class="ulink">Kontakt</a></div>
       <div class="footer-col"><span class="mono">Social</span><a href="#" class="ulink">LinkedIn</a><a href="#" class="ulink">GitHub</a><a href="#" class="ulink">Instagram</a><a href="#" class="ulink">Dribbble</a></div>
@@ -360,8 +362,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-<script src="assets/anim.js"></script>
-<script src="assets/case.js"></script>
+<script src="assets/anim.js?v=20260810-ds"></script>
+<script src="assets/case.js?v=20260810-ds"></script>
 <script>
 /* ── Dynamic case loading from API ── */
 (function() {
@@ -428,7 +430,7 @@
     var heroItem = byRole(media, 'hero')[0] || media.filter(isVideoItem)[0] || media.filter(isImage)[0] ||
       (p.thumbnail_url ? { type: 'image', url: p.thumbnail_url, caption: p.title, alt: p.title } : null);
     if (!heroItem) return; // keep gradient placeholder (never hidden)
-    hero.classList.remove('ph');
+    hero.classList.remove('ph', 'ph-bloom');
     if (isVideoItem(heroItem)) {
       var prov = inferProvider(heroItem);
       if (heroItem.type === 'embed' || prov === 'youtube' || prov === 'vimeo') {
@@ -765,9 +767,9 @@
     metrics: function(b){
       var items = (Array.isArray(b.items) ? b.items : []).filter(function(m){ return m && (m.value || m.label); });
       if (!items.length) return '';
-      return '<section class="section-pad block block-metrics" style="border-block:1px solid var(--line-soft);background:var(--bg-1)"><div class="shell">' +
+      return '<section class="section-pad block block-metrics"><div class="shell">' +
         (b.title ? '<div class="ih" data-reveal="up"><h2 class="ih-title display">' + ESC(b.title) + '</h2></div>' : '') +
-        '<div class="metric-band" data-reveal="stagger">' +
+        '<div class="metric-band" data-reveal="up">' +
           items.map(function(m){ return '<div class="metric"><div class="metric-n">' + ESC(m.value || '') + '</div><div class="metric-l">' + ESC(m.label || '') + '</div></div>'; }).join('') +
         '</div></div></section>';
     },
@@ -839,9 +841,9 @@
         var badge = ESC(r.category || 'Case') + (r.year ? ' · ' + ESC(r.year) : '');
         return '<a href="case.html?slug=' + ATTR(r.slug) + '" class="wcard related-card" data-reveal="up">' +
           '<div class="wcard-media' + (r.thumbnail_url ? '' : ' ph') + '">' + media +
-            '<span class="wcard-badge tag">' + badge + '</span>' +
-            '<span class="wcard-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></div>' +
-          '<div class="wcard-info"><h3 class="wcard-title">' + ESC(r.title) + '</h3><span class="wcard-cat mono">' + ESC(r.year || '') + '</span></div>' +
+            '<span class="wcard-badge">' + badge + '</span>' +
+            '<span class="wcard-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></div>' +
+          '<div class="wcard-info"><h3 class="wcard-title">' + ESC(r.title) + '</h3><span class="wcard-cat">' + ESC(r.year || '') + '</span></div>' +
           '<p class="wcard-desc">' + ESC(r.description || '') + '</p></a>';
       }).join('');
       if (section) section.hidden = false;
@@ -849,14 +851,19 @@
       section.hidden = true;
     }
 
-    // Next-case CTA: use first related when no explicit next case
+    // Next-case card: use the first related case when no explicit next case.
+    // The anchor itself carries .next-case, so the title and category update
+    // through their own hooks instead of being flattened to a text node.
     var nextSection = document.querySelector('.next-cta');
-    var nextLink = nextSection ? nextSection.querySelector('.next-link') : null;
-    if (nextLink) {
+    var nextCard = nextSection ? nextSection.querySelector('.next-case') : null;
+    if (nextCard) {
       var next = related[0];
       if (next) {
-        nextLink.textContent = next.title + ' →';
-        nextLink.href = 'case.html?slug=' + encodeURIComponent(next.slug);
+        var nextTitle = nextCard.querySelector('[data-next-title]');
+        var nextCat = nextCard.querySelector('[data-next-cat]');
+        if (nextTitle) nextTitle.innerHTML = ESC(next.title) + ' <span class="lime">→</span>';
+        if (nextCat) nextCat.textContent = (next.category || '') + (next.year ? ' · ' + next.year : '');
+        nextCard.href = 'case.html?slug=' + encodeURIComponent(next.slug);
         if (nextSection) nextSection.hidden = false;
       } else if (nextSection) {
         nextSection.hidden = true;
@@ -879,7 +886,7 @@
 
       /* breadcrumb */
       var crumb = document.querySelector('.crumb');
-      if (crumb) crumb.innerHTML = '<a href="index.html">Forside</a> / <a href="arbejde.html">Arbejde</a> / ' + ESC(p.title);
+      if (crumb) crumb.innerHTML = '<a href="index.html">Forside</a> <span class="sep">/</span> <a href="arbejde.html">Arbejde</a> <span class="sep">/</span> ' + ESC(p.title);
 
       /* hero tags */
       var heroTagRow = document.querySelector('.page-hero [data-reveal="up"]');
@@ -909,6 +916,8 @@
         if (label === 'År' && p.year) dd.textContent = p.year;
         if (label === 'Platform' && p.category) dd.textContent = p.category;
         if (label === 'Ydelser' && Array.isArray(p.tech_stack) && p.tech_stack.length) dd.textContent = p.tech_stack.slice(0, 3).join(' · ');
+        /* Duration was the one datasheet row nothing ever populated. */
+        if (label === 'Tidslinje' && (p.timeline || p.duration)) dd.textContent = p.timeline || p.duration;
       });
 
       /* metrics band */

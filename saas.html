@@ -26,200 +26,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-<!-- ── Mast3kMedia Design System tokens ── -->
-<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/fonts.css" />
-<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/colors.css" />
-<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/typography.css" />
-<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/spacing.css" />
-<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/effects.css" />
-<link rel="stylesheet" href="_ds/mast3kmedia-design-system-07b92df8-8d36-436f-bda8-dfe7b6e00bb8/tokens/base.css" />
-
 <!-- ── Site base + page styles ── -->
-<link rel="stylesheet" href="assets/base.css" />
-<link rel="stylesheet" href="assets/sub.css" />
-<link rel="stylesheet" href="assets/saas.css" />
+<link rel="stylesheet" href="assets/base.css?v=20260810-ds" />
+<link rel="stylesheet" href="assets/sub.css?v=20260810-ds" />
+<link rel="stylesheet" href="assets/saas.css?v=20260810-ds" />
 
-<style>
-/* ══════════════════════════════════════════════════════════
-   DS BRIDGE — map base.css vars → official DS token values
-   ══════════════════════════════════════════════════════════ */
-:root {
-  /* Surfaces */
-  --bg:          var(--color-void);        /* #07070A */
-  --bg-1:        var(--color-surface);     /* #0E0E14 */
-  --bg-2:        var(--color-surface-2);   /* #16161E */
-  --bg-3:        var(--color-surface-3);   /* #1E1E28 */
-
-  /* Text — values come from base.css so this page can't drift out of the
-     accessible palette (it used to pin the old, sub-AA greys). */
-  --paper:       var(--color-white);       /* #FFFFFF */
-  --muted:       var(--color-muted);       /* #9494AE */
-  --faint:       #8484A0;
-
-  /* Borders */
-  --line:        var(--color-border);
-  --line-soft:   rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.20);
-
-  /* Accents */
-  --lime:        var(--color-green);       /* #00FF88 */
-  --lime-deep:   var(--color-green-dim);   /* #00CC6A */
-  --lime-dim:    rgba(0, 255, 136, 0.10);
-  --coral:       var(--color-error);       /* #FF5060 */
-}
-
-/* ── Body text → DM Sans per DS spec ─────────────────── */
-body {
-  font-family: var(--font-body);
-  background: var(--color-void);
-}
-p, .lede, .page-intro, .ih-sub,
-.saas-card-desc, .principle p,
-.footer-brand p { font-family: var(--font-body); }
-
-/* ── Headings stay Space Grotesk ─────────────────────── */
-h1, h2, h3, h4, .display { font-family: var(--font-display); }
-
-/* ── Scroll progress → DS green + glow ──────────────── */
-.scroll-prog { background: var(--color-green); box-shadow: 0 0 10px var(--color-green); }
-
-/* ── Nav brand: dot glow ─────────────────────────────── */
-.brand .dot { background: var(--color-green); box-shadow: 0 0 14px rgba(0,255,136,.7); }
-
-/* ── Hero: DS dot-grid pattern ───────────────────────── */
-.page-hero { overflow: hidden; }
-.page-hero::before {
-  content: '';
-  position: absolute; inset: 0; z-index: 0;
-  background-image: var(--pattern-dots);
-  background-size: var(--pattern-dots-size);
-  opacity: 0.3;
-  pointer-events: none;
-}
-.page-hero .shell,
-.page-hero .hero-glow { position: relative; z-index: 1; }
-
-/* ── Primary CTA → neon glow ─────────────────────────── */
-.btn-solid {
-  background: var(--color-green);
-  border-color: var(--color-green);
-  box-shadow: var(--shadow-green);
-}
-.btn-solid:hover { box-shadow: 0 0 40px rgba(0,255,136,.45); }
-
-/* ── Featured card: DS accent gradient top border ────── */
-.saas-feature-card {
-  position: relative;
-  border-top: 2px solid transparent;
-  background-clip: padding-box;
-  box-shadow: var(--shadow-green);
-}
-.saas-feature-card::before {
-  content: '';
-  position: absolute; top: -2px; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, var(--color-green), var(--color-cyan));
-  border-radius: 22px 22px 0 0;
-  z-index: 1;
-}
-
-/* ── Featured badge glow dot ─────────────────────────── */
-.saas-feature-badge span {
-  background: var(--color-green) !important;
-  box-shadow: 0 0 10px var(--color-green), 0 0 20px rgba(0,255,136,.4);
-}
-
-/* ── Status badges → DS semantic colors ──────────────── */
-.saas-status.live {
-  color: var(--color-success);
-  border-color: rgba(0, 255, 136, 0.28);
-  background: rgba(0, 255, 136, 0.07);
-}
-.saas-status.beta {
-  color: var(--color-warning);
-  border-color: rgba(255, 181, 71, 0.28);
-  background: rgba(255, 181, 71, 0.07);
-}
-.saas-status.wip {
-  color: var(--color-muted);
-  border-color: var(--color-border);
-  background: transparent;
-}
-
-/* ── Product cards → DS hover glow ───────────────────── */
-.saas-card { border-color: var(--color-border); }
-.saas-card:hover {
-  border-color: rgba(0, 255, 136, 0.22);
-  background: var(--color-surface-2);
-  box-shadow: 0 8px 48px rgba(0,255,136,.07);
-}
-.saas-card:hover .saas-card-name { color: var(--color-green); }
-.saas-card:hover .saas-arrow {
-  opacity: 1; transform: translateX(0);
-  color: var(--color-green);
-  border-color: rgba(0,255,136,.35);
-}
-
-/* ── Tags → DS border ────────────────────────────────── */
-.tag { border-color: var(--color-border); color: var(--color-muted); }
-
-/* ── Browser mock → DS surfaces ─────────────────────── */
-.browser-mock { background: var(--color-surface); border-color: var(--color-border); }
-.browser-bar  { border-color: var(--color-border); }
-.mock-sidebar { background: var(--color-void); border-color: var(--color-border); }
-.mock-kpi     { background: var(--color-void); border-color: var(--color-border); }
-.mock-kpi-val { color: var(--color-white); }
-.mock-kpi-delta.up { color: var(--color-green); }
-.mock-nav-item.active { background: var(--color-surface-3); }
-.mock-bar.on  { background: var(--color-green); }
-.mock-logo    { color: var(--color-green); border-color: var(--color-border); }
-
-/* ── MRR bar → DS palette ────────────────────────────── */
-.mrrbar { border-color: var(--color-border); }
-
-/* ── Principle cards → DS border ─────────────────────── */
-.principle { border-color: var(--color-border); background: var(--color-surface); }
-.principle .pn { color: var(--color-green); }
-
-/* ── Brand lockup — M mark + wordmark ───────────────── */
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-white);
-  text-decoration: none;
-}
-.brand .dot { display: none; } /* replaced by M mark */
-.brand b { color: inherit; }   /* wordmark stays white; 3 handled inline */
-.brand .m-mark { flex-shrink: 0; }
-.brand .wm-accent { color: var(--color-green); }
-
-/* ── Divider accent line ──────────────────────────────── */
-.m3k-divider-accent {
-  height: 1px;
-  background: linear-gradient(to right, var(--color-green), var(--color-cyan), transparent);
-  border: none;
-  margin-block: 0;
-}
-</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Spring til indhold</a>
 
-<div class="preloader">
-  <div class="preloader__word">Mast3kMedia® — SaaS</div>
-  <div class="preloader__count">00</div>
-  <div class="preloader__bar"></div>
-</div>
-<div class="grain"></div>
+<div class="blueprint" aria-hidden="true"></div>
 <div class="scroll-prog"></div>
 
 <nav class="nav">
-  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
+  <a href="index.html" class="brand" data-magnetic="0.2"><svg class="m-mark" width="22" height="22" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</a>
   <div class="nav-links">
     <a href="ydelser.html">Ydelser</a>
     <a href="pris.html">Priser</a>
@@ -230,8 +50,8 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
     <a href="kontakt.html">Kontakt</a>
   </div>
   <div class="nav-cta">
-    <a href="kontakt.html" class="btn" data-magnetic="0.3"><span class="btn-label">Start projekt
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+    <a href="kontakt.html" class="btn btn-solid" data-magnetic="0.3"><span class="btn-label">Start projekt
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
     <button class="nav-burger" aria-label="Menu"><span></span><span></span></button>
   </div>
 </nav>
@@ -243,7 +63,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
   <a href="saas.html">SaaS</a>
   <a href="om.html">Om os</a>
   <a href="kontakt.html">Kontakt</a>
-  <div class="menu-cta"><a href="kontakt.html" class="btn btn-solid"><span class="btn-label">Start projekt <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a></div>
+  <div class="menu-cta"><a href="kontakt.html" class="btn btn-solid"><span class="btn-label">Start projekt <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a></div>
   <div class="menu-meta"><span class="mono">hej@mast3kmedia.dk</span><span class="mono">København · DK</span></div>
 </div>
 
@@ -251,9 +71,8 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
 
 <!-- HERO -->
 <section class="page-hero">
-  <div class="hero-glow"></div>
   <div class="shell">
-    <span class="crumb mono"><a href="index.html">Forside</a> / SaaS</span>
+    <span class="crumb mono"><a href="index.html">Forside</a> <span class="sep">/</span> SaaS</span>
     <h1 class="page-title display" data-reveal="lines">
       <span class="line-wrap"><span class="line-inner">Software vi</span></span>
       <span class="line-wrap"><span class="line-inner"><span class="lime">ejer selv</span>.</span></span>
@@ -263,7 +82,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
       <a href="#produkter" class="btn btn-solid" data-magnetic="0.25"><span class="btn-label">Se produkter
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span></a>
       <a href="kontakt.html" class="btn" data-magnetic="0.25"><span class="btn-label">Samarbejd med os
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
     </div>
   </div>
 </section>
@@ -318,7 +137,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
           <div class="sfs"><b>149 kr</b><span>Startpris/md</span></div>
         </div>
         <a href="#" class="btn btn-solid" data-magnetic="0.2"><span class="btn-label">Prøv gratis
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
       </div>
 
       <!-- App mock -->
@@ -401,7 +220,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
         <div class="saas-card-foot">
           <span class="saas-mrr"><b>31k</b> MRR</span>
           <span class="saas-arrow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
           </span>
         </div>
       </a>
@@ -422,7 +241,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
         <div class="saas-card-foot">
           <span class="saas-mrr"><b>22k</b> MRR</span>
           <span class="saas-arrow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
           </span>
         </div>
       </a>
@@ -443,7 +262,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
         <div class="saas-card-foot">
           <span class="saas-mrr"><b>18k</b> MRR</span>
           <span class="saas-arrow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
           </span>
         </div>
       </a>
@@ -464,7 +283,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
         <div class="saas-card-foot">
           <span class="saas-mrr"><b>9k</b> MRR</span>
           <span class="saas-arrow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
           </span>
         </div>
       </a>
@@ -485,7 +304,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
         <div class="saas-card-foot">
           <span class="saas-mrr-soon">Åben beta Q4</span>
           <span class="saas-arrow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
           </span>
         </div>
       </a>
@@ -506,7 +325,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
         <div class="saas-card-foot">
           <span class="saas-mrr-soon">2026 Q3</span>
           <span class="saas-arrow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
           </span>
         </div>
       </a>
@@ -575,7 +394,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
 <section class="next-cta">
   <div class="shell">
     <span class="eyebrow">05 — Samarbejd</span>
-    <a href="kontakt.html" class="next-link">Kontakt os →</a>
+    <a href="kontakt.html" class="next-link">Kontakt os <span class="lime">→</span></a>
     <p class="mono" style="color:var(--faint);margin-top:1.4rem">Reseller-aftaler, OEM-licenser og API-adgang — skriv til hej@mast3kmedia.dk</p>
   </div>
 </section>
@@ -585,7 +404,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
     <div class="footer-grid">
       <div class="footer-brand">
         <span class="brand"><svg class="m-mark" width="20" height="20" viewBox="0 0 100 100" fill="none"><path d="M14 84 L14 16 L50 52 L86 16 L86 84" stroke="#00FF88" stroke-width="11" stroke-linejoin="miter" stroke-linecap="butt"/></svg>MAST<span class="wm-accent">3</span>KMEDIA</span>
-        <p class="faint">Kodebureau fra København. Software, SaaS, AI og marketing — uden varm luft.</p>
+        <p>Kodebureau fra København. Software, SaaS, AI og marketing — uden varm luft.</p>
         <p style="font-family:var(--font-mono);font-size:0.62rem;color:var(--faint);margin-top:0.85rem;letter-spacing:0.05em">55.6761° N · 12.5683° E — København, DK</p>
       </div>
       <div class="footer-col">
@@ -624,7 +443,7 @@ h1, h2, h3, h4, .display { font-family: var(--font-display); }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-<script src="assets/anim.js"></script>
+<script src="assets/anim.js?v=20260810-ds"></script>
 
 </body>
 </html>

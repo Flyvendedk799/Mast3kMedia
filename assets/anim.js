@@ -1,6 +1,10 @@
 /* ============================================================
    MAST3K — interaction layer
-   Lenis smooth scroll · GSAP reveals · cursor · marquee · counters
+   Lenis smooth scroll · GSAP reveals · marquee · counters
+
+   No preloader and no custom cursor: the design system asks for
+   purposeful motion only, so the page paints straight away and the
+   OS cursor is left alone.
    ============================================================ */
 (function () {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -9,34 +13,6 @@
   if (reduce) document.documentElement.classList.add('reduce');
 
   const ready = (fn) => (document.readyState !== 'loading') ? fn() : document.addEventListener('DOMContentLoaded', fn);
-
-  /* ---------- Preloader ---------- */
-  function preloader() {
-    const pl = document.querySelector('.preloader');
-    if (!pl) return Promise.resolve();
-    const count = pl.querySelector('.preloader__count');
-    const bar = pl.querySelector('.preloader__bar');
-    return new Promise((resolve) => {
-      if (reduce) { pl.style.display = 'none'; resolve(); return; }
-      let n = 0;
-      const dur = 1100, t0 = performance.now();
-      const tick = (t) => {
-        const p = Math.min(1, (t - t0) / dur);
-        const eased = 1 - Math.pow(1 - p, 3);
-        n = Math.round(eased * 100);
-        if (count) count.textContent = String(n).padStart(2, '0');
-        if (bar) bar.style.width = (eased * 100) + '%';
-        if (p < 1) requestAnimationFrame(tick);
-        else {
-          if (window.gsap) {
-            gsap.to(pl, { yPercent: -100, duration: 0.9, ease: 'expo.inOut', delay: 0.15,
-              onComplete: () => { pl.style.display = 'none'; resolve(); } });
-          } else { pl.style.display = 'none'; resolve(); }
-        }
-      };
-      requestAnimationFrame(tick);
-    });
-  }
 
   /* ---------- Lenis smooth scroll ---------- */
   let lenis = null;
@@ -60,31 +36,6 @@
         }
       });
     });
-  }
-
-  /* ---------- Custom cursor ---------- */
-  function initCursor() {
-    if (!hasFinePointer || reduce) return;
-    document.body.classList.add('has-cursor');
-    const dot = document.createElement('div'); dot.className = 'cursor-dot';
-    const ring = document.createElement('div'); ring.className = 'cursor-ring';
-    document.body.append(dot, ring);
-    let mx = innerWidth / 2, my = innerHeight / 2, rx = mx, ry = my;
-    addEventListener('mousemove', (e) => {
-      mx = e.clientX; my = e.clientY;
-      dot.style.transform = `translate(${mx}px,${my}px) translate(-50%,-50%)`;
-    });
-    const loop = () => {
-      rx += (mx - rx) * 0.18; ry += (my - ry) * 0.18;
-      ring.style.transform = `translate(${rx}px,${ry}px) translate(-50%,-50%)`;
-      requestAnimationFrame(loop);
-    };
-    loop();
-    const hoverSel = 'a, button, .hover-target, input, textarea, [data-cursor]';
-    document.addEventListener('mouseover', (e) => { if (e.target.closest(hoverSel)) ring.classList.add('is-active'); });
-    document.addEventListener('mouseout', (e) => { if (e.target.closest(hoverSel)) ring.classList.remove('is-active'); });
-    document.addEventListener('mouseleave', () => ring.classList.add('is-hidden'));
-    document.addEventListener('mouseenter', () => ring.classList.remove('is-hidden'));
   }
 
   /* ---------- Navbar ---------- */
@@ -332,12 +283,8 @@
 
   /* ---------- boot ---------- */
   ready(() => {
-    preloader().then(() => {
-      initHeroIntro();
-      if (lenis) lenis.start();
-    });
     initLenis();
-    initCursor();
+    initHeroIntro();
     initNav();
     initProgress();
     initMarquees();
