@@ -386,6 +386,10 @@ app.post('/api/leads', (req, res) => {
       lead.brief || null,
       JSON.stringify(metadata),
     );
+    // Best-effort owner notification — never let SMTP break the 201 the form expects.
+    require('./mailer')
+      .sendLeadNotification(lead)
+      .catch((err) => console.error('lead notification email failed', err));
     res.status(201).json({ ok: true, id: r.lastInsertRowid });
   } catch (e) {
     res.status(500).json({ error: e.message });
