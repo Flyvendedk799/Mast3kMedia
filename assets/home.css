@@ -25,12 +25,14 @@
   display: grid;
   grid-template-columns: 1.35fr 0.85fr;
   gap: clamp(2rem, 5vw, 5rem);
-  align-items: end;
+  align-items: stretch;
 }
 .hero-lead-col { display: flex; flex-direction: column; }
 
 .hero-title {
-  font-size: clamp(3.2rem, 8.5vw, 7.5rem);
+  /* Sized so `Mindre snak.` holds one line in the left column at every width;
+     wrapping it turned the hero into four lines and a very tall header. */
+  font-size: clamp(3rem, 6.4vw, 6.8rem);
   line-height: 0.92;
   letter-spacing: -0.045em;
 }
@@ -45,15 +47,72 @@
 }
 .hero-lead b { color: var(--paper); font-weight: 500; }
 
-.hero-actions { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-top: 2.6rem; }
+.hero-actions {
+  display: flex; gap: 0.9rem; flex-wrap: wrap;
+  margin-top: 2.6rem;
+  margin-bottom: clamp(2.6rem, 5vw, 4rem);
+}
 
-.hero-spec { align-self: end; }
+/* The right column carries its own weight: capability block at the top,
+   datasheet pinned to the bottom so it lands with the button row. */
+.hero-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(1.8rem, 3vw, 2.6rem);
+  padding-top: 0.6rem;
+}
 
-.hero-stats { margin-top: clamp(3rem, 6vw, 5rem); }
+.hero-stack { border-top: 1px solid var(--hair); padding-top: 1.5rem; }
+.hero-stack-list {
+  list-style: none; margin: 1.3rem 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 0.5rem;
+}
+.hero-stack-note {
+  margin-top: 1.4rem;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 38ch;
+}
+
+/* Three most recent cases as hairline rows — proof between the stack and the
+   datasheet, and the whole block is one link into the work page. */
+.hero-recent {
+  display: block;
+  border-top: 1px solid var(--hair);
+  padding-top: 1.5rem;
+  color: inherit;
+}
+.hero-recent-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--hair);
+}
+.hero-recent-row:last-child { border-bottom: none; }
+.hero-recent .eyebrow { margin-bottom: 0.6rem; }
+.hero-recent-n {
+  font-family: var(--font-display); font-weight: 600; font-size: 0.95rem;
+  color: var(--ink-2);
+  transition: color 0.3s var(--ease);
+}
+.hero-recent-c {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim);
+  text-align: right;
+}
+.hero-recent:hover .hero-recent-n { color: var(--lime); }
+
+/* `auto` pins the rail to the bottom of the column so it lines up with the
+   datasheet in the next column; the button row supplies the minimum gap. */
+.hero-stats { margin-top: auto; }
 
 @media (max-width: 1040px) {
-  .hero-grid { grid-template-columns: 1fr; gap: 2.6rem; align-items: stretch; }
-  .hero-spec { max-width: 460px; }
+  .hero-grid { grid-template-columns: 1fr; gap: 2.8rem; }
+  .hero-side { gap: 2.2rem; padding-top: 0; }
+  .hero-actions { margin-bottom: 2.6rem; }
+  .hero-stack, .hero-recent { max-width: 560px; }
+  .hero-side .spec { max-width: 460px; }
 }
 @media (max-width: 860px) {
   .hero { padding-block: 8rem 3rem; }
