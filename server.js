@@ -57,6 +57,15 @@ db.exec(`
     blocks             TEXT    NOT NULL DEFAULT '[]',
     timeline           TEXT,
     services           TEXT,
+    results            TEXT,
+    subtitle           TEXT,
+    client_logo        TEXT,
+    industry           TEXT,
+    deliverables       TEXT,
+    role_scope         TEXT,
+    og_image           TEXT,
+    team               TEXT    NOT NULL DEFAULT '[]',
+    awards             TEXT    NOT NULL DEFAULT '[]',
     created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at         TEXT    NOT NULL DEFAULT (datetime('now'))
   );
@@ -104,6 +113,60 @@ try {
 
 try {
   db.prepare("ALTER TABLE projects ADD COLUMN services TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN results TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN subtitle TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN client_logo TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN industry TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN deliverables TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN role_scope TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN og_image TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN team TEXT NOT NULL DEFAULT '[]'").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN awards TEXT NOT NULL DEFAULT '[]'").run();
 } catch (e) {
   if (!/duplicate column/i.test(e.message)) throw e;
 }
@@ -203,6 +266,8 @@ const fmt = (row) => ({
   metrics:    safeJSON(row.metrics,    []),
   media:      safeJSON(row.media,      []),
   blocks:     safeJSON(row.blocks,     []),
+  team:       safeJSON(row.team,       []),
+  awards:     safeJSON(row.awards,     []),
   featured:   row.featured === 1,
 });
 
@@ -497,8 +562,10 @@ app.post('/api/admin/projects', requireAuth, (req, res) => {
         (title,slug,category,description,long_description,challenge,approach,
          tags,tech_stack,client,year,status,featured,sort_order,
          metrics,testimonial_text,testimonial_author,testimonial_role,
-         thumbnail_url,case_url,media,blocks,timeline,services)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         thumbnail_url,case_url,media,blocks,timeline,services,
+         results,subtitle,client_logo,industry,deliverables,
+         role_scope,og_image,team,awards)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).run(
       b.title, slug,
       b.category || 'Software',
@@ -523,6 +590,15 @@ app.post('/api/admin/projects', requireAuth, (req, res) => {
       JSON.stringify(Array.isArray(b.blocks) ? b.blocks : []),
       b.timeline           || null,
       b.services           || null,
+      b.results            || null,
+      b.subtitle           || null,
+      b.client_logo        || null,
+      b.industry           || null,
+      b.deliverables       || null,
+      b.role_scope         || null,
+      b.og_image           || null,
+      JSON.stringify(Array.isArray(b.team) ? b.team : []),
+      JSON.stringify(Array.isArray(b.awards) ? b.awards : []),
     );
     res.status(201).json(
       fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(r.lastInsertRowid))
@@ -547,7 +623,8 @@ app.put('/api/admin/projects/:id', requireAuth, (req, res) => {
         status=?,featured=?,sort_order=?,metrics=?,
         testimonial_text=?,testimonial_author=?,testimonial_role=?,
         thumbnail_url=?,case_url=?,media=?,blocks=?,
-        timeline=?,services=?
+        timeline=?,services=?,results=?,subtitle=?,client_logo=?,industry=?,deliverables=?,
+        role_scope=?,og_image=?,team=?,awards=?
       WHERE id=?
     `).run(
       b.title     ?? old.title,
@@ -574,6 +651,15 @@ app.put('/api/admin/projects/:id', requireAuth, (req, res) => {
       JSON.stringify(Array.isArray(b.blocks) ? b.blocks : safeJSON(old.blocks, [])),
       b.timeline      !== undefined ? b.timeline      : old.timeline,
       b.services      !== undefined ? b.services      : old.services,
+      b.results      !== undefined ? b.results      : old.results,
+      b.subtitle     !== undefined ? b.subtitle     : old.subtitle,
+      b.client_logo  !== undefined ? b.client_logo  : old.client_logo,
+      b.industry     !== undefined ? b.industry     : old.industry,
+      b.deliverables !== undefined ? b.deliverables : old.deliverables,
+      b.role_scope   !== undefined ? b.role_scope   : old.role_scope,
+      b.og_image     !== undefined ? b.og_image     : old.og_image,
+      JSON.stringify(Array.isArray(b.team) ? b.team : safeJSON(old.team, [])),
+      JSON.stringify(Array.isArray(b.awards) ? b.awards : safeJSON(old.awards, [])),
       req.params.id,
     );
     res.json(fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(req.params.id)));

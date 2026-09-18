@@ -420,3 +420,131 @@ body.lb-lock { overflow: hidden; }
   opacity: 0.8;
   text-decoration: underline;
 }
+
+/* ============================================================
+   Hero subtitle
+   ============================================================ */
+.page-subtitle {
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  color: var(--muted);
+  max-width: 52ch;
+  margin-top: 0.8rem;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   Results narrative section
+   ============================================================ */
+.results-content {
+  max-width: 72ch;
+}
+
+/* ============================================================
+   Team credits
+   ============================================================ */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.6rem;
+  margin-top: 2rem;
+}
+.team-card {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  transition: border-color 0.3s, transform 0.3s;
+}
+.team-card:hover {
+  border-color: var(--lime-edge, var(--lime));
+  transform: translateY(-2px);
+}
+.team-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 0.8rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--lime);
+  letter-spacing: 0.02em;
+}
+.team-name {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.2rem;
+}
+.team-role {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* ============================================================
+   Awards badges
+   ============================================================ */
+.awards-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.award-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  transition: border-color 0.3s, transform 0.3s;
+}
+.award-badge:hover {
+  border-color: var(--lime-edge, var(--lime));
+  transform: translateY(-2px);
+}
+.award-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--lime);
+  flex-shrink: 0;
+}
+.award-text {
+  display: flex;
+  flex-direction: column;
+}
+.award-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.award-org {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+/* ============================================================
+   Client logo in testimonial
+   ============================================================ */
+.quote-logo {
+  width: auto;
+  height: 40px;
+  max-width: 140px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+   Datasheet rail — support 5+ items with wrapping
+   ============================================================ */
+.rail-5 { grid-template-columns: repeat(5, 1fr); }
+@media (max-width: 900px) {
+  .rail-5 { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 640px) {
+  .rail-5 { grid-template-columns: repeat(2, 1fr); }
+}

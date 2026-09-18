@@ -799,6 +799,20 @@ tbody td {
   .blocks-add-row { flex-direction: column; align-items: stretch; }
   .blocks-add-row select { min-width: 0; }
 }
+
+/* ── Logo preview ── */
+.logo-preview {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  display: inline-flex;
+  align-items: center;
+}
+.logo-preview img {
+  display: block;
+}
 @media (max-width: 420px) {
   .stat-cards { grid-template-columns: 1fr; }
   .login-card { padding: 1.7rem; }

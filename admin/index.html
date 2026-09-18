@@ -256,6 +256,46 @@
             </div>
             <div class="field-row">
               <div class="field-group">
+                <label for="fieldSubtitle">
+                  Undertitel / Tagline
+                  <span class="label-hint">Kort slagord under overskriften</span>
+                </label>
+                <input id="fieldSubtitle" type="text" placeholder="Realtids analytics for moderne teams" />
+              </div>
+              <div class="field-group">
+                <label for="fieldIndustry">Branche</label>
+                <select id="fieldIndustry">
+                  <option value="">Vælg branche…</option>
+                  <option>SaaS</option>
+                  <option>FinTech</option>
+                  <option>E-commerce</option>
+                  <option>AI</option>
+                  <option>Healthcare</option>
+                  <option>Logistik</option>
+                  <option>Uddannelse</option>
+                  <option>Medie</option>
+                  <option>Andet</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fieldRoleScope">
+                  Vores rolle
+                  <span class="label-hint">f.eks. Lead agency eller Design partner</span>
+                </label>
+                <input id="fieldRoleScope" type="text" placeholder="Lead agency" />
+              </div>
+              <div class="field-group">
+                <label for="fieldDeliverables">
+                  Leverancer
+                  <span class="label-hint">f.eks. Web App · Design System · API</span>
+                </label>
+                <input id="fieldDeliverables" type="text" placeholder="Web App · Design System · API" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
                 <label for="fieldTimeline">
                   Tidslinje / Varighed
                   <span class="label-hint">f.eks. 9 uger eller Q1 2026</span>
@@ -321,6 +361,13 @@
                 </label>
                 <textarea id="fieldApproach" rows="4" placeholder="Hvordan løste vi det?"></textarea>
               </div>
+            </div>
+            <div class="field-group">
+              <label for="fieldResults">
+                Resultater
+                <span class="label-hint">Beskriv de konkrete resultater og forretningsmæssig effekt</span>
+              </label>
+              <textarea id="fieldResults" rows="4" placeholder="Hvad opnåede projektet? Beskriv den konkrete effekt."></textarea>
             </div>
           </div>
         </div>
@@ -396,6 +443,14 @@
                 <input id="fieldTestiRole" type="text" placeholder="CEO · NordSync" />
               </div>
             </div>
+            <div class="field-group">
+              <label for="fieldClientLogo">
+                Kundelogo URL
+                <span class="label-hint">SVG eller PNG logo til testimonial og faktaark</span>
+              </label>
+              <input id="fieldClientLogo" type="url" placeholder="https://…/logo.svg" />
+              <div id="logoPreview" class="logo-preview" hidden></div>
+            </div>
           </div>
         </div>
 
@@ -423,6 +478,13 @@
                 <span class="label-hint">Link til live projekt (valgfrit)</span>
               </label>
               <input id="fieldCaseUrl" type="url" placeholder="https://…" />
+            </div>
+            <div class="field-group">
+              <label for="fieldOgImage">
+                OG-billede URL
+                <span class="label-hint">Social sharing billede (1200×630). Bruger thumbnail hvis tom.</span>
+              </label>
+              <input id="fieldOgImage" type="url" placeholder="https://…/og-image.jpg" />
             </div>
             <div class="field-group">
               <label>
@@ -497,6 +559,44 @@
               </div>
             </div>
             <input type="hidden" id="fieldBlocks" value="[]" />
+          </div>
+        </div>
+
+        <!-- Section: Team -->
+        <div class="form-section">
+          <div class="form-section-head">
+            <span class="form-section-num">08</span>
+            <div>
+              <h3>Team</h3>
+              <p>Hvem stod bag projektet.</p>
+            </div>
+          </div>
+          <div class="form-fields">
+            <div id="teamRows"></div>
+            <div id="teamEmpty" class="media-empty">Ingen teammedlemmer endnu.</div>
+            <button type="button" class="btn-ghost" id="addTeamBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Tilføj teammedlem
+            </button>
+          </div>
+        </div>
+
+        <!-- Section: Awards -->
+        <div class="form-section">
+          <div class="form-section-head">
+            <span class="form-section-num">09</span>
+            <div>
+              <h3>Anerkendelser</h3>
+              <p>Udmærkelser og priser.</p>
+            </div>
+          </div>
+          <div class="form-fields">
+            <div id="awardsRows"></div>
+            <div id="awardsEmpty" class="media-empty">Ingen anerkendelser endnu.</div>
+            <button type="button" class="btn-ghost" id="addAwardBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Tilføj anerkendelse
+            </button>
           </div>
         </div>
 

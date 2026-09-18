@@ -520,6 +520,13 @@ function loadForm() {
     $('#fieldTimeline').value      = project.timeline || '';
     $('#fieldServices').value      = project.services || '';
     $('#fieldSortOrder').value     = project.sort_order ?? 0;
+    $('#fieldSubtitle').value      = project.subtitle || '';
+    $('#fieldClientLogo').value    = project.client_logo || '';
+    $('#fieldIndustry').value      = project.industry || '';
+    $('#fieldDeliverables').value  = project.deliverables || '';
+    $('#fieldRoleScope').value     = project.role_scope || '';
+    $('#fieldResults').value       = project.results || '';
+    $('#fieldOgImage').value       = project.og_image || '';
     $('#fieldFeatured').checked    = !!project.featured;
     $('#fieldDescription').value   = project.description || '';
     $('#fieldLongDesc').value      = project.long_description || '';
@@ -535,13 +542,22 @@ function loadForm() {
     S.metrics = Array.isArray(project.metrics)    ? project.metrics.map(m => ({...m})) : [];
     S.media   = Array.isArray(project.media)      ? project.media.map(m => ({...m})) : [];
     S.blocks  = Array.isArray(project.blocks)     ? project.blocks.map(b => ({...b})) : [];
+    S.team    = Array.isArray(project.team)       ? project.team.map(t => ({...t}))   : [];
+    S.awards  = Array.isArray(project.awards)     ? project.awards.map(a => ({...a})) : [];
   } else {
     // Clear all fields
     $('#projectForm').reset();
     $('#fieldId').value = '';
     $('#fieldTimeline').value = '';
     $('#fieldServices').value = '';
-    S.tags = []; S.tech = []; S.metrics = []; S.media = []; S.blocks = [];
+    $('#fieldSubtitle').value = '';
+    $('#fieldClientLogo').value = '';
+    $('#fieldIndustry').value = '';
+    $('#fieldDeliverables').value = '';
+    $('#fieldRoleScope').value = '';
+    $('#fieldResults').value = '';
+    $('#fieldOgImage').value = '';
+    S.tags = []; S.tech = []; S.metrics = []; S.media = []; S.blocks = []; S.team = []; S.awards = [];
     $('#fieldYear').value = new Date().getFullYear();
     $('#fieldSortOrder').value = 0;
   }
@@ -553,6 +569,8 @@ function loadForm() {
   renderMedia();
   initBlocksBuilder();
   renderBlocks();
+  renderTeamRows();
+  renderAwardRows();
 
   // Auto-slug from title
   $('#fieldTitle').oninput = () => {
@@ -569,6 +587,10 @@ function loadForm() {
   $('#fieldThumb').oninput = debounce(() => updateThumbPreview(), 500);
   updateThumbPreview();
 
+  // Client logo preview
+  $('#fieldClientLogo').oninput = debounce(() => updateLogoPreview(), 500);
+  updateLogoPreview();
+
   // Back button
   $('#formBackBtn').onclick = () => navigate('projects');
 
@@ -580,6 +602,10 @@ function loadForm() {
 
   // Add metric button
   $('#addMetricBtn').onclick = () => { S.metrics.push({ value:'', label:'' }); renderMetrics(); };
+
+  // Add team/award buttons
+  $('#addTeamBtn').onclick = () => { S.team.push({ name:'', role:'' }); renderTeamRows(); };
+  $('#addAwardBtn').onclick = () => { S.awards.push({ title:'', org:'' }); renderAwardRows(); };
 
   // Scroll form to top
   $('#formView').scrollTop = 0;
@@ -659,6 +685,64 @@ function renderMetrics() {
   });
   container.querySelectorAll('.metric-del').forEach(btn => {
     btn.onclick = () => { S.metrics.splice(parseInt(btn.dataset.del), 1); renderMetrics(); };
+  });
+}
+
+// ── Logo preview ───────────────────────────────────────────────────────────────
+function updateLogoPreview() {
+  const url = $('#fieldClientLogo').value.trim();
+  const preview = $('#logoPreview');
+  if (url) {
+    preview.hidden = false;
+    preview.innerHTML = `<img src="${esc(url)}" alt="Logo preview" onerror="this.parentElement.hidden=true" style="max-height:48px;max-width:160px;object-fit:contain" />`;
+  } else {
+    preview.hidden = true;
+  }
+}
+
+// ── Team rows ──────────────────────────────────────────────────────────────────
+function renderTeamRows() {
+  const container = $('#teamRows');
+  const empty = $('#teamEmpty');
+  container.innerHTML = '';
+  empty.hidden = S.team.length > 0;
+  S.team.forEach((t, i) => {
+    const row = el('div', 'metric-row');
+    row.innerHTML = `
+      <input type="text" placeholder="Navn" value="${esc(t.name)}" data-ti="${i}" data-field="name" />
+      <input type="text" placeholder="Rolle (f.eks. Tech Lead)" value="${esc(t.role)}" data-ti="${i}" data-field="role" />
+      <button type="button" class="ico-btn danger" data-ti="${i}" aria-label="Fjern">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    `;
+    row.querySelectorAll('input').forEach(inp => {
+      inp.oninput = () => { S.team[parseInt(inp.dataset.ti)][inp.dataset.field] = inp.value; };
+    });
+    row.querySelector('button').onclick = () => { S.team.splice(i, 1); renderTeamRows(); };
+    container.appendChild(row);
+  });
+}
+
+// ── Award rows ─────────────────────────────────────────────────────────────────
+function renderAwardRows() {
+  const container = $('#awardsRows');
+  const empty = $('#awardsEmpty');
+  container.innerHTML = '';
+  empty.hidden = S.awards.length > 0;
+  S.awards.forEach((a, i) => {
+    const row = el('div', 'metric-row');
+    row.innerHTML = `
+      <input type="text" placeholder="Titel (f.eks. Site of the Day)" value="${esc(a.title)}" data-ai="${i}" data-field="title" />
+      <input type="text" placeholder="Organisation (f.eks. Awwwards)" value="${esc(a.org || '')}" data-ai="${i}" data-field="org" />
+      <button type="button" class="ico-btn danger" data-ai="${i}" aria-label="Fjern">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    `;
+    row.querySelectorAll('input').forEach(inp => {
+      inp.oninput = () => { S.awards[parseInt(inp.dataset.ai)][inp.dataset.field] = inp.value; };
+    });
+    row.querySelector('button').onclick = () => { S.awards.splice(i, 1); renderAwardRows(); };
+    container.appendChild(row);
   });
 }
 
@@ -1159,6 +1243,15 @@ async function submitForm(status) {
     case_url:           $('#fieldCaseUrl').value.trim(),
     media:              collectMedia(),
     blocks:             S.blocks.map(b => ({ ...b })),
+    subtitle:           $('#fieldSubtitle').value.trim(),
+    client_logo:        $('#fieldClientLogo').value.trim(),
+    industry:           $('#fieldIndustry').value,
+    deliverables:       $('#fieldDeliverables').value.trim(),
+    role_scope:         $('#fieldRoleScope').value.trim(),
+    results:            $('#fieldResults').value.trim(),
+    og_image:           $('#fieldOgImage').value.trim(),
+    team:               S.team.filter(t => t.name || t.role),
+    awards:             S.awards.filter(a => a.title),
   };
 
   // Disable buttons
