@@ -62,6 +62,12 @@
       ? '<div class="ph-inner"><img src="' + ESC(p.thumbnail_url) + '" alt="' + ESC(p.title) + '" loading="lazy" /></div>'
       : '<div class="ph-inner"><span class="ph-label">' + ESC(p.category) + '</span></div>';
     var badge = ESC(p.category) + (p.year ? ' · ' + ESC(p.year) : '');
+    var tags = Array.isArray(p.tags) ? p.tags.filter(function(t){ return t && t.toLowerCase() !== String(p.category || '').toLowerCase(); }).slice(0, 3) : [];
+    var tagsHtml = tags.length
+      ? '<div class="wcard-tags">' +
+          tags.map(function(t){ return '<span class="tag">' + ESC(t) + '</span>'; }).join('') +
+        '</div>'
+      : '';
 
     return '<a href="case.html?slug=' + ESC(p.slug) + '" class="wcard" data-cat="' + ESC(filter) + '" data-reveal="up">' +
       '<div class="wcard-media' + (p.thumbnail_url ? '' : ' ph') + '">' +
@@ -72,6 +78,7 @@
       '<div class="wcard-info"><h3 class="wcard-title">' + ESC(p.title) + '</h3>' +
         '<span class="wcard-cat">' + ESC(p.year || '') + '</span></div>' +
       '<p class="wcard-desc">' + ESC(p.description || '') + '</p>' +
+      tagsHtml +
       '</a>';
   }
 

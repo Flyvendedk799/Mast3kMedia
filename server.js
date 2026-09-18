@@ -55,6 +55,8 @@ db.exec(`
     case_url           TEXT,
     media              TEXT    NOT NULL DEFAULT '[]',
     blocks             TEXT    NOT NULL DEFAULT '[]',
+    timeline           TEXT,
+    services           TEXT,
     created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at         TEXT    NOT NULL DEFAULT (datetime('now'))
   );
@@ -90,6 +92,18 @@ try {
 
 try {
   db.prepare("ALTER TABLE projects ADD COLUMN blocks TEXT NOT NULL DEFAULT '[]'").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN timeline TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN services TEXT").run();
 } catch (e) {
   if (!/duplicate column/i.test(e.message)) throw e;
 }
@@ -332,6 +346,7 @@ app.get('/api/projects/:slug', (req, res) => {
       year:          c.year,
       thumbnail_url: c.thumbnail_url,
       description:   c.description,
+      tags:          safeJSON(c.tags, []),
     }));
 
   res.json({ ...project, related });
@@ -482,8 +497,8 @@ app.post('/api/admin/projects', requireAuth, (req, res) => {
         (title,slug,category,description,long_description,challenge,approach,
          tags,tech_stack,client,year,status,featured,sort_order,
          metrics,testimonial_text,testimonial_author,testimonial_role,
-         thumbnail_url,case_url,media,blocks)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         thumbnail_url,case_url,media,blocks,timeline,services)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).run(
       b.title, slug,
       b.category || 'Software',
@@ -506,6 +521,8 @@ app.post('/api/admin/projects', requireAuth, (req, res) => {
       b.case_url           || null,
       JSON.stringify(Array.isArray(b.media) ? b.media : []),
       JSON.stringify(Array.isArray(b.blocks) ? b.blocks : []),
+      b.timeline           || null,
+      b.services           || null,
     );
     res.status(201).json(
       fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(r.lastInsertRowid))
@@ -529,7 +546,8 @@ app.put('/api/admin/projects/:id', requireAuth, (req, res) => {
         challenge=?,approach=?,tags=?,tech_stack=?,client=?,year=?,
         status=?,featured=?,sort_order=?,metrics=?,
         testimonial_text=?,testimonial_author=?,testimonial_role=?,
-        thumbnail_url=?,case_url=?,media=?,blocks=?
+        thumbnail_url=?,case_url=?,media=?,blocks=?,
+        timeline=?,services=?
       WHERE id=?
     `).run(
       b.title     ?? old.title,
@@ -554,6 +572,8 @@ app.put('/api/admin/projects/:id', requireAuth, (req, res) => {
       b.case_url      !== undefined ? b.case_url      : old.case_url,
       JSON.stringify(Array.isArray(b.media) ? b.media : safeJSON(old.media, [])),
       JSON.stringify(Array.isArray(b.blocks) ? b.blocks : safeJSON(old.blocks, [])),
+      b.timeline      !== undefined ? b.timeline      : old.timeline,
+      b.services      !== undefined ? b.services      : old.services,
       req.params.id,
     );
     res.json(fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(req.params.id)));
