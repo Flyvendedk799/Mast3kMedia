@@ -384,11 +384,11 @@
   };
   var isVideoItem = function(item){
     if (!item) return false;
-    if (item.type === 'video' || item.type === 'embed') return true;
+    if (item.type === 'video' || item.type === 'embed' || item.role === 'demo') return true;
     var p = inferProvider(item);
     return p === 'youtube' || p === 'vimeo' || p === 'mp4';
   };
-  var isVideo = function(item){ return item && item.type === 'video'; };
+  var isVideo = function(item){ return item && (item.type === 'video' || item.role === 'demo'); };
   var isImage = function(item){ return item && item.url && !isVideoItem(item); };
   var roleOf = function(item){ return (item && item.role) || 'gallery'; };
   var hide = function(node){ var s = node ? node.closest('section') : null; if (s) s.hidden = true; };
@@ -429,7 +429,11 @@
     if (!hero) return;
     var heroItem = byRole(media, 'hero')[0] || media.filter(isVideoItem)[0] || media.filter(isImage)[0] ||
       (p.thumbnail_url ? { type: 'image', url: p.thumbnail_url, caption: p.title, alt: p.title } : null);
-    if (!heroItem) return; // keep gradient placeholder (never hidden)
+    if (!heroItem) {
+      // Clear static demo play button / labels
+      hero.innerHTML = '<div class="ph-inner"><span class="ph-label">' + ESC(p.title || 'Produktvisning') + '</span></div>';
+      return;
+    }
     hero.classList.remove('ph', 'ph-bloom');
     if (isVideoItem(heroItem)) {
       var prov = inferProvider(heroItem);
@@ -468,9 +472,10 @@
       '<div class="feat-tabs" role="tablist">' +
         features.map(function(f, i){
           var label = (f.caption || f.alt || ('Visning ' + (i + 1)));
+          var desc = (f.alt && f.alt !== label) ? f.alt : (f.caption && f.caption !== label ? f.caption : '');
           return '<button class="feat-tab' + (i === 0 ? ' active' : '') + '" type="button" role="tab" aria-selected="' + (i === 0) + '" data-feature-index="' + i + '">' +
             '<span class="ft-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg></span>' +
-            '<span><h4>' + ESC(label) + '</h4><p>' + ESC(f.alt && f.alt !== label ? f.alt : 'Dokumenteret produktvisning fra casen.') + '</p></span>' +
+            '<span><h4>' + ESC(label) + '</h4>' + (desc ? '<p>' + ESC(desc) + '</p>' : '') + '</span>' +
           '</button>';
         }).join('') +
       '</div>' +
@@ -478,7 +483,9 @@
         '<span class="showcase-progress" style="width:100%"></span>' +
         '<div class="mock">' +
           '<div class="mock-bar"><div class="mock-dots"><span></span><span></span><span></span></div>' +
-            '<div class="mock-url"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' + ESC(domain) + '</div></div>' +
+            '<div class="mock-url">' + (p.case_url ? '<a href="' + ATTR(p.case_url) + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:6px">' : '') +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' +
+              ESC(domain) + (p.case_url ? ' <span style="font-size:10px;opacity:0.7">↗</span></a>' : '') + '</div></div>' +
           '<div class="mock-screen">' + imageMarkup(features[0], features[0].caption) +
             '<span class="mock-label">' + ESC(features[0].caption || 'Visning 1') + '</span></div>' +
         '</div>' +
@@ -585,11 +592,11 @@
     requestAnimationFrame(function(){ var c = wrap.querySelector('.chart'); if (c) c.classList.add('in'); });
   };
 
-  /* ============ SCREENSHOT GALLERY (role gallery + untagged) ============ */
+  /* ============ SCREENSHOT GALLERY (role gallery + demo + untagged) ============ */
   var renderGallery = function(p, media){
     var shots = document.querySelector('.shots');
     if (!shots) return;
-    var images = media.filter(function(m){ return isImage(m) && roleOf(m) === 'gallery'; });
+    var images = media.filter(function(m){ return isImage(m) && (roleOf(m) === 'gallery' || roleOf(m) === 'demo'); });
     if (!images.length) { hide(shots); return; }
     show(shots);
     var classes = ['wide', 'tall', 'half', 'half', 'full'];
@@ -624,7 +631,9 @@
     var html = '';
     if (desktop) {
       html += '<div class="mock"><div class="mock-bar"><div class="mock-dots"><span></span><span></span><span></span></div>' +
-        '<div class="mock-url"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' + ESC(domain) + '</div></div>' +
+        '<div class="mock-url">' + (p.case_url ? '<a href="' + ATTR(p.case_url) + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:6px">' : '') +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' +
+        ESC(domain) + (p.case_url ? ' <span style="font-size:10px;opacity:0.7">↗</span></a>' : '') + '</div></div>' +
         '<div class="mock-screen">' + imageMarkup(desktop, 'Desktop') + '<span class="mock-label">' + ESC(desktop.caption || 'Desktop') + '</span></div></div>';
     }
     if (mobile) {
@@ -655,15 +664,6 @@
     });
   };
 
-  /* ============ TECH STACK ============ */
-  var renderTech = function(p){
-    var techList = document.querySelector('.tech-list');
-    if (!techList) return;
-    if (!Array.isArray(p.tech_stack) || !p.tech_stack.length) { hide(techList); return; }
-    show(techList);
-    techList.innerHTML = p.tech_stack.map(function(t){ return '<span class="tag">' + ESC(t) + '</span>'; }).join('');
-  };
-
   /* ============ CHALLENGE / APPROACH ============ */
   var renderChallengeApproach = function(p){
     var caCols = null;
@@ -674,24 +674,84 @@
     var section = caCols.closest('section');
     if (!p.challenge && !p.approach) { if (section) section.hidden = true; return; }
     if (section) section.hidden = false;
-    var divs = caCols.querySelectorAll(':scope > div');
-    if (divs.length >= 2) {
-      if (p.challenge) { var c0 = divs[0].querySelector('p.muted'); if (c0) c0.textContent = p.challenge; }
-      else { divs[0].style.display = 'none'; }
-      if (p.approach) { var a0 = divs[1].querySelector('p.muted'); if (a0) a0.textContent = p.approach; }
-      else { divs[1].style.display = 'none'; }
+
+    var formatParagraphs = function(text){
+      if (!text) return '';
+      return String(text).split(/\n\s*\n|\r\n\s*\r\n/).map(function(para){
+        var trimmed = para.trim();
+        return trimmed ? '<p class="muted" style="margin-bottom:1rem">' + ESC(trimmed).replace(/\n/g, '<br>') + '</p>' : '';
+      }).join('');
+    };
+
+    var html = '';
+    if (p.challenge) {
+      html += '<div data-reveal="up">' +
+        '<span class="eyebrow">Udfordringen</span>' +
+        '<h2 class="ih-title display" style="margin-bottom:1.4rem">Problemet der skulle løses.</h2>' +
+        formatParagraphs(p.challenge) +
+      '</div>';
+    }
+    if (p.approach) {
+      html += '<div data-reveal="up">' +
+        '<span class="eyebrow">Tilgangen</span>' +
+        '<h2 class="ih-title display" style="margin-bottom:1.4rem">Sådan løste vi det.</h2>' +
+        formatParagraphs(p.approach) +
+      '</div>';
+    }
+
+    caCols.innerHTML = html;
+    if (!p.challenge || !p.approach) {
+      caCols.style.gridTemplateColumns = '1fr';
+    } else {
+      caCols.style.gridTemplateColumns = '';
     }
   };
 
-  /* ============ TESTIMONIAL ============ */
-  var renderTestimonial = function(p){
+  /* ============ TECH STACK & TESTIMONIAL ============ */
+  var renderTechAndTestimonial = function(p){
+    var techList = document.querySelector('.tech-list');
     var quote = document.querySelector('.case-quote');
-    if (!quote) return;
-    if (!p.testimonial_text) { quote.hidden = true; return; }
-    quote.hidden = false;
-    var qp = quote.querySelector('p'); if (qp) qp.textContent = '“' + p.testimonial_text + '”';
-    var st = quote.querySelector('.by strong'); if (st) st.textContent = p.testimonial_author || '';
-    var mo = quote.querySelector('.by .mono'); if (mo) mo.textContent = p.testimonial_role || '';
+    if (!techList || !quote) return;
+    var section = techList.closest('section');
+    var cols = techList.closest('.about-cols');
+
+    var hasTech = Array.isArray(p.tech_stack) && p.tech_stack.length > 0;
+    var hasTesti = Boolean(p.testimonial_text && p.testimonial_text.trim());
+
+    if (!hasTech && !hasTesti) {
+      if (section) section.hidden = true;
+      return;
+    }
+    if (section) section.hidden = false;
+
+    var techCol = techList.closest('div[data-reveal]');
+    if (hasTech) {
+      if (techCol) { techCol.hidden = false; techCol.style.display = ''; }
+      techList.innerHTML = p.tech_stack.map(function(t){ return '<span class="tag">' + ESC(t) + '</span>'; }).join('');
+    } else {
+      if (techCol) { techCol.hidden = true; techCol.style.display = 'none'; }
+    }
+
+    if (hasTesti) {
+      quote.hidden = false;
+      quote.style.display = '';
+      var qp = quote.querySelector('p'); if (qp) qp.textContent = '“' + p.testimonial_text.trim() + '”';
+      var st = quote.querySelector('.by strong'); if (st) st.textContent = p.testimonial_author || '';
+      var mo = quote.querySelector('.by .mono'); if (mo) mo.textContent = p.testimonial_role || '';
+      var ph = quote.querySelector('.by .ph');
+      if (ph) {
+        var initials = (p.testimonial_author || '').split(/\s+/).filter(Boolean).map(function(w){ return w[0]; }).slice(0, 2).join('').toUpperCase() || '★';
+        ph.innerHTML = '<span class="mono" style="font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;width:100%;height:100%">' + ESC(initials) + '</span>';
+      }
+    } else {
+      quote.hidden = true;
+      quote.style.display = 'none';
+    }
+
+    if (cols) {
+      if (!hasTech || !hasTesti) cols.style.gridTemplateColumns = '1fr';
+      else cols.style.gridTemplateColumns = '';
+    }
   };
 
   /* ============================================================
@@ -839,12 +899,18 @@
           ? '<img src="' + ATTR(r.thumbnail_url) + '" alt="' + ATTR(r.title) + '" loading="lazy">'
           : '<div class="ph-inner"><span class="ph-label">' + ESC(r.category || 'Case') + '</span></div>';
         var badge = ESC(r.category || 'Case') + (r.year ? ' · ' + ESC(r.year) : '');
+        var tagsHtml = '';
+        if (Array.isArray(r.tags) && r.tags.length) {
+          tagsHtml = '<div class="wcard-tags">' +
+            r.tags.slice(0, 3).map(function(t){ return '<span class="tag">' + ESC(t) + '</span>'; }).join('') +
+          '</div>';
+        }
         return '<a href="case.html?slug=' + ATTR(r.slug) + '" class="wcard related-card" data-reveal="up">' +
           '<div class="wcard-media' + (r.thumbnail_url ? '' : ' ph') + '">' + media +
             '<span class="wcard-badge">' + badge + '</span>' +
             '<span class="wcard-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></div>' +
           '<div class="wcard-info"><h3 class="wcard-title">' + ESC(r.title) + '</h3><span class="wcard-cat">' + ESC(r.year || '') + '</span></div>' +
-          '<p class="wcard-desc">' + ESC(r.description || '') + '</p></a>';
+          '<p class="wcard-desc">' + ESC(r.description || '') + '</p>' + tagsHtml + '</a>';
       }).join('');
       if (section) section.hidden = false;
     } else if (section) {
@@ -891,10 +957,21 @@
       /* hero tags */
       var heroTagRow = document.querySelector('.page-hero [data-reveal="up"]');
       if (heroTagRow) {
-        heroTagRow.innerHTML =
-          (p.category ? '<span class="tag">' + ESC(p.category) + '</span>' : '') +
-          (p.year ? '<span class="tag">' + ESC(p.year) + '</span>' : '') +
-          '<span class="pill-live"><span class="dot"></span>Live i produktion</span>';
+        var pillsHtml = '';
+        if (p.category) pillsHtml += '<span class="tag">' + ESC(p.category) + '</span>';
+        if (Array.isArray(p.tags)) {
+          p.tags.forEach(function(tag){
+            if (tag && tag.toLowerCase() !== String(p.category || '').toLowerCase()) {
+              pillsHtml += '<span class="tag">' + ESC(tag) + '</span>';
+            }
+          });
+        }
+        if (p.year) pillsHtml += '<span class="tag">' + ESC(p.year) + '</span>';
+        if (p.case_url) {
+          pillsHtml += '<a href="' + ATTR(p.case_url) + '" target="_blank" rel="noopener" class="pill-live is-link" title="Besøg live projekt">' +
+            '<span class="dot"></span>Live i produktion <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-left:4px;vertical-align:middle"><path d="M7 17 17 7M7 7h10v10"/></svg></a>';
+        }
+        heroTagRow.innerHTML = pillsHtml;
       }
 
       /* H1 */
@@ -902,23 +979,54 @@
       if (titleInner) titleInner.innerHTML = ESC(p.title) + '<span class="lime">.</span>';
 
       /* intro */
-      if (p.long_description) { var intro = document.querySelector('.page-intro'); if (intro) intro.textContent = p.long_description; }
+      var intro = document.querySelector('.page-intro');
+      if (intro) {
+        var introText = p.long_description || p.description || '';
+        if (introText) {
+          intro.textContent = introText;
+          intro.hidden = false;
+        } else {
+          intro.textContent = '';
+          intro.hidden = true;
+        }
+      }
 
       /* overview brief */
-      if (p.description) { var brief = document.querySelector('.case-brief'); if (brief) brief.textContent = p.description; }
+      var brief = document.querySelector('.case-brief');
+      if (brief) {
+        var briefSec = brief.closest('section');
+        if (p.description && p.long_description && p.description.trim() !== p.long_description.trim()) {
+          brief.textContent = p.description;
+          if (briefSec) briefSec.hidden = false;
+        } else {
+          if (briefSec) briefSec.hidden = true;
+        }
+      }
 
       /* meta list */
-      document.querySelectorAll('.cml').forEach(function(cml){
-        var dt = cml.querySelector('dt'); var dd = cml.querySelector('dd');
-        if (!dt || !dd) return;
-        var label = dt.textContent.trim();
-        if (label === 'Kunde' && p.client) dd.textContent = p.client;
-        if (label === 'År' && p.year) dd.textContent = p.year;
-        if (label === 'Platform' && p.category) dd.textContent = p.category;
-        if (label === 'Ydelser' && Array.isArray(p.tech_stack) && p.tech_stack.length) dd.textContent = p.tech_stack.slice(0, 3).join(' · ');
-        /* Duration was the one datasheet row nothing ever populated. */
-        if (label === 'Tidslinje' && (p.timeline || p.duration)) dd.textContent = p.timeline || p.duration;
-      });
+      var metaList = document.querySelector('.case-meta-list');
+      if (metaList) {
+        var metaItems = [];
+        if (p.client) metaItems.push({ label: 'Kunde', val: p.client });
+        var servicesVal = p.services || (Array.isArray(p.tags) && p.tags.length ? p.tags.slice(0, 3).join(' · ') : (Array.isArray(p.tech_stack) && p.tech_stack.length ? p.tech_stack.slice(0, 3).join(' · ') : ''));
+        if (servicesVal) metaItems.push({ label: 'Ydelser', val: servicesVal });
+        if (p.year) metaItems.push({ label: 'År', val: String(p.year) });
+        var timelineVal = p.timeline || p.duration;
+        if (timelineVal) metaItems.push({ label: 'Tidslinje', val: timelineVal, accent: true });
+        if (p.case_url) metaItems.push({ label: 'Live site', val: '<a href="' + ATTR(p.case_url) + '" target="_blank" rel="noopener" class="kv-link" style="color:var(--lime);display:inline-flex;align-items:center;gap:4px">Besøg live projekt <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></a>', isHtml: true });
+
+        if (metaItems.length) {
+          metaList.className = 'case-meta-list rail rail-' + Math.min(metaItems.length, 4);
+          metaList.innerHTML = metaItems.map(function(it){
+            return '<div class="cml rail-kv' + (it.accent ? ' is-accent' : '') + '">' +
+              '<dt class="kv-k">' + ESC(it.label) + '</dt>' +
+              '<dd class="kv-v">' + (it.isHtml ? it.val : ESC(it.val)) + '</dd></div>';
+          }).join('');
+          metaList.hidden = false;
+        } else {
+          metaList.hidden = true;
+        }
+      }
 
       /* metrics band */
       if (p.metrics && p.metrics.length) {
@@ -937,7 +1045,9 @@
       if (p.case_url) {
         var domain = p.case_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
         document.querySelectorAll('.mock-url').forEach(function(el){
-          el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' + ESC(domain);
+          el.innerHTML = '<a href="' + ATTR(p.case_url) + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:6px">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' +
+            ESC(domain) + ' <span style="font-size:10px;opacity:0.7">↗</span></a>';
         });
       }
 
@@ -950,8 +1060,7 @@
       renderGallery(p, media);
       renderDeviceShowcase(p, media);
       renderVideos(p, media);
-      renderTech(p);
-      renderTestimonial(p);
+      renderTechAndTestimonial(p);
 
       /* custom blocks */
       renderBlocks(p);

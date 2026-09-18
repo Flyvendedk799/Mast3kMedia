@@ -321,6 +321,23 @@
 .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: clamp(1.2rem, 2.4vw, 2rem); }
 .related-card .wcard-media { position: relative; aspect-ratio: 16/10; overflow: hidden; border-radius: var(--radius-2xl); }
 .related-card .wcard-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.related-card .wcard-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 0.75rem;
+}
+.related-card .wcard-tags .tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--bg-soft, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--line);
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
 @media (max-width: 640px) { .related-grid { grid-template-columns: 1fr; } }
 
 /* ============================================================
@@ -381,4 +398,25 @@ body.lb-lock { overflow: hidden; }
   .shot .case-media-img, .block-shot .case-media-img,
   .lightbox-btn, .vid .play-mini, .tl-dot { transition: none !important; }
   .shot:hover .case-media-img, .block-shot:hover .case-media-img { transform: none; }
+}
+
+/* Interactive link pills & datasheet link */
+.pill-live.is-link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.pill-live.is-link:hover {
+  background: rgba(0, 255, 136, 0.14);
+  border-color: var(--lime);
+  color: #fff;
+}
+.kv-link {
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+.kv-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
 }

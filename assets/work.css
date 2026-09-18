@@ -200,3 +200,21 @@
   transition: all 0.3s var(--ease);
 }
 .work-empty .work-reset:hover { background: var(--lime); color: var(--on-lime); }
+
+/* ── Work card tags ── */
+.wcard-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.8rem 1.4rem 1.3rem;
+  margin-top: auto;
+}
+.wcard-tags .tag {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 0.25em 0.65em;
+  color: var(--muted);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-full);
+}

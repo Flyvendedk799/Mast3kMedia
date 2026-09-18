@@ -56,6 +56,8 @@ db.exec(`
     case_url           TEXT,
     media              TEXT    NOT NULL DEFAULT '[]',
     blocks             TEXT    NOT NULL DEFAULT '[]',
+    timeline           TEXT,
+    services           TEXT,
     created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at         TEXT    NOT NULL DEFAULT (datetime('now'))
   );
@@ -74,6 +76,18 @@ try {
 
 try {
   db.prepare("ALTER TABLE projects ADD COLUMN blocks TEXT NOT NULL DEFAULT '[]'").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN timeline TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN services TEXT").run();
 } catch (e) {
   if (!/duplicate column/i.test(e.message)) throw e;
 }
@@ -218,6 +232,8 @@ const PROJECT_FIELDS = {
                        .describe('Case-page media gallery. Use real product screenshots/video only. Supports role/provider/poster.'),
   blocks:             z.array(BLOCK_ITEM).optional()
                        .describe('Ordered custom content blocks (richtext, timeline, gallery, video, before_after, metrics, quote, embed) rendered after the core sections.'),
+  timeline:           z.string().optional().describe('Project timeline or duration (e.g. "8 uger" or "Q1 2026")'),
+  services:           z.string().optional().describe('Services delivered (e.g. "Strategi · Design · Engineering")'),
 };
 
 server.tool(
@@ -232,8 +248,8 @@ server.tool(
           (title,slug,category,description,long_description,challenge,approach,
            tags,tech_stack,client,year,status,featured,sort_order,
            metrics,testimonial_text,testimonial_author,testimonial_role,
-           thumbnail_url,case_url,media,blocks)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+           thumbnail_url,case_url,media,blocks,timeline,services)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).run(
         b.title, slug,
         b.category        || 'Software',
@@ -256,6 +272,8 @@ server.tool(
         b.case_url           || null,
         JSON.stringify(b.media ?? []),
         JSON.stringify(b.blocks ?? []),
+        b.timeline        || null,
+        b.services        || null,
       );
       const created = fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(r.lastInsertRowid));
       return ok(`Created project "${created.title}" (slug: ${created.slug}, id: ${created.id})\n\n${JSON.stringify(created, null, 2)}`);
@@ -292,7 +310,8 @@ server.tool(
           challenge=?,approach=?,tags=?,tech_stack=?,client=?,year=?,
           status=?,featured=?,sort_order=?,metrics=?,
           testimonial_text=?,testimonial_author=?,testimonial_role=?,
-          thumbnail_url=?,case_url=?,media=?,blocks=?
+          thumbnail_url=?,case_url=?,media=?,blocks=?,
+          timeline=?,services=?
         WHERE id=?
       `).run(
         b.title            ?? old.title,
@@ -317,6 +336,8 @@ server.tool(
         b.case_url      !== undefined ? b.case_url      : old.case_url,
         JSON.stringify(Array.isArray(b.media) ? b.media : safeJSON(old.media, [])),
         JSON.stringify(Array.isArray(b.blocks) ? b.blocks : safeJSON(old.blocks, [])),
+        b.timeline      !== undefined ? b.timeline      : old.timeline,
+        b.services      !== undefined ? b.services      : old.services,
         old.id,
       );
       const updated = fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(old.id));

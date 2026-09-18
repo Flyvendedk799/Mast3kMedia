@@ -517,6 +517,8 @@ function loadForm() {
     $('#fieldCategory').value      = project.category;
     $('#fieldYear').value          = project.year;
     $('#fieldClient').value        = project.client || '';
+    $('#fieldTimeline').value      = project.timeline || '';
+    $('#fieldServices').value      = project.services || '';
     $('#fieldSortOrder').value     = project.sort_order ?? 0;
     $('#fieldFeatured').checked    = !!project.featured;
     $('#fieldDescription').value   = project.description || '';
@@ -537,6 +539,8 @@ function loadForm() {
     // Clear all fields
     $('#projectForm').reset();
     $('#fieldId').value = '';
+    $('#fieldTimeline').value = '';
+    $('#fieldServices').value = '';
     S.tags = []; S.tech = []; S.metrics = []; S.media = []; S.blocks = [];
     $('#fieldYear').value = new Date().getFullYear();
     $('#fieldSortOrder').value = 0;
@@ -1141,6 +1145,8 @@ async function submitForm(status) {
     tags:               [...S.tags],
     tech_stack:         [...S.tech],
     client:             $('#fieldClient').value.trim(),
+    timeline:           $('#fieldTimeline').value.trim(),
+    services:           $('#fieldServices').value.trim(),
     year:               parseInt($('#fieldYear').value) || new Date().getFullYear(),
     status,
     featured:           $('#fieldFeatured').checked,
