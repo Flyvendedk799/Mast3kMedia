@@ -664,6 +664,46 @@
     });
   };
 
+  /* ============ RESULTS NARRATIVE ============ */
+  var renderResults = function(p){
+    var section = document.querySelector('.results-section');
+    if (!p.results) {
+      if (section) section.hidden = true;
+      return;
+    }
+    if (!section) {
+      section = document.createElement('section');
+      section.className = 'section-pad results-section';
+      // Insert after challenge/approach section
+      var caCols = null;
+      document.querySelectorAll('.about-cols').forEach(function(c){
+        if (c.querySelector('.eyebrow') && /udfordring|tilgang/i.test(c.textContent)) caCols = c;
+      });
+      var caSection = caCols ? caCols.closest('section') : null;
+      if (caSection && caSection.nextElementSibling) {
+        caSection.parentNode.insertBefore(section, caSection.nextElementSibling);
+      } else {
+        var main = document.getElementById('main') || document.querySelector('main');
+        if (main) main.appendChild(section);
+      }
+    }
+    section.hidden = false;
+
+    var formatParagraphs = function(text){
+      if (!text) return '';
+      return String(text).split(/\n\s*\n|\r\n\s*\r\n/).map(function(para){
+        var trimmed = para.trim();
+        return trimmed ? '<p class="muted" style="margin-bottom:1rem">' + ESC(trimmed).replace(/\n/g, '<br>') + '</p>' : '';
+      }).join('');
+    };
+
+    section.innerHTML = '<div class="shell"><div class="results-content" data-reveal="up">' +
+      '<span class="eyebrow">Resultater</span>' +
+      '<h2 class="ih-title display" style="margin-bottom:1.4rem">Hvad vi opnåede.</h2>' +
+      formatParagraphs(p.results) +
+    '</div></div>';
+  };
+
   /* ============ CHALLENGE / APPROACH ============ */
   var renderChallengeApproach = function(p){
     var caCols = null;
@@ -741,7 +781,10 @@
       var ph = quote.querySelector('.by .ph');
       if (ph) {
         var initials = (p.testimonial_author || '').split(/\s+/).filter(Boolean).map(function(w){ return w[0]; }).slice(0, 2).join('').toUpperCase() || '★';
-        ph.innerHTML = '<span class="mono" style="font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;width:100%;height:100%">' + ESC(initials) + '</span>';
+        var avatarHtml = p.client_logo
+          ? '<img src="' + ATTR(p.client_logo) + '" alt="' + ATTR(p.testimonial_author || p.client || '') + '" class="quote-logo" />'
+          : '<div class="ph" style="width:48px;height:48px;border-radius:var(--radius-full);display:grid;place-items:center;font-size:1.1rem;font-weight:600;letter-spacing:0.02em">' + ESC(initials) + '</div>';
+        ph.outerHTML = avatarHtml;
       }
     } else {
       quote.hidden = true;
@@ -752,6 +795,79 @@
       if (!hasTech || !hasTesti) cols.style.gridTemplateColumns = '1fr';
       else cols.style.gridTemplateColumns = '';
     }
+  };
+
+  /* ============ TEAM CREDITS ============ */
+  var renderTeam = function(p){
+    var section = document.querySelector('.team-section');
+    var team = Array.isArray(p.team) ? p.team.filter(function(t){ return t && (t.name || t.role); }) : [];
+    if (!team.length) {
+      if (section) section.hidden = true;
+      return;
+    }
+    if (!section) {
+      section = document.createElement('section');
+      section.className = 'section-pad team-section';
+      // Insert after tech/testimonial section
+      var techList = document.querySelector('.tech-list');
+      var techSection = techList ? techList.closest('section') : null;
+      if (techSection && techSection.nextElementSibling) {
+        techSection.parentNode.insertBefore(section, techSection.nextElementSibling);
+      } else {
+        var blocks = document.getElementById('case-blocks');
+        if (blocks) blocks.parentNode.insertBefore(section, blocks);
+      }
+    }
+    section.hidden = false;
+    section.innerHTML = '<div class="shell">' +
+      '<div class="ih" data-reveal="up"><span class="eyebrow">Teamet</span>' +
+      '<h2 class="ih-title display">Hvem der stod bag.</h2></div>' +
+      '<div class="team-grid" data-reveal="stagger">' +
+        team.map(function(t){
+          var initials = (t.name || '').split(/\s+/).map(function(w){ return w.charAt(0); }).join('').substring(0, 2).toUpperCase() || '★';
+          return '<div class="team-card">' +
+            '<div class="team-avatar">' + ESC(initials) + '</div>' +
+            '<div class="team-name">' + ESC(t.name || '') + '</div>' +
+            '<div class="team-role">' + ESC(t.role || '') + '</div>' +
+          '</div>';
+        }).join('') +
+      '</div></div>';
+  };
+
+  /* ============ AWARDS ============ */
+  var renderAwards = function(p){
+    var section = document.querySelector('.awards-section');
+    var awards = Array.isArray(p.awards) ? p.awards.filter(function(a){ return a && a.title; }) : [];
+    if (!awards.length) {
+      if (section) section.hidden = true;
+      return;
+    }
+    if (!section) {
+      section = document.createElement('section');
+      section.className = 'section-pad awards-section';
+      // Insert after team section, or after tech/testimonial
+      var teamSection = document.querySelector('.team-section');
+      var anchor = teamSection || (document.querySelector('.tech-list') ? document.querySelector('.tech-list').closest('section') : null);
+      if (anchor && anchor.nextElementSibling) {
+        anchor.parentNode.insertBefore(section, anchor.nextElementSibling);
+      } else {
+        var blocks = document.getElementById('case-blocks');
+        if (blocks) blocks.parentNode.insertBefore(section, blocks);
+      }
+    }
+    section.hidden = false;
+    section.innerHTML = '<div class="shell">' +
+      '<div class="ih" data-reveal="up"><span class="eyebrow">Anerkendelser</span>' +
+      '<h2 class="ih-title display">Udmærkelser &amp; priser.</h2></div>' +
+      '<div class="awards-row" data-reveal="stagger">' +
+        awards.map(function(a){
+          return '<div class="award-badge">' +
+            '<svg class="award-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 15l-3.5 2 .67-3.89L6 10.13l3.92-.57L12 6l2.08 3.56 3.92.57-2.84 2.98L15.83 17z"/></svg>' +
+            '<div class="award-text"><span class="award-title">' + ESC(a.title) + '</span>' +
+            (a.org ? '<span class="award-org">' + ESC(a.org) + '</span>' : '') +
+            '</div></div>';
+        }).join('') +
+      '</div></div>';
   };
 
   /* ============================================================
@@ -950,6 +1066,24 @@
       var metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc && p.description) metaDesc.content = p.description;
 
+      /* OG + Twitter meta */
+      var ogImg = p.og_image || p.thumbnail_url;
+      if (ogImg) {
+        var ogImgTag = document.querySelector('meta[property="og:image"]');
+        var twImgTag = document.querySelector('meta[name="twitter:image"]');
+        if (ogImgTag) ogImgTag.content = ogImg;
+        if (twImgTag) twImgTag.content = ogImg;
+      }
+      var ogTitle = document.querySelector('meta[property="og:title"]');
+      var twTitle = document.querySelector('meta[name="twitter:title"]');
+      if (ogTitle) ogTitle.content = p.title + ' — Case · Mast3kMedia';
+      if (twTitle) twTitle.content = p.title + ' — Case · Mast3kMedia';
+      var ogDesc = document.querySelector('meta[property="og:description"]');
+      var twDesc = document.querySelector('meta[name="twitter:description"]');
+      var descText = p.description || '';
+      if (ogDesc) ogDesc.content = descText;
+      if (twDesc) twDesc.content = descText;
+
       /* breadcrumb */
       var crumb = document.querySelector('.crumb');
       if (crumb) crumb.innerHTML = '<a href="index.html">Forside</a> <span class="sep">/</span> <a href="arbejde.html">Arbejde</a> <span class="sep">/</span> ' + ESC(p.title);
@@ -977,6 +1111,21 @@
       /* H1 */
       var titleInner = document.querySelector('.page-title .line-inner');
       if (titleInner) titleInner.innerHTML = ESC(p.title) + '<span class="lime">.</span>';
+
+      /* subtitle */
+      var subtitleEl = document.querySelector('.page-subtitle');
+      if (p.subtitle) {
+        if (!subtitleEl) {
+          subtitleEl = document.createElement('p');
+          subtitleEl.className = 'page-subtitle';
+          subtitleEl.setAttribute('data-reveal', 'up');
+          var titleWrap = document.querySelector('.page-title');
+          if (titleWrap) titleWrap.parentNode.insertBefore(subtitleEl, titleWrap.nextSibling);
+        }
+        if (subtitleEl) { subtitleEl.textContent = p.subtitle; subtitleEl.hidden = false; }
+      } else if (subtitleEl) {
+        subtitleEl.hidden = true;
+      }
 
       /* intro */
       var intro = document.querySelector('.page-intro');
@@ -1008,15 +1157,18 @@
       if (metaList) {
         var metaItems = [];
         if (p.client) metaItems.push({ label: 'Kunde', val: p.client });
+        if (p.industry) metaItems.push({ label: 'Branche', val: p.industry });
         var servicesVal = p.services || (Array.isArray(p.tags) && p.tags.length ? p.tags.slice(0, 3).join(' · ') : (Array.isArray(p.tech_stack) && p.tech_stack.length ? p.tech_stack.slice(0, 3).join(' · ') : ''));
         if (servicesVal) metaItems.push({ label: 'Ydelser', val: servicesVal });
+        if (p.deliverables) metaItems.push({ label: 'Leverancer', val: p.deliverables });
+        if (p.role_scope) metaItems.push({ label: 'Rolle', val: p.role_scope });
         if (p.year) metaItems.push({ label: 'År', val: String(p.year) });
         var timelineVal = p.timeline || p.duration;
         if (timelineVal) metaItems.push({ label: 'Tidslinje', val: timelineVal, accent: true });
         if (p.case_url) metaItems.push({ label: 'Live site', val: '<a href="' + ATTR(p.case_url) + '" target="_blank" rel="noopener" class="kv-link" style="color:var(--lime);display:inline-flex;align-items:center;gap:4px">Besøg live projekt <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></a>', isHtml: true });
 
         if (metaItems.length) {
-          metaList.className = 'case-meta-list rail rail-' + Math.min(metaItems.length, 4);
+          metaList.className = 'case-meta-list rail rail-' + Math.min(metaItems.length, 5);
           metaList.innerHTML = metaItems.map(function(it){
             return '<div class="cml rail-kv' + (it.accent ? ' is-accent' : '') + '">' +
               '<dt class="kv-k">' + ESC(it.label) + '</dt>' +
@@ -1055,12 +1207,15 @@
       renderHero(p, media);
       renderMetricChart(p);
       renderChallengeApproach(p);
+      renderResults(p);
       renderFeatureShowcase(p, media);
       renderBeforeAfter(p, media);
       renderGallery(p, media);
       renderDeviceShowcase(p, media);
       renderVideos(p, media);
       renderTechAndTestimonial(p);
+      renderTeam(p);
+      renderAwards(p);
 
       /* custom blocks */
       renderBlocks(p);

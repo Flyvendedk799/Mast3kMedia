@@ -58,6 +58,15 @@ db.exec(`
     blocks             TEXT    NOT NULL DEFAULT '[]',
     timeline           TEXT,
     services           TEXT,
+    results            TEXT,
+    subtitle           TEXT,
+    client_logo        TEXT,
+    industry           TEXT,
+    deliverables       TEXT,
+    role_scope         TEXT,
+    og_image           TEXT,
+    team               TEXT    NOT NULL DEFAULT '[]',
+    awards             TEXT    NOT NULL DEFAULT '[]',
     created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at         TEXT    NOT NULL DEFAULT (datetime('now'))
   );
@@ -92,6 +101,60 @@ try {
   if (!/duplicate column/i.test(e.message)) throw e;
 }
 
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN results TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN subtitle TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN client_logo TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN industry TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN deliverables TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN role_scope TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN og_image TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN team TEXT NOT NULL DEFAULT '[]'").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE projects ADD COLUMN awards TEXT NOT NULL DEFAULT '[]'").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const slugify = s =>
   String(s).toLowerCase().trim()
@@ -107,6 +170,8 @@ const fmt = row => ({
   metrics:    safeJSON(row.metrics,    []),
   media:      safeJSON(row.media,      []),
   blocks:     safeJSON(row.blocks,     []),
+  team:       safeJSON(row.team,       []),
+  awards:     safeJSON(row.awards,     []),
   featured:   row.featured === 1,
 });
 
@@ -234,6 +299,15 @@ const PROJECT_FIELDS = {
                        .describe('Ordered custom content blocks (richtext, timeline, gallery, video, before_after, metrics, quote, embed) rendered after the core sections.'),
   timeline:           z.string().optional().describe('Project timeline or duration (e.g. "8 uger" or "Q1 2026")'),
   services:           z.string().optional().describe('Services delivered (e.g. "Strategi · Design · Engineering")'),
+  results:            z.string().optional().describe('Results narrative describing outcomes and business impact'),
+  subtitle:           z.string().optional().describe('Project subtitle or tagline shown in hero'),
+  client_logo:        z.string().optional().describe('Client logo image URL (SVG/PNG)'),
+  industry:           z.string().optional().describe('Industry or sector (e.g. SaaS, FinTech, Healthcare)'),
+  deliverables:       z.string().optional().describe('What was delivered (e.g. "Web App · Design System · API")'),
+  role_scope:         z.string().optional().describe('Agency role or scope (e.g. "Lead agency", "Design partner")'),
+  og_image:           z.string().optional().describe('Custom Open Graph image URL for social sharing (1200×630)'),
+  team:               z.array(z.object({ name: z.string(), role: z.string() })).optional().describe('Team members who worked on the project'),
+  awards:             z.array(z.object({ title: z.string(), org: z.string().optional() })).optional().describe('Awards and recognition received'),
 };
 
 server.tool(
@@ -248,8 +322,10 @@ server.tool(
           (title,slug,category,description,long_description,challenge,approach,
            tags,tech_stack,client,year,status,featured,sort_order,
            metrics,testimonial_text,testimonial_author,testimonial_role,
-           thumbnail_url,case_url,media,blocks,timeline,services)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+           thumbnail_url,case_url,media,blocks,timeline,services,
+           results,subtitle,client_logo,industry,deliverables,
+           role_scope,og_image,team,awards)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).run(
         b.title, slug,
         b.category        || 'Software',
@@ -274,6 +350,15 @@ server.tool(
         JSON.stringify(b.blocks ?? []),
         b.timeline        || null,
         b.services        || null,
+        b.results         || null,
+        b.subtitle        || null,
+        b.client_logo     || null,
+        b.industry        || null,
+        b.deliverables    || null,
+        b.role_scope      || null,
+        b.og_image        || null,
+        JSON.stringify(b.team ?? []),
+        JSON.stringify(b.awards ?? []),
       );
       const created = fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(r.lastInsertRowid));
       return ok(`Created project "${created.title}" (slug: ${created.slug}, id: ${created.id})\n\n${JSON.stringify(created, null, 2)}`);
@@ -311,7 +396,8 @@ server.tool(
           status=?,featured=?,sort_order=?,metrics=?,
           testimonial_text=?,testimonial_author=?,testimonial_role=?,
           thumbnail_url=?,case_url=?,media=?,blocks=?,
-          timeline=?,services=?
+          timeline=?,services=?,results=?,subtitle=?,client_logo=?,industry=?,deliverables=?,
+          role_scope=?,og_image=?,team=?,awards=?
         WHERE id=?
       `).run(
         b.title            ?? old.title,
@@ -338,6 +424,15 @@ server.tool(
         JSON.stringify(Array.isArray(b.blocks) ? b.blocks : safeJSON(old.blocks, [])),
         b.timeline      !== undefined ? b.timeline      : old.timeline,
         b.services      !== undefined ? b.services      : old.services,
+        b.results       !== undefined ? b.results       : old.results,
+        b.subtitle      !== undefined ? b.subtitle      : old.subtitle,
+        b.client_logo   !== undefined ? b.client_logo   : old.client_logo,
+        b.industry      !== undefined ? b.industry      : old.industry,
+        b.deliverables  !== undefined ? b.deliverables  : old.deliverables,
+        b.role_scope    !== undefined ? b.role_scope    : old.role_scope,
+        b.og_image      !== undefined ? b.og_image      : old.og_image,
+        JSON.stringify(Array.isArray(b.team) ? b.team : safeJSON(old.team, [])),
+        JSON.stringify(Array.isArray(b.awards) ? b.awards : safeJSON(old.awards, [])),
         old.id,
       );
       const updated = fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(old.id));
