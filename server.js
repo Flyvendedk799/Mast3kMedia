@@ -21,6 +21,7 @@ const PORT       = process.env.PORT        || 3000;
 const JWT_SECRET = process.env.JWT_SECRET  || 'mast3k_dev_secret_CHANGE_ME';
 const ADMIN_USER = process.env.ADMIN_USER  || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS  || 'abe12345';
+const MCP_AUTH_TOKEN = process.env.MCP_AUTH_TOKEN || '';
 
 // ── Database ─────────────────────────────────────────────────────────────────
 const DB_DIR = path.join(__dirname, 'db');
@@ -998,16 +999,38 @@ app.patch('/api/admin/blog/posts/:id/status', requireAuth, (req, res) => {
   res.json(fmtPost(db.prepare(`${POST_SELECT} WHERE p.id=?`).get(req.params.id)));
 });
 
-// ── Start ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  const W = 48;
-  const line = '─'.repeat(W);
-  console.log(`\n  ┌${line}┐`);
-  console.log(`  │  Mast3kMedia${' '.repeat(W - 13)}│`);
-  console.log(`  ├${line}┤`);
-  console.log(`  │  Site   →  http://localhost:${PORT}${' '.repeat(W - 26 - PORT.toString().length)}│`);
-  console.log(`  │  Admin  →  http://localhost:${PORT}/admin${' '.repeat(W - 32 - PORT.toString().length)}│`);
-  console.log(`  │  API    →  http://localhost:${PORT}/api/projects${' '.repeat(W - 38 - PORT.toString().length)}│`);
-  console.log(`  └${line}┘`);
-  console.log(`\n  Login: ${ADMIN_USER} / ${ADMIN_PASS.startsWith('$2') ? '[bcrypt hash]' : ADMIN_PASS}\n`);
+// ── MCP (Streamable HTTP) + Start ─────────────────────────────────────────────
+async function start() {
+  const { mountMcpHttp } = await import('./lib/mcp-http.mjs');
+  const { path: mcpPath } = mountMcpHttp(app, {
+    db,
+    mcpAuthToken: MCP_AUTH_TOKEN,
+    jwtSecret: JWT_SECRET,
+    path: '/mcp',
+  });
+
+  app.listen(PORT, () => {
+    const W = 48;
+    const line = '─'.repeat(W);
+    console.log(`\n  ┌${line}┐`);
+    console.log(`  │  Mast3kMedia${' '.repeat(W - 13)}│`);
+    console.log(`  ├${line}┤`);
+    console.log(`  │  Site   →  http://localhost:${PORT}${' '.repeat(W - 26 - PORT.toString().length)}│`);
+    console.log(`  │  Admin  →  http://localhost:${PORT}/admin${' '.repeat(W - 32 - PORT.toString().length)}│`);
+    console.log(`  │  API    →  http://localhost:${PORT}/api/projects${' '.repeat(W - 38 - PORT.toString().length)}│`);
+    console.log(`  │  MCP    →  http://localhost:${PORT}${mcpPath}${' '.repeat(Math.max(0, W - 26 - PORT.toString().length - mcpPath.length))}│`);
+    console.log(`  └${line}┘`);
+    console.log(`\n  Login: ${ADMIN_USER} / ${ADMIN_PASS.startsWith('$2') ? '[bcrypt hash]' : ADMIN_PASS}`);
+    if (MCP_AUTH_TOKEN) {
+      console.log(`  MCP auth: MCP_AUTH_TOKEN is set (Bearer)`);
+    } else {
+      console.log(`  MCP auth: admin JWT accepted; set MCP_AUTH_TOKEN for a dedicated bot token`);
+    }
+    console.log('');
+  });
+}
+
+start().catch(err => {
+  console.error('Failed to start:', err);
+  process.exit(1);
 });
