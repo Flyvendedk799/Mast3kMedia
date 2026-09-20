@@ -351,7 +351,7 @@
       </div>
       <div class="footer-col"><span class="mono">Sitemap</span><a href="ydelser.html" class="ulink">Ydelser</a><a href="pris.html" class="ulink">Priser</a><a href="arbejde.html" class="ulink">Arbejde</a><a href="oss.html" class="ulink">Open Source</a><a href="saas.html" class="ulink">SaaS</a><a href="om.html" class="ulink">Om os</a><a href="kontakt.html" class="ulink">Kontakt</a></div>
       <div class="footer-col"><span class="mono">Social</span><a href="#" class="ulink">LinkedIn</a><a href="#" class="ulink">GitHub</a><a href="#" class="ulink">Instagram</a><a href="#" class="ulink">Dribbble</a></div>
-      <div class="footer-col"><span class="mono">Kontor</span><span class="faint">København · DK</span><span class="faint">hej@mast3kmedia.dk</span><span class="faint">+45 00 00 00 00</span></div>
+      <div class="footer-col"><span class="mono">Kontor</span><span class="faint">København · DK</span><span class="faint">hej@mast3kmedia.dk</span><span class="faint">+45 23 82 24 82</span></div>
     </div>
     <div class="footer-bottom"><span class="mono">© 2026 Mast3kMedia ApS</span><span class="mono">Designet &amp; kodet i København</span></div>
   </div>
@@ -564,6 +564,13 @@
       return { value: String(m.value || ''), label: String(m.label || ''), shortLabel: metricShortLabel(m.label, i), number: n };
     }).filter(function(r){ return Number.isFinite(r.number); });
     if (!rows.length) { hide(wrap); return; }
+    // Guard: hide chart when metric scales are incomparable (>10× difference)
+    var allNums = rows.map(function(r){ return Math.abs(r.number); }).filter(function(n){ return n > 0; });
+    if (allNums.length >= 2) {
+      var maxN = Math.max.apply(null, allNums);
+      var minN = Math.min.apply(null, allNums);
+      if (maxN / minN > 10) { hide(wrap); return; }
+    }
     show(wrap);
     var max = Math.max.apply(null, rows.map(function(r){ return r.number; }));
     var yTop = Math.max(1, Math.ceil(max / 5) * 5);
@@ -1093,14 +1100,8 @@
       if (heroTagRow) {
         var pillsHtml = '';
         if (p.category) pillsHtml += '<span class="tag">' + ESC(p.category) + '</span>';
-        if (Array.isArray(p.tags)) {
-          p.tags.forEach(function(tag){
-            if (tag && tag.toLowerCase() !== String(p.category || '').toLowerCase()) {
-              pillsHtml += '<span class="tag">' + ESC(tag) + '</span>';
-            }
-          });
-        }
         if (p.year) pillsHtml += '<span class="tag">' + ESC(p.year) + '</span>';
+        if (p.status) pillsHtml += '<span class="tag">' + ESC(p.status) + '</span>';
         if (p.case_url) {
           pillsHtml += '<a href="' + ATTR(p.case_url) + '" target="_blank" rel="noopener" class="pill-live is-link" title="Besøg live projekt">' +
             '<span class="dot"></span>Live i produktion <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-left:4px;vertical-align:middle"><path d="M7 17 17 7M7 7h10v10"/></svg></a>';
@@ -1127,10 +1128,10 @@
         subtitleEl.hidden = true;
       }
 
-      /* intro */
+      /* intro — SHORT description above the fold */
       var intro = document.querySelector('.page-intro');
       if (intro) {
-        var introText = p.long_description || p.description || '';
+        var introText = p.description || '';
         if (introText) {
           intro.textContent = introText;
           intro.hidden = false;
@@ -1140,12 +1141,12 @@
         }
       }
 
-      /* overview brief */
+      /* overview brief — LONG description below first screenshot */
       var brief = document.querySelector('.case-brief');
       if (brief) {
         var briefSec = brief.closest('section');
-        if (p.description && p.long_description && p.description.trim() !== p.long_description.trim()) {
-          brief.textContent = p.description;
+        if (p.long_description) {
+          brief.textContent = p.long_description;
           if (briefSec) briefSec.hidden = false;
         } else {
           if (briefSec) briefSec.hidden = true;
@@ -1156,9 +1157,10 @@
       var metaList = document.querySelector('.case-meta-list');
       if (metaList) {
         var metaItems = [];
-        if (p.client) metaItems.push({ label: 'Kunde', val: p.client });
+        var clientVal = p.client || (p.category && p.category.toLowerCase() === 'saas' ? 'Eget produkt' : '');
+        if (clientVal) metaItems.push({ label: 'Kunde', val: clientVal });
         if (p.industry) metaItems.push({ label: 'Branche', val: p.industry });
-        var servicesVal = p.services || (Array.isArray(p.tags) && p.tags.length ? p.tags.slice(0, 3).join(' · ') : (Array.isArray(p.tech_stack) && p.tech_stack.length ? p.tech_stack.slice(0, 3).join(' · ') : ''));
+        var servicesVal = p.services || '';
         if (servicesVal) metaItems.push({ label: 'Ydelser', val: servicesVal });
         if (p.deliverables) metaItems.push({ label: 'Leverancer', val: p.deliverables });
         if (p.role_scope) metaItems.push({ label: 'Rolle', val: p.role_scope });
@@ -1187,6 +1189,7 @@
           band.innerHTML = p.metrics.map(function(m){
             return '<div class="metric"><div class="metric-n">' + ESC(m.value) + '</div><div class="metric-l">' + ESC(m.label) + '</div></div>';
           }).join('');
+          band.style.gridTemplateColumns = 'repeat(' + p.metrics.length + ', 1fr)';
         }
       } else {
         var band2 = document.querySelector('.metric-band');

@@ -340,6 +340,23 @@
 }
 @media (max-width: 640px) { .related-grid { grid-template-columns: 1fr; } }
 
+/* Equal-height related cards with clamped descriptions */
+.related-card {
+  display: flex;
+  flex-direction: column;
+}
+.related-card .wcard-media { flex-shrink: 0; }
+.related-card .wcard-info { padding: 1rem 0 0; }
+.related-card .wcard-desc {
+  color: var(--muted); font-size: 0.92rem;
+  margin-top: 0.4rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex-grow: 1;
+}
+
 /* ============================================================
    Lightbox overlay
    ============================================================ */
