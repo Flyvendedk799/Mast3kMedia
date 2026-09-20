@@ -9,15 +9,21 @@ const S = {
   view:     'dashboard',
   projects: [],
   leads:    [],
+  blogPosts: [],
+  blogCategories: [],
   editId:   null,   // null = create, number = update
+  blogEditId: null,
   tags:     [],
   tech:     [],
   metrics:  [],
   media:    [],
   blocks:   [],
   deleteTarget: null,
+  deleteKind: null, // 'project' | 'blogPost' | 'blogCategory'
   filterStatus: '',
   filterQuery:  '',
+  blogFilterStatus: '',
+  blogFilterQuery: '',
 };
 
 // ── API ────────────────────────────────────────────────────────────────────────
@@ -59,6 +65,16 @@ const api = {
   deleteProject: (id)     => api.req('DELETE', `/api/admin/projects/${id}`),
   setStatus:   (id, s)    => api.req('PATCH',  `/api/admin/projects/${id}/status`, { status: s }),
   setFeatured: (id, f)    => api.req('PATCH',  `/api/admin/projects/${id}/featured`, { featured: f }),
+  getBlogPosts: ()        => api.req('GET',    '/api/admin/blog/posts'),
+  getBlogPost:  (id)      => api.req('GET',    `/api/admin/blog/posts/${id}`),
+  createBlogPost: (d)     => api.req('POST',   '/api/admin/blog/posts', d),
+  updateBlogPost: (id, d) => api.req('PUT',    `/api/admin/blog/posts/${id}`, d),
+  deleteBlogPost: (id)    => api.req('DELETE', `/api/admin/blog/posts/${id}`),
+  setBlogStatus: (id, s)  => api.req('PATCH',  `/api/admin/blog/posts/${id}/status`, { status: s }),
+  getBlogCategories: ()   => api.req('GET',    '/api/admin/blog/categories'),
+  createBlogCategory: (d) => api.req('POST',   '/api/admin/blog/categories', d),
+  updateBlogCategory: (id, d) => api.req('PUT', `/api/admin/blog/categories/${id}`, d),
+  deleteBlogCategory: (id) => api.req('DELETE', `/api/admin/blog/categories/${id}`),
   async upload(file) {
     const res = await fetch('/api/admin/uploads', {
       method: 'POST',
@@ -229,12 +245,21 @@ function navigate(view, params = {}) {
   });
 
   // Show correct view
-  const views = ['dashboardView','leadsView','projectsView','formView'];
-  const map   = { dashboard:'dashboardView', leads:'leadsView', projects:'projectsView', form:'formView' };
+  const views = ['dashboardView','leadsView','projectsView','formView','blogPostsView','blogFormView','blogCategoriesView'];
+  const map   = {
+    dashboard:'dashboardView', leads:'leadsView', projects:'projectsView', form:'formView',
+    blogPosts:'blogPostsView', blogForm:'blogFormView', blogCategories:'blogCategoriesView',
+  };
   views.forEach(id => { $(`.view#${id}`) && ($(`.view#${id}`).hidden = (map[view] !== id)); });
 
   // Topbar title
-  const titles = { dashboard: 'Dashboard', leads: 'Henvendelser', projects: 'Projekter', form: S.editId ? 'Rediger projekt' : 'Nyt projekt' };
+  const titles = {
+    dashboard: 'Dashboard', leads: 'Henvendelser', projects: 'Projekter',
+    form: S.editId ? 'Rediger projekt' : 'Nyt projekt',
+    blogPosts: 'Blog-indlæg',
+    blogForm: S.blogEditId ? 'Rediger indlæg' : 'Nyt indlæg',
+    blogCategories: 'Kategorier',
+  };
   $('#topbarTitle').textContent = titles[view] || '';
 
   // Clear topbar actions
@@ -245,6 +270,9 @@ function navigate(view, params = {}) {
   if (view === 'leads')     loadLeads();
   if (view === 'projects')  loadProjects();
   if (view === 'form')      loadForm();
+  if (view === 'blogPosts') loadBlogPosts();
+  if (view === 'blogForm')  loadBlogForm();
+  if (view === 'blogCategories') loadBlogCategories();
 
   // Attach topbar buttons for form
   if (view === 'form') {
@@ -255,12 +283,20 @@ function navigate(view, params = {}) {
     pubBtn.onclick   = () => submitForm('published');
     actions.append(draftBtn, pubBtn);
   }
+  if (view === 'blogForm') {
+    const actions = $('#topbarActions');
+    const draftBtn = el('button','btn-outline','Gem kladde');
+    const pubBtn   = el('button','btn-primary','Publicer');
+    draftBtn.onclick = () => submitBlogForm('draft');
+    pubBtn.onclick   = () => submitBlogForm('published');
+    actions.append(draftBtn, pubBtn);
+  }
 }
 
 // Delegate nav clicks
 document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-view]');
-  if (a && !a.closest('#projectForm')) {
+  if (a && !a.closest('#projectForm') && !a.closest('#blogPostForm') && !a.closest('#blogCatForm')) {
     e.preventDefault();
     navigate(a.dataset.view);
   }
@@ -284,6 +320,10 @@ async function loadDashboard() {
     if (badge) badge.textContent = stats.total;
     const leadBadge = $('#leadCount');
     if (leadBadge) leadBadge.textContent = stats.new_leads || stats.leads || '';
+    const blogBadge = $('#blogPostCount');
+    if (blogBadge) blogBadge.textContent = stats.blog_posts || '';
+    const catBadge = $('#blogCatCount');
+    if (catBadge) catBadge.textContent = stats.blog_categories || '';
 
     // Recent projects table (last 5)
     renderProjectsTable($('#dashProjectsList'), projects.slice(0, 5), true);
@@ -1293,6 +1333,326 @@ $('#projectForm').addEventListener('submit', (e) => {
   e.preventDefault();
   submitForm('published');
 });
+
+
+// ── Blog posts ─────────────────────────────────────────────────────────────────
+async function loadBlogPosts() {
+  try {
+    const [posts, cats] = await Promise.all([api.getBlogPosts(), api.getBlogCategories()]);
+    S.blogPosts = posts;
+    S.blogCategories = cats;
+    const badge = $('#blogPostCount');
+    if (badge) badge.textContent = posts.length || '';
+    const catBadge = $('#blogCatCount');
+    if (catBadge) catBadge.textContent = cats.length || '';
+    renderFilteredBlogPosts();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+  const newBtn = $('#newBlogPostBtn');
+  if (newBtn) newBtn.onclick = () => navigate('blogForm', { blogEditId: null });
+  const search = $('#blogPostSearch');
+  if (search && !search._bound) {
+    search._bound = true;
+    search.addEventListener('input', debounce(() => {
+      S.blogFilterQuery = search.value.trim().toLowerCase();
+      renderFilteredBlogPosts();
+    }, 150));
+  }
+  const status = $('#blogStatusFilter');
+  if (status && !status._bound) {
+    status._bound = true;
+    status.addEventListener('change', () => {
+      S.blogFilterStatus = status.value;
+      renderFilteredBlogPosts();
+    });
+  }
+}
+
+function renderFilteredBlogPosts() {
+  const filtered = S.blogPosts.filter(p => {
+    if (S.blogFilterStatus && p.status !== S.blogFilterStatus) return false;
+    if (S.blogFilterQuery) {
+      const blob = `${p.title} ${p.slug} ${p.excerpt || ''} ${p.author || ''}`.toLowerCase();
+      if (!blob.includes(S.blogFilterQuery)) return false;
+    }
+    return true;
+  });
+  renderBlogPostsTable($('#blogPostsTable'), filtered);
+}
+
+function renderBlogPostsTable(container, posts) {
+  if (!container) return;
+  if (!posts.length) {
+    container.innerHTML = '<div class="table-empty">Ingen indlæg fundet.</div>';
+    return;
+  }
+  container.innerHTML = `
+    <table class="data-table">
+      <thead><tr>
+        <th>Titel</th><th>Kategori</th><th>Status</th><th>Publiceret</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${posts.map(p => `
+          <tr>
+            <td>
+              <div class="td-title">${esc(p.title)}</div>
+              <div class="td-sub mono">/${esc(p.slug)}</div>
+            </td>
+            <td>${esc(p.category?.name || '—')}</td>
+            <td><span class="badge badge-${p.status}">${p.status === 'published' ? 'Publiceret' : 'Kladde'}</span></td>
+            <td class="mono">${esc((p.published_at || p.created_at || '').slice(0, 10))}</td>
+            <td class="td-actions">
+              <button class="icon-btn" data-blog-edit="${p.id}" title="Rediger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+              </button>
+              <button class="icon-btn" data-blog-status="${p.id}" data-next="${p.status === 'published' ? 'draft' : 'published'}" title="${p.status === 'published' ? 'Afpublicer' : 'Publicer'}">
+                ${p.status === 'published'
+                  ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3"/></svg>'
+                  : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4V8z"/></svg>'}
+              </button>
+              <button class="icon-btn danger" data-blog-del="${p.id}" title="Slet">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+              </button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+  container.querySelectorAll('[data-blog-edit]').forEach(btn => {
+    btn.onclick = () => navigate('blogForm', { blogEditId: parseInt(btn.dataset.blogEdit, 10) });
+  });
+  container.querySelectorAll('[data-blog-status]').forEach(btn => {
+    btn.onclick = async () => {
+      try {
+        await api.setBlogStatus(btn.dataset.blogStatus, btn.dataset.next);
+        toast(btn.dataset.next === 'published' ? 'Indlæg publiceret' : 'Indlæg sat til kladde', 'success');
+        loadBlogPosts();
+      } catch (err) { toast(err.message, 'error'); }
+    };
+  });
+  container.querySelectorAll('[data-blog-del]').forEach(btn => {
+    btn.onclick = () => {
+      const post = S.blogPosts.find(x => String(x.id) === btn.dataset.blogDel);
+      S.deleteTarget = parseInt(btn.dataset.blogDel, 10);
+      S.deleteKind = 'blogPost';
+      showModal('Slet indlæg?', `Slet “${post?.title || ''}”? Handlingen kan ikke fortrydes.`, async () => {
+        try {
+          await api.deleteBlogPost(S.deleteTarget);
+          toast('Indlæg slettet', 'success');
+          loadBlogPosts();
+        } catch (err) { toast(err.message, 'error'); }
+      });
+    };
+  });
+}
+
+async function fillBlogCategorySelect(selectedId) {
+  const sel = $('#blogFieldCategory');
+  if (!sel) return;
+  if (!S.blogCategories.length) {
+    try { S.blogCategories = await api.getBlogCategories(); } catch (_) {}
+  }
+  sel.innerHTML = '<option value="">— Ingen —</option>' +
+    S.blogCategories.map(c =>
+      `<option value="${c.id}"${String(c.id) === String(selectedId || '') ? ' selected' : ''}>${esc(c.name)}</option>`
+    ).join('');
+}
+
+async function loadBlogForm() {
+  $('#blogFormBackBtn').onclick = () => navigate('blogPosts');
+  $('#blogFormSaveDraft').onclick = () => submitBlogForm('draft');
+  $('#blogFormPublish').onclick = () => submitBlogForm('published');
+  $('#blogFormSaveDraft2').onclick = () => submitBlogForm('draft');
+  $('#blogFormPublish2').onclick = () => submitBlogForm('published');
+
+  const titleInput = $('#blogFieldTitle');
+  const slugInput = $('#blogFieldSlug');
+  if (titleInput && !titleInput._slugBound) {
+    titleInput._slugBound = true;
+    titleInput.addEventListener('input', () => {
+      if (!S.blogEditId && slugInput && !slugInput.dataset.manual) {
+        slugInput.value = slugify(titleInput.value);
+      }
+    });
+    slugInput?.addEventListener('input', () => { slugInput.dataset.manual = '1'; });
+  }
+
+  // reset
+  $('#blogFieldId').value = '';
+  $('#blogFieldTitle').value = '';
+  $('#blogFieldSlug').value = '';
+  if (slugInput) delete slugInput.dataset.manual;
+  $('#blogFieldAuthor').value = '';
+  $('#blogFieldCover').value = '';
+  $('#blogFieldExcerpt').value = '';
+  $('#blogFieldBody').value = '';
+  await fillBlogCategorySelect(null);
+
+  if (S.blogEditId) {
+    try {
+      const p = await api.getBlogPost(S.blogEditId);
+      $('#blogFieldId').value = p.id;
+      $('#blogFieldTitle').value = p.title || '';
+      $('#blogFieldSlug').value = p.slug || '';
+      if (slugInput) slugInput.dataset.manual = '1';
+      $('#blogFieldAuthor').value = p.author || '';
+      $('#blogFieldCover').value = p.cover_image || '';
+      $('#blogFieldExcerpt').value = p.excerpt || '';
+      $('#blogFieldBody').value = p.body || '';
+      await fillBlogCategorySelect(p.category_id);
+    } catch (err) {
+      toast(err.message, 'error');
+      navigate('blogPosts');
+    }
+  }
+}
+
+async function submitBlogForm(status) {
+  const title = $('#blogFieldTitle').value.trim();
+  if (!title) { toast('Titel er påkrævet', 'error'); return; }
+  const categoryVal = $('#blogFieldCategory').value;
+  const payload = {
+    title,
+    slug: $('#blogFieldSlug').value.trim(),
+    excerpt: $('#blogFieldExcerpt').value.trim(),
+    body: $('#blogFieldBody').value,
+    cover_image: $('#blogFieldCover').value.trim(),
+    author: $('#blogFieldAuthor').value.trim(),
+    category_id: categoryVal ? parseInt(categoryVal, 10) : null,
+    status,
+  };
+  const btns = $$('#blogFormView button');
+  btns.forEach(b => b.disabled = true);
+  try {
+    const isEdit = !!S.blogEditId;
+    const result = isEdit
+      ? await api.updateBlogPost(S.blogEditId, payload)
+      : await api.createBlogPost(payload);
+    toast(
+      isEdit
+        ? `"${result.title}" gemt${status === 'published' ? ' og publiceret' : ' som kladde'}`
+        : `"${result.title}" oprettet${status === 'published' ? ' og publiceret' : ' som kladde'}`,
+      'success'
+    );
+    navigate('blogPosts');
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+// ── Blog categories ────────────────────────────────────────────────────────────
+async function loadBlogCategories() {
+  try {
+    S.blogCategories = await api.getBlogCategories();
+    const badge = $('#blogCatCount');
+    if (badge) badge.textContent = S.blogCategories.length || '';
+    renderBlogCatsTable();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+  const form = $('#blogCatForm');
+  const newBtn = $('#newBlogCatBtn');
+  if (newBtn) newBtn.onclick = () => {
+    $('#blogCatFieldId').value = '';
+    $('#blogCatFieldName').value = '';
+    $('#blogCatFieldSlug').value = '';
+    $('#blogCatFieldDesc').value = '';
+    $('#blogCatFormTitle').textContent = 'Ny kategori';
+    form.style.display = '';
+  };
+  const cancel = $('#blogCatCancel');
+  if (cancel) cancel.onclick = () => { form.style.display = 'none'; };
+  if (form && !form._bound) {
+    form._bound = true;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = $('#blogCatFieldName').value.trim();
+      if (!name) { toast('Navn er påkrævet', 'error'); return; }
+      const payload = {
+        name,
+        slug: $('#blogCatFieldSlug').value.trim(),
+        description: $('#blogCatFieldDesc').value.trim(),
+      };
+      const id = $('#blogCatFieldId').value;
+      try {
+        if (id) await api.updateBlogCategory(id, payload);
+        else await api.createBlogCategory(payload);
+        toast(id ? 'Kategori opdateret' : 'Kategori oprettet', 'success');
+        form.style.display = 'none';
+        loadBlogCategories();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+    const nameInput = $('#blogCatFieldName');
+    const slugInput = $('#blogCatFieldSlug');
+    nameInput?.addEventListener('input', () => {
+      if (!$('#blogCatFieldId').value && slugInput && !slugInput.dataset.manual) {
+        slugInput.value = slugify(nameInput.value);
+      }
+    });
+    slugInput?.addEventListener('input', () => { slugInput.dataset.manual = '1'; });
+  }
+}
+
+function renderBlogCatsTable() {
+  const container = $('#blogCatsTable');
+  if (!container) return;
+  const cats = S.blogCategories;
+  if (!cats.length) {
+    container.innerHTML = '<div class="table-empty">Ingen kategorier endnu.</div>';
+    return;
+  }
+  container.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>Navn</th><th>Slug</th><th>Beskrivelse</th><th></th></tr></thead>
+      <tbody>
+        ${cats.map(c => `
+          <tr>
+            <td><div class="td-title">${esc(c.name)}</div></td>
+            <td class="mono">/${esc(c.slug)}</td>
+            <td>${esc(c.description || '—')}</td>
+            <td class="td-actions">
+              <button class="icon-btn" data-cat-edit="${c.id}" title="Rediger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+              </button>
+              <button class="icon-btn danger" data-cat-del="${c.id}" title="Slet">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+              </button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+  container.querySelectorAll('[data-cat-edit]').forEach(btn => {
+    btn.onclick = () => {
+      const c = S.blogCategories.find(x => String(x.id) === btn.dataset.catEdit);
+      if (!c) return;
+      $('#blogCatFieldId').value = c.id;
+      $('#blogCatFieldName').value = c.name || '';
+      $('#blogCatFieldSlug').value = c.slug || '';
+      $('#blogCatFieldDesc').value = c.description || '';
+      $('#blogCatFormTitle').textContent = 'Rediger kategori';
+      $('#blogCatForm').style.display = '';
+    };
+  });
+  container.querySelectorAll('[data-cat-del]').forEach(btn => {
+    btn.onclick = () => {
+      const c = S.blogCategories.find(x => String(x.id) === btn.dataset.catDel);
+      S.deleteTarget = parseInt(btn.dataset.catDel, 10);
+      S.deleteKind = 'blogCategory';
+      showModal('Slet kategori?', `Slet “${c?.name || ''}”? Indlæg mister kun tilknytningen.`, async () => {
+        try {
+          await api.deleteBlogCategory(S.deleteTarget);
+          toast('Kategori slettet', 'success');
+          loadBlogCategories();
+        } catch (err) { toast(err.message, 'error'); }
+      });
+    };
+  });
+}
+
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 checkAuth();

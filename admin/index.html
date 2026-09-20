@@ -72,6 +72,16 @@
         Henvendelser
         <span class="snav-badge" id="leadCount"></span>
       </a>
+      <a href="#" class="snav-item" data-view="blogPosts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+        Blog-indlæg
+        <span class="snav-badge" id="blogPostCount"></span>
+      </a>
+      <a href="#" class="snav-item" data-view="blogCategories">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Kategorier
+        <span class="snav-badge" id="blogCatCount"></span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
@@ -611,6 +621,142 @@
       </form>
     </div>
 
+
+    <!-- ── Blog posts list ── -->
+    <div id="blogPostsView" class="view" hidden>
+      <div class="view-header">
+        <div>
+          <h2>Blog-indlæg</h2>
+          <p class="view-sub">Opret, rediger og publicer blogindlæg.</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input id="blogPostSearch" type="search" placeholder="Søg indlæg…" />
+        </div>
+        <div class="filter-wrap">
+          <select id="blogStatusFilter">
+            <option value="">Alle statusser</option>
+            <option value="published">Publicerede</option>
+            <option value="draft">Kladder</option>
+          </select>
+        </div>
+        <button class="btn-primary" id="newBlogPostBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Nyt indlæg
+        </button>
+      </div>
+      <div class="table-wrap" id="blogPostsTable">
+        <div class="table-empty">Indlæser indlæg...</div>
+      </div>
+    </div>
+
+    <!-- ── Blog post form ── -->
+    <div id="blogFormView" class="view" hidden>
+      <div class="form-topbar">
+        <button class="btn-ghost" id="blogFormBackBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          Tilbage
+        </button>
+        <div class="form-topbar-actions">
+          <button class="btn-outline" id="blogFormSaveDraft" type="button">Gem kladde</button>
+          <button class="btn-primary" id="blogFormPublish" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            Publicer
+          </button>
+        </div>
+      </div>
+      <form id="blogPostForm" class="project-form" novalidate>
+        <input type="hidden" id="blogFieldId" />
+        <div class="form-section">
+          <div class="form-section-head">
+            <span class="form-section-num">01</span>
+            <div>
+              <h3>Grundoplysninger</h3>
+              <p>Titel, slug, kategori og status.</p>
+            </div>
+          </div>
+          <div class="form-grid">
+            <label class="fg-full">Titel
+              <input id="blogFieldTitle" type="text" required placeholder="Indlægstitel" />
+            </label>
+            <label>Slug
+              <input id="blogFieldSlug" type="text" placeholder="auto-fra-titel" />
+            </label>
+            <label>Kategori
+              <select id="blogFieldCategory">
+                <option value="">— Ingen —</option>
+              </select>
+            </label>
+            <label>Forfatter
+              <input id="blogFieldAuthor" type="text" placeholder="Mast3kMedia" />
+            </label>
+            <label>Cover-billede URL
+              <input id="blogFieldCover" type="text" placeholder="/uploads/…" />
+            </label>
+            <label class="fg-full">Uddrag
+              <textarea id="blogFieldExcerpt" rows="3" placeholder="Kort teaser til listen…"></textarea>
+            </label>
+            <label class="fg-full">Brødtekst (markdown eller HTML)
+              <textarea id="blogFieldBody" rows="16" placeholder="Skriv indlægget her…"></textarea>
+            </label>
+          </div>
+        </div>
+        <div class="form-save-bar">
+          <button type="button" class="btn-outline" id="blogFormSaveDraft2">Gem kladde</button>
+          <button type="button" class="btn-primary" id="blogFormPublish2">Publicer</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── Blog categories ── -->
+    <div id="blogCategoriesView" class="view" hidden>
+      <div class="view-header">
+        <div>
+          <h2>Blog-kategorier</h2>
+          <p class="view-sub">Organiser indlæg efter emne.</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn-primary" id="newBlogCatBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Ny kategori
+        </button>
+      </div>
+      <div class="table-wrap" id="blogCatsTable">
+        <div class="table-empty">Indlæser kategorier...</div>
+      </div>
+
+      <form id="blogCatForm" class="project-form" style="margin-top:1.5rem;display:none" novalidate>
+        <input type="hidden" id="blogCatFieldId" />
+        <div class="form-section">
+          <div class="form-section-head">
+            <span class="form-section-num">01</span>
+            <div>
+              <h3 id="blogCatFormTitle">Ny kategori</h3>
+              <p>Navn, slug og beskrivelse.</p>
+            </div>
+          </div>
+          <div class="form-grid">
+            <label>Navn
+              <input id="blogCatFieldName" type="text" required />
+            </label>
+            <label>Slug
+              <input id="blogCatFieldSlug" type="text" placeholder="auto-fra-navn" />
+            </label>
+            <label class="fg-full">Beskrivelse
+              <textarea id="blogCatFieldDesc" rows="2"></textarea>
+            </label>
+          </div>
+        </div>
+        <div class="form-save-bar">
+          <button type="button" class="btn-outline" id="blogCatCancel">Annuller</button>
+          <button type="submit" class="btn-primary">Gem kategori</button>
+        </div>
+      </form>
+    </div>
+
   </div><!-- /main-content -->
 </div><!-- /app-shell -->
 
@@ -632,6 +778,6 @@
   </div>
 </div>
 
-<script src="/admin/admin.js?v=20260616-v2"></script>
+<script src="/admin/admin.js?v=20260920-blog"></script>
 </body>
 </html>

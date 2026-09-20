@@ -1,7 +1,7 @@
 /**
  * Mast3kMedia MCP Server
  *
- * Exposes portfolio project management as MCP tools, resources, and prompts.
+ * Exposes portfolio project + blog management as MCP tools, resources, and prompts.
  * Connect with Claude Code, Cursor, Windsurf, Zed, VS Code Copilot, or any
  * MCP-compatible client.
  *
@@ -74,6 +74,39 @@ db.exec(`
   CREATE TRIGGER IF NOT EXISTS trg_projects_updated
   AFTER UPDATE ON projects FOR EACH ROW BEGIN
     UPDATE projects SET updated_at = datetime('now') WHERE id = NEW.id;
+  END;
+
+  CREATE TABLE IF NOT EXISTS blog_categories (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL,
+    slug        TEXT    UNIQUE NOT NULL,
+    description TEXT,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS blog_posts (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    title        TEXT    NOT NULL,
+    slug         TEXT    UNIQUE NOT NULL,
+    excerpt      TEXT,
+    body         TEXT,
+    cover_image  TEXT,
+    status       TEXT    NOT NULL DEFAULT 'draft'
+                         CHECK(status IN ('draft','published')),
+    category_id  INTEGER REFERENCES blog_categories(id) ON DELETE SET NULL,
+    published_at TEXT,
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+    author       TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug);
+  CREATE INDEX IF NOT EXISTS idx_blog_posts_status ON blog_posts(status);
+  CREATE INDEX IF NOT EXISTS idx_blog_posts_category ON blog_posts(category_id);
+
+  CREATE TRIGGER IF NOT EXISTS trg_blog_posts_updated
+  AFTER UPDATE ON blog_posts FOR EACH ROW BEGIN
+    UPDATE blog_posts SET updated_at = datetime('now') WHERE id = NEW.id;
   END;
 `);
 
@@ -183,6 +216,66 @@ const findProject = ref => {
   return db.prepare('SELECT * FROM projects WHERE slug=?').get(ref);
 };
 
+const POST_SELECT = `
+  SELECT p.*,
+         c.name AS category_name,
+         c.slug AS category_slug
+  FROM blog_posts p
+  LEFT JOIN blog_categories c ON c.id = p.category_id
+`;
+
+const fmtCategory = row => row ? ({
+  id: row.id,
+  name: row.name,
+  slug: row.slug,
+  description: row.description || null,
+  created_at: row.created_at,
+}) : null;
+
+const fmtPost = row => {
+  if (!row) return null;
+  let category = null;
+  if (row.category_id) {
+    if (row.category_name) {
+      category = { id: row.category_id, name: row.category_name, slug: row.category_slug };
+    } else {
+      const cat = db.prepare('SELECT id, name, slug FROM blog_categories WHERE id=?').get(row.category_id);
+      if (cat) category = cat;
+    }
+  }
+  return {
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    excerpt: row.excerpt || null,
+    body: row.body || null,
+    cover_image: row.cover_image || null,
+    status: row.status,
+    category_id: row.category_id || null,
+    category,
+    published_at: row.published_at || null,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    author: row.author || null,
+  };
+};
+
+const findPost = ref => {
+  if (/^\d+$/.test(String(ref))) {
+    const byId = db.prepare(`${POST_SELECT} WHERE p.id=?`).get(Number(ref));
+    if (byId) return byId;
+  }
+  return db.prepare(`${POST_SELECT} WHERE p.slug=?`).get(ref);
+};
+
+const findCategory = ref => {
+  if (/^\d+$/.test(String(ref))) {
+    const byId = db.prepare('SELECT * FROM blog_categories WHERE id=?').get(Number(ref));
+    if (byId) return byId;
+  }
+  return db.prepare('SELECT * FROM blog_categories WHERE slug=?').get(ref);
+};
+
 const ok  = text  => ({ content: [{ type: 'text', text }] });
 const err = text  => ({ content: [{ type: 'text', text }], isError: true });
 const json = data => ok(JSON.stringify(data, null, 2));
@@ -248,6 +341,10 @@ server.tool(
       published: n("SELECT COUNT(*) n FROM projects WHERE status='published'"),
       drafts:    n("SELECT COUNT(*) n FROM projects WHERE status='draft'"),
       featured:  n('SELECT COUNT(*) n FROM projects WHERE featured=1'),
+      blog_posts:      n('SELECT COUNT(*) n FROM blog_posts'),
+      blog_published:  n("SELECT COUNT(*) n FROM blog_posts WHERE status='published'"),
+      blog_drafts:     n("SELECT COUNT(*) n FROM blog_posts WHERE status='draft'"),
+      blog_categories: n('SELECT COUNT(*) n FROM blog_categories'),
     });
   },
 );
@@ -656,6 +753,255 @@ server.tool(
   },
 );
 
+// ── Blog tools ────────────────────────────────────────────────────────────────
+
+server.tool(
+  'blog_list_posts',
+  'List blog posts with optional filters (status, category slug/id, limit).',
+  {
+    status:   z.enum(['all', 'published', 'draft']).optional()
+                .describe('Filter by status (default: all)'),
+    category: z.string().optional()
+                .describe('Filter by category slug or numeric id'),
+    limit:    z.number().int().positive().max(100).optional()
+                .describe('Maximum number of results'),
+  },
+  async ({ status, category, limit }) => {
+    let sql = `${POST_SELECT} WHERE 1=1`;
+    const args = [];
+    if (status && status !== 'all') { sql += ' AND p.status=?'; args.push(status); }
+    if (category) {
+      sql += ' AND (c.slug=? OR CAST(p.category_id AS TEXT)=?)';
+      args.push(String(category), String(category));
+    }
+    sql += ' ORDER BY COALESCE(p.published_at, p.created_at) DESC';
+    if (limit) { sql += ' LIMIT ?'; args.push(limit); }
+    return json(db.prepare(sql).all(...args).map(fmtPost));
+  },
+);
+
+server.tool(
+  'blog_get_post',
+  'Get a single blog post by slug or numeric ID.',
+  {
+    ref: z.string().describe('Post slug or numeric ID'),
+  },
+  async ({ ref }) => {
+    const row = findPost(ref);
+    if (!row) return err(`No blog post found with slug/id "${ref}"`);
+    return json(fmtPost(row));
+  },
+);
+
+server.tool(
+  'blog_list_categories',
+  'List all blog categories.',
+  {},
+  async () => json(db.prepare('SELECT * FROM blog_categories ORDER BY name ASC').all().map(fmtCategory)),
+);
+
+const BLOG_POST_FIELDS = {
+  title:       z.string().describe('Post title (required)'),
+  slug:        z.string().optional().describe('URL slug — auto from title if omitted'),
+  excerpt:     z.string().optional().describe('Short summary shown on list cards'),
+  body:        z.string().optional().describe('Full post body (markdown or HTML text)'),
+  cover_image: z.string().optional().describe('Cover image URL'),
+  status:      z.enum(['draft', 'published']).optional().describe('draft (default) or published'),
+  category_id: z.number().int().optional().describe('Category ID (nullable)'),
+  category:    z.string().optional().describe('Category slug — resolved to category_id if category_id omitted'),
+  author:      z.string().optional().describe('Author display name'),
+  published_at:z.string().optional().describe('ISO/datetime published_at (auto-set on publish if omitted)'),
+};
+
+server.tool(
+  'blog_create_post',
+  'Create a new blog post. Returns the created post.',
+  BLOG_POST_FIELDS,
+  async b => {
+    const slug = slugify(b.slug || b.title);
+    let categoryId = b.category_id ?? null;
+    if (categoryId == null && b.category) {
+      const cat = findCategory(b.category);
+      if (!cat) return err(`No category found with slug/id "${b.category}"`);
+      categoryId = cat.id;
+    }
+    const status = b.status === 'published' ? 'published' : 'draft';
+    const publishedAt = status === 'published'
+      ? (b.published_at || new Date().toISOString().slice(0, 19).replace('T', ' '))
+      : (b.published_at || null);
+    try {
+      const r = db.prepare(`
+        INSERT INTO blog_posts
+          (title, slug, excerpt, body, cover_image, status, category_id, published_at, author)
+        VALUES (?,?,?,?,?,?,?,?,?)
+      `).run(
+        b.title, slug,
+        b.excerpt || null,
+        b.body || null,
+        b.cover_image || null,
+        status,
+        categoryId,
+        publishedAt,
+        b.author || null,
+      );
+      const created = fmtPost(db.prepare(`${POST_SELECT} WHERE p.id=?`).get(r.lastInsertRowid));
+      return ok(`Created blog post "${created.title}" (slug: ${created.slug}, id: ${created.id})\n\n${JSON.stringify(created, null, 2)}`);
+    } catch (e) {
+      if (e.message.includes('UNIQUE'))
+        return err(`Slug "${slug}" already exists. Provide a unique slug.`);
+      return err(e.message);
+    }
+  },
+);
+
+server.tool(
+  'blog_update_post',
+  'Update fields on an existing blog post. Only provided fields change.',
+  {
+    ref: z.string().describe('Post slug or numeric ID to update'),
+    title:       z.string().optional(),
+    slug:        z.string().optional().describe('New slug'),
+    excerpt:     z.string().optional(),
+    body:        z.string().optional(),
+    cover_image: z.string().optional(),
+    status:      z.enum(['draft', 'published']).optional(),
+    category_id: z.number().int().nullable().optional().describe('Category ID, or null to clear'),
+    category:    z.string().optional().describe('Category slug (alternative to category_id)'),
+    author:      z.string().optional(),
+    published_at:z.string().nullable().optional(),
+  },
+  async b => {
+    const old = findPost(b.ref);
+    if (!old) return err(`No blog post found with slug/id "${b.ref}"`);
+    const newSlug = b.slug ? slugify(b.slug) : old.slug;
+    const status = ['draft', 'published'].includes(b.status) ? b.status : old.status;
+    let categoryId = old.category_id;
+    if (b.category_id !== undefined) categoryId = b.category_id;
+    else if (b.category !== undefined) {
+      if (!b.category) categoryId = null;
+      else {
+        const cat = findCategory(b.category);
+        if (!cat) return err(`No category found with slug/id "${b.category}"`);
+        categoryId = cat.id;
+      }
+    }
+    let publishedAt = old.published_at;
+    if (b.published_at !== undefined) publishedAt = b.published_at;
+    if (status === 'published' && !publishedAt) {
+      publishedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    }
+    try {
+      db.prepare(`
+        UPDATE blog_posts SET
+          title=?, slug=?, excerpt=?, body=?, cover_image=?,
+          status=?, category_id=?, published_at=?, author=?
+        WHERE id=?
+      `).run(
+        b.title ?? old.title,
+        newSlug,
+        b.excerpt !== undefined ? b.excerpt : old.excerpt,
+        b.body !== undefined ? b.body : old.body,
+        b.cover_image !== undefined ? b.cover_image : old.cover_image,
+        status,
+        categoryId,
+        publishedAt,
+        b.author !== undefined ? b.author : old.author,
+        old.id,
+      );
+      const updated = fmtPost(db.prepare(`${POST_SELECT} WHERE p.id=?`).get(old.id));
+      return ok(`Updated blog post "${updated.title}"\n\n${JSON.stringify(updated, null, 2)}`);
+    } catch (e) {
+      if (e.message.includes('UNIQUE'))
+        return err(`Slug "${newSlug}" already exists.`);
+      return err(e.message);
+    }
+  },
+);
+
+server.tool(
+  'blog_delete_post',
+  'Permanently delete a blog post.',
+  {
+    ref: z.string().describe('Post slug or numeric ID'),
+  },
+  async ({ ref }) => {
+    const row = findPost(ref);
+    if (!row) return err(`No blog post found with slug/id "${ref}"`);
+    db.prepare('DELETE FROM blog_posts WHERE id=?').run(row.id);
+    return ok(`Deleted blog post "${row.title}" (slug: ${row.slug}, id: ${row.id})`);
+  },
+);
+
+server.tool(
+  'blog_create_category',
+  'Create a blog category.',
+  {
+    name:        z.string().describe('Category name'),
+    slug:        z.string().optional().describe('URL slug — auto from name if omitted'),
+    description: z.string().optional().describe('Optional description'),
+  },
+  async b => {
+    const slug = slugify(b.slug || b.name);
+    try {
+      const r = db.prepare(
+        'INSERT INTO blog_categories (name, slug, description) VALUES (?,?,?)'
+      ).run(b.name, slug, b.description || null);
+      const created = fmtCategory(db.prepare('SELECT * FROM blog_categories WHERE id=?').get(r.lastInsertRowid));
+      return ok(`Created category "${created.name}" (slug: ${created.slug}, id: ${created.id})\n\n${JSON.stringify(created, null, 2)}`);
+    } catch (e) {
+      if (e.message.includes('UNIQUE'))
+        return err(`Slug "${slug}" already exists.`);
+      return err(e.message);
+    }
+  },
+);
+
+server.tool(
+  'blog_update_category',
+  'Update a blog category by slug or id.',
+  {
+    ref:         z.string().describe('Category slug or numeric ID'),
+    name:        z.string().optional(),
+    slug:        z.string().optional().describe('New slug'),
+    description: z.string().optional(),
+  },
+  async b => {
+    const old = findCategory(b.ref);
+    if (!old) return err(`No category found with slug/id "${b.ref}"`);
+    const newSlug = b.slug ? slugify(b.slug) : old.slug;
+    try {
+      db.prepare(
+        'UPDATE blog_categories SET name=?, slug=?, description=? WHERE id=?'
+      ).run(
+        b.name ?? old.name,
+        newSlug,
+        b.description !== undefined ? b.description : old.description,
+        old.id,
+      );
+      const updated = fmtCategory(db.prepare('SELECT * FROM blog_categories WHERE id=?').get(old.id));
+      return ok(`Updated category "${updated.name}"\n\n${JSON.stringify(updated, null, 2)}`);
+    } catch (e) {
+      if (e.message.includes('UNIQUE'))
+        return err(`Slug "${newSlug}" already exists.`);
+      return err(e.message);
+    }
+  },
+);
+
+server.tool(
+  'blog_delete_category',
+  'Delete a blog category. Posts keep their content; category_id is set NULL.',
+  {
+    ref: z.string().describe('Category slug or numeric ID'),
+  },
+  async ({ ref }) => {
+    const row = findCategory(ref);
+    if (!row) return err(`No category found with slug/id "${ref}"`);
+    db.prepare('DELETE FROM blog_categories WHERE id=?').run(row.id);
+    return ok(`Deleted category "${row.name}" (slug: ${row.slug}, id: ${row.id})`);
+  },
+);
+
 // ── Resources ─────────────────────────────────────────────────────────────────
 
 server.resource(
@@ -675,6 +1021,26 @@ server.resource(
   async _uri => {
     const rows = db.prepare("SELECT * FROM projects WHERE status='published' ORDER BY sort_order ASC, created_at DESC").all().map(fmt);
     return { contents: [{ uri: 'projects://published', text: JSON.stringify(rows, null, 2), mimeType: 'application/json' }] };
+  },
+);
+
+server.resource(
+  'blog-posts-all',
+  'blog://posts',
+  { description: 'All blog posts including drafts, newest first.' },
+  async _uri => {
+    const rows = db.prepare(`${POST_SELECT} ORDER BY COALESCE(p.published_at, p.created_at) DESC`).all().map(fmtPost);
+    return { contents: [{ uri: 'blog://posts', text: JSON.stringify(rows, null, 2), mimeType: 'application/json' }] };
+  },
+);
+
+server.resource(
+  'blog-categories',
+  'blog://categories',
+  { description: 'All blog categories.' },
+  async _uri => {
+    const rows = db.prepare('SELECT * FROM blog_categories ORDER BY name ASC').all().map(fmtCategory);
+    return { contents: [{ uri: 'blog://categories', text: JSON.stringify(rows, null, 2), mimeType: 'application/json' }] };
   },
 );
 

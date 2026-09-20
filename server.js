@@ -91,6 +91,39 @@ db.exec(`
     metadata      TEXT    NOT NULL DEFAULT '{}',
     created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS blog_categories (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL,
+    slug        TEXT    UNIQUE NOT NULL,
+    description TEXT,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS blog_posts (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    title        TEXT    NOT NULL,
+    slug         TEXT    UNIQUE NOT NULL,
+    excerpt      TEXT,
+    body         TEXT,
+    cover_image  TEXT,
+    status       TEXT    NOT NULL DEFAULT 'draft'
+                         CHECK(status IN ('draft','published')),
+    category_id  INTEGER REFERENCES blog_categories(id) ON DELETE SET NULL,
+    published_at TEXT,
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+    author       TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug);
+  CREATE INDEX IF NOT EXISTS idx_blog_posts_status ON blog_posts(status);
+  CREATE INDEX IF NOT EXISTS idx_blog_posts_category ON blog_posts(category_id);
+
+  CREATE TRIGGER IF NOT EXISTS trg_blog_posts_updated
+  AFTER UPDATE ON blog_posts FOR EACH ROW BEGIN
+    UPDATE blog_posts SET updated_at = datetime('now') WHERE id = NEW.id;
+  END;
 `);
 
 try {
@@ -270,6 +303,54 @@ const fmt = (row) => ({
   awards:     safeJSON(row.awards,     []),
   featured:   row.featured === 1,
 });
+
+const fmtCategory = (row) => row ? ({
+  id: row.id,
+  name: row.name,
+  slug: row.slug,
+  description: row.description || null,
+  created_at: row.created_at,
+}) : null;
+
+const fmtPost = (row) => {
+  if (!row) return null;
+  let category = null;
+  if (row.category_id) {
+    if (row.category_name) {
+      category = {
+        id: row.category_id,
+        name: row.category_name,
+        slug: row.category_slug,
+      };
+    } else {
+      const cat = db.prepare('SELECT id, name, slug FROM blog_categories WHERE id=?').get(row.category_id);
+      if (cat) category = cat;
+    }
+  }
+  return {
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    excerpt: row.excerpt || null,
+    body: row.body || null,
+    cover_image: row.cover_image || null,
+    status: row.status,
+    category_id: row.category_id || null,
+    category,
+    published_at: row.published_at || null,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    author: row.author || null,
+  };
+};
+
+const POST_SELECT = `
+  SELECT p.*,
+         c.name AS category_name,
+         c.slug AS category_slug
+  FROM blog_posts p
+  LEFT JOIN blog_categories c ON c.id = p.category_id
+`;
 
 // ── Auth middleware ────────────────────────────────────────────────────────────
 const requireAuth = (req, res, next) => {
@@ -486,6 +567,10 @@ app.get('/api/admin/stats', requireAuth, (req, res) => {
     featured:  n('SELECT COUNT(*) n FROM projects WHERE featured=1'),
     leads:     n('SELECT COUNT(*) n FROM leads'),
     new_leads: n("SELECT COUNT(*) n FROM leads WHERE status='new'"),
+    blog_posts:     n('SELECT COUNT(*) n FROM blog_posts'),
+    blog_published: n("SELECT COUNT(*) n FROM blog_posts WHERE status='published'"),
+    blog_drafts:    n("SELECT COUNT(*) n FROM blog_posts WHERE status='draft'"),
+    blog_categories:n('SELECT COUNT(*) n FROM blog_categories'),
   });
 });
 
@@ -700,6 +785,217 @@ app.post('/api/admin/projects/reorder', requireAuth, (req, res) => {
   const updateMany = db.transaction((items) => items.forEach(({ id, sort_order }) => stmt.run(sort_order, id)));
   updateMany(order);
   res.json({ ok: true });
+});
+
+// ── Public: blog ───────────────────────────────────────────────────────────────
+app.get('/api/blog/categories', (req, res) => {
+  const rows = db.prepare(
+    'SELECT * FROM blog_categories ORDER BY name ASC'
+  ).all().map(fmtCategory);
+  res.json(rows);
+});
+
+app.get('/api/blog/posts', (req, res) => {
+  const { category, page, limit } = req.query;
+  const lim = Math.min(100, Math.max(1, parseInt(limit || '12', 10) || 12));
+  const pg  = Math.max(1, parseInt(page || '1', 10) || 1);
+  const offset = (pg - 1) * lim;
+
+  let where = "WHERE p.status='published'";
+  const args = [];
+  if (category) {
+    where += ' AND (c.slug=? OR c.name=?)';
+    args.push(String(category), String(category));
+  }
+
+  const total = db.prepare(
+    `SELECT COUNT(*) n FROM blog_posts p LEFT JOIN blog_categories c ON c.id = p.category_id ${where}`
+  ).get(...args).n;
+
+  const rows = db.prepare(
+    `${POST_SELECT} ${where} ORDER BY COALESCE(p.published_at, p.created_at) DESC LIMIT ? OFFSET ?`
+  ).all(...args, lim, offset).map(fmtPost);
+
+  res.json({ posts: rows, page: pg, limit: lim, total, pages: Math.ceil(total / lim) || 1 });
+});
+
+app.get('/api/blog/posts/:slug', (req, res) => {
+  const row = db.prepare(
+    `${POST_SELECT} WHERE p.slug=? AND p.status=?`
+  ).get(req.params.slug, 'published');
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  res.json(fmtPost(row));
+});
+
+// ── Admin: blog categories ─────────────────────────────────────────────────────
+app.get('/api/admin/blog/categories', requireAuth, (req, res) => {
+  res.json(db.prepare('SELECT * FROM blog_categories ORDER BY name ASC').all().map(fmtCategory));
+});
+
+app.post('/api/admin/blog/categories', requireAuth, (req, res) => {
+  const b = req.body || {};
+  if (!b.name) return res.status(400).json({ error: 'name is required' });
+  const slug = slugify(b.slug || b.name);
+  try {
+    const r = db.prepare(
+      'INSERT INTO blog_categories (name, slug, description) VALUES (?,?,?)'
+    ).run(b.name, slug, b.description || null);
+    res.status(201).json(fmtCategory(db.prepare('SELECT * FROM blog_categories WHERE id=?').get(r.lastInsertRowid)));
+  } catch (e) {
+    if (e.message.includes('UNIQUE'))
+      return res.status(409).json({ error: `Slug "${slug}" already exists` });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.put('/api/admin/blog/categories/:id', requireAuth, (req, res) => {
+  const old = db.prepare('SELECT * FROM blog_categories WHERE id=?').get(req.params.id);
+  if (!old) return res.status(404).json({ error: 'Not found' });
+  const b = req.body || {};
+  const slug = b.slug ? slugify(b.slug) : old.slug;
+  try {
+    db.prepare(
+      'UPDATE blog_categories SET name=?, slug=?, description=? WHERE id=?'
+    ).run(
+      b.name ?? old.name,
+      slug,
+      b.description !== undefined ? b.description : old.description,
+      req.params.id,
+    );
+    res.json(fmtCategory(db.prepare('SELECT * FROM blog_categories WHERE id=?').get(req.params.id)));
+  } catch (e) {
+    if (e.message.includes('UNIQUE'))
+      return res.status(409).json({ error: `Slug "${slug}" already exists` });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/admin/blog/categories/:id', requireAuth, (req, res) => {
+  const r = db.prepare('DELETE FROM blog_categories WHERE id=?').run(req.params.id);
+  if (!r.changes) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true });
+});
+
+// ── Admin: blog posts ──────────────────────────────────────────────────────────
+app.get('/api/admin/blog/posts', requireAuth, (req, res) => {
+  const { status, category } = req.query;
+  let sql = `${POST_SELECT} WHERE 1=1`;
+  const args = [];
+  if (status && ['draft', 'published'].includes(status)) {
+    sql += ' AND p.status=?'; args.push(status);
+  }
+  if (category) {
+    sql += ' AND (c.slug=? OR CAST(p.category_id AS TEXT)=?)';
+    args.push(String(category), String(category));
+  }
+  sql += ' ORDER BY p.updated_at DESC, p.created_at DESC';
+  res.json(db.prepare(sql).all(...args).map(fmtPost));
+});
+
+app.get('/api/admin/blog/posts/:id', requireAuth, (req, res) => {
+  const row = db.prepare(`${POST_SELECT} WHERE p.id=?`).get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  res.json(fmtPost(row));
+});
+
+app.post('/api/admin/blog/posts', requireAuth, (req, res) => {
+  const b = req.body || {};
+  if (!b.title) return res.status(400).json({ error: 'title is required' });
+  const slug = slugify(b.slug || b.title);
+  const status = b.status === 'published' ? 'published' : 'draft';
+  const categoryId = b.category_id != null && b.category_id !== ''
+    ? parseInt(b.category_id, 10) : null;
+  const publishedAt = status === 'published'
+    ? (b.published_at || new Date().toISOString().slice(0, 19).replace('T', ' '))
+    : (b.published_at || null);
+  try {
+    const r = db.prepare(`
+      INSERT INTO blog_posts
+        (title, slug, excerpt, body, cover_image, status, category_id, published_at, author)
+      VALUES (?,?,?,?,?,?,?,?,?)
+    `).run(
+      b.title, slug,
+      b.excerpt || null,
+      b.body || null,
+      b.cover_image || null,
+      status,
+      Number.isFinite(categoryId) ? categoryId : null,
+      publishedAt,
+      b.author || null,
+    );
+    res.status(201).json(fmtPost(db.prepare(`${POST_SELECT} WHERE p.id=?`).get(r.lastInsertRowid)));
+  } catch (e) {
+    if (e.message.includes('UNIQUE'))
+      return res.status(409).json({ error: `Slug "${slug}" already exists — choose another` });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.put('/api/admin/blog/posts/:id', requireAuth, (req, res) => {
+  const old = db.prepare('SELECT * FROM blog_posts WHERE id=?').get(req.params.id);
+  if (!old) return res.status(404).json({ error: 'Not found' });
+  const b = req.body || {};
+  const slug = b.slug ? slugify(b.slug) : old.slug;
+  const status = ['draft', 'published'].includes(b.status) ? b.status : old.status;
+  let categoryId = old.category_id;
+  if (b.category_id !== undefined) {
+    if (b.category_id === null || b.category_id === '') categoryId = null;
+    else {
+      const n = parseInt(b.category_id, 10);
+      categoryId = Number.isFinite(n) ? n : null;
+    }
+  }
+  let publishedAt = old.published_at;
+  if (b.published_at !== undefined) publishedAt = b.published_at || null;
+  if (status === 'published' && !publishedAt) {
+    publishedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  }
+  if (status === 'draft' && b.clear_published) publishedAt = null;
+
+  try {
+    db.prepare(`
+      UPDATE blog_posts SET
+        title=?, slug=?, excerpt=?, body=?, cover_image=?,
+        status=?, category_id=?, published_at=?, author=?
+      WHERE id=?
+    `).run(
+      b.title ?? old.title,
+      slug,
+      b.excerpt !== undefined ? b.excerpt : old.excerpt,
+      b.body !== undefined ? b.body : old.body,
+      b.cover_image !== undefined ? b.cover_image : old.cover_image,
+      status,
+      categoryId,
+      publishedAt,
+      b.author !== undefined ? b.author : old.author,
+      req.params.id,
+    );
+    res.json(fmtPost(db.prepare(`${POST_SELECT} WHERE p.id=?`).get(req.params.id)));
+  } catch (e) {
+    if (e.message.includes('UNIQUE'))
+      return res.status(409).json({ error: `Slug "${slug}" already exists — choose another` });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/admin/blog/posts/:id', requireAuth, (req, res) => {
+  const r = db.prepare('DELETE FROM blog_posts WHERE id=?').run(req.params.id);
+  if (!r.changes) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true });
+});
+
+app.patch('/api/admin/blog/posts/:id/status', requireAuth, (req, res) => {
+  const { status } = req.body || {};
+  if (!['draft', 'published'].includes(status))
+    return res.status(400).json({ error: 'status must be draft or published' });
+  const old = db.prepare('SELECT * FROM blog_posts WHERE id=?').get(req.params.id);
+  if (!old) return res.status(404).json({ error: 'Not found' });
+  const publishedAt = status === 'published'
+    ? (old.published_at || new Date().toISOString().slice(0, 19).replace('T', ' '))
+    : old.published_at;
+  db.prepare('UPDATE blog_posts SET status=?, published_at=? WHERE id=?')
+    .run(status, publishedAt, req.params.id);
+  res.json(fmtPost(db.prepare(`${POST_SELECT} WHERE p.id=?`).get(req.params.id)));
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
