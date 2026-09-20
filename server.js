@@ -114,7 +114,8 @@ db.exec(`
     published_at TEXT,
     created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at   TEXT    NOT NULL DEFAULT (datetime('now')),
-    author       TEXT
+    author       TEXT,
+    tags         TEXT    NOT NULL DEFAULT '[]'
   );
 
   CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug);
@@ -201,6 +202,12 @@ try {
 
 try {
   db.prepare("ALTER TABLE projects ADD COLUMN awards TEXT NOT NULL DEFAULT '[]'").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  db.prepare("ALTER TABLE blog_posts ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'").run();
 } catch (e) {
   if (!/duplicate column/i.test(e.message)) throw e;
 }
@@ -338,6 +345,7 @@ const fmtPost = (row) => {
     status: row.status,
     category_id: row.category_id || null,
     category,
+    tags: safeJSON(row.tags, []),
     published_at: row.published_at || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -377,6 +385,37 @@ app.get('/admin/*', (_, res) => res.sendFile(path.join(__dirname, 'admin', 'inde
 
 // Uploaded media (runtime data)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Blog post pretty URLs
+app.get('/blog-post.html', (req, res) => {
+  const slug = req.query.slug;
+  if (slug) {
+    res.redirect(301, `/blog/${slug}`);
+  } else {
+    res.sendFile(path.join(__dirname, 'blog-post.html'));
+  }
+});
+
+app.get('/blog/:slug', async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const post = db.prepare(
+      `${POST_SELECT} WHERE p.slug=? AND p.status='published'`
+    ).get(slug);
+
+    if (!post) {
+      // Post not found - serve blog-post.html with 404 status
+      return res.status(404).sendFile(path.join(__dirname, 'blog-post.html'));
+    }
+
+    // Post found - serve blog-post.html with 200 status
+    res.sendFile(path.join(__dirname, 'blog-post.html'));
+  } catch (error) {
+    console.error('Error fetching blog post:', error);
+    // Server error - serve blog-post.html with 500 status
+    res.status(500).sendFile(path.join(__dirname, 'blog-post.html'));
+  }
+});
 
 // Root static files
 app.use(express.static(path.join(__dirname), {
@@ -909,11 +948,12 @@ app.post('/api/admin/blog/posts', requireAuth, (req, res) => {
   const publishedAt = status === 'published'
     ? (b.published_at || new Date().toISOString().slice(0, 19).replace('T', ' '))
     : (b.published_at || null);
+  const tagsJson = b.tags !== undefined ? JSON.stringify(Array.isArray(b.tags) ? b.tags : []) : '[]';
   try {
     const r = db.prepare(`
       INSERT INTO blog_posts
-        (title, slug, excerpt, body, cover_image, status, category_id, published_at, author)
-      VALUES (?,?,?,?,?,?,?,?,?)
+        (title, slug, excerpt, body, cover_image, status, category_id, published_at, author, tags)
+      VALUES (?,?,?,?,?,?,?,?,?,?)
     `).run(
       b.title, slug,
       b.excerpt || null,
@@ -923,6 +963,7 @@ app.post('/api/admin/blog/posts', requireAuth, (req, res) => {
       Number.isFinite(categoryId) ? categoryId : null,
       publishedAt,
       b.author || null,
+      tagsJson,
     );
     res.status(201).json(fmtPost(db.prepare(`${POST_SELECT} WHERE p.id=?`).get(r.lastInsertRowid)));
   } catch (e) {
@@ -952,12 +993,16 @@ app.put('/api/admin/blog/posts/:id', requireAuth, (req, res) => {
     publishedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
   }
   if (status === 'draft' && b.clear_published) publishedAt = null;
+  let tags = old.tags;
+  if (b.tags !== undefined) {
+    tags = JSON.stringify(Array.isArray(b.tags) ? b.tags : []);
+  }
 
   try {
     db.prepare(`
       UPDATE blog_posts SET
         title=?, slug=?, excerpt=?, body=?, cover_image=?,
-        status=?, category_id=?, published_at=?, author=?
+        status=?, category_id=?, published_at=?, author=?, tags=?
       WHERE id=?
     `).run(
       b.title ?? old.title,
@@ -969,6 +1014,7 @@ app.put('/api/admin/blog/posts/:id', requireAuth, (req, res) => {
       categoryId,
       publishedAt,
       b.author !== undefined ? b.author : old.author,
+      tags,
       req.params.id,
     );
     res.json(fmtPost(db.prepare(`${POST_SELECT} WHERE p.id=?`).get(req.params.id)));

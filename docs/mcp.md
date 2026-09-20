@@ -93,6 +93,11 @@ Automated smoke: `npm run test:mcp` (node:test).
 | `blog_list_categories` | List categories |
 | `blog_create_post` / `blog_update_post` / `blog_delete_post` | Post CRUD |
 | `blog_create_category` / `blog_update_category` / `blog_delete_category` | Category CRUD |
+| `blog_upload_media` | Upload image/video bytes (base64) + filename, returns `{ url, mime, bytes, width?, height? }` where url is `/uploads/<file>` |
+| `blog_list_media` | List recent uploaded media files (name, url, bytes, mtime), capped at ~100 |
+| `blog_publish_post` | Set post status to published, sets published_at if empty |
+| `blog_unpublish_post` | Set post status to draft |
+| `blog_set_cover` | Set cover image URL for a post (ref + URL) |
 
 Resources: `blog://posts`, `blog://categories`.
 
