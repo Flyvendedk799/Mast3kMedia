@@ -58,6 +58,16 @@
   /* ── Card markup (preserves existing .wcard structure) ── */
   function buildWcard(p) {
     var filter = catToFilter(p.category);
+    // Also inject filter keys from tags so AI-tagged projects match the AI filter
+    var FILTER_KEYS = ['saas', 'app', 'ai', 'fintech'];
+    if (Array.isArray(p.tags)) {
+      p.tags.forEach(function(t) {
+        var lk = String(t).toLowerCase();
+        if (FILTER_KEYS.indexOf(lk) !== -1 && filter.indexOf(lk) === -1) {
+          filter += ' ' + lk;
+        }
+      });
+    }
     var media = p.thumbnail_url
       ? '<div class="ph-inner"><img src="' + ESC(p.thumbnail_url) + '" alt="' + ESC(p.title) + '" loading="lazy" /></div>'
       : '<div class="ph-inner"><span class="ph-label">' + ESC(p.category) + '</span></div>';
@@ -78,6 +88,7 @@
       '<div class="wcard-info"><h3 class="wcard-title">' + ESC(p.title) + '</h3>' +
         '<span class="wcard-cat">' + ESC(p.year || '') + '</span></div>' +
       '<p class="wcard-desc">' + ESC(p.description || '') + '</p>' +
+      (Array.isArray(p.metrics) && p.metrics.length ? '<div class="wcard-outcome"><span class="wcard-outcome-n">' + ESC(p.metrics[0].value) + '</span> ' + ESC(p.metrics[0].label) + '</div>' : '') +
       tagsHtml +
       '</a>';
   }
@@ -166,10 +177,27 @@
       list.push(key);
     });
     list.sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
-    chipsEl.innerHTML = list.map(function (t) {
-      return '<button type="button" class="work-chip" data-tag="' + ESC(t.toLowerCase()) + '">' + ESC(t) + '</button>';
+    var VISIBLE = 8;
+    var chipHtml = list.map(function (t, i) {
+      var hidden = i >= VISIBLE ? ' style="display:none" data-extra-chip' : '';
+      return '<button type="button" class="work-chip"' + hidden + ' data-tag="' + ESC(t.toLowerCase()) + '">' + ESC(t) + '</button>';
     }).join('');
-    chipsEl.querySelectorAll('.work-chip').forEach(function (chip) {
+    if (list.length > VISIBLE) {
+      chipHtml += '<button type="button" class="work-chip work-chip-toggle">Flere filtre ▾</button>';
+    }
+    chipsEl.innerHTML = chipHtml;
+    var toggle = chipsEl.querySelector('.work-chip-toggle');
+    if (toggle) {
+      var expanded = false;
+      toggle.addEventListener('click', function() {
+        expanded = !expanded;
+        chipsEl.querySelectorAll('[data-extra-chip]').forEach(function(c) {
+          c.style.display = expanded ? '' : 'none';
+        });
+        toggle.textContent = expanded ? 'Færre filtre ▴' : 'Flere filtre ▾';
+      });
+    }
+    chipsEl.querySelectorAll('.work-chip:not(.work-chip-toggle)').forEach(function (chip) {
       chip.addEventListener('click', function () {
         var tag = chip.dataset.tag;
         var i = activeChips.indexOf(tag);

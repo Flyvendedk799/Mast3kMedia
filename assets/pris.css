@@ -104,7 +104,7 @@
 .cbtn-next { background: var(--lime); color: var(--on-lime); border-color: var(--lime); }
 .cbtn-next:hover:not(:disabled) { background: var(--lime-lift); border-color: var(--lime-lift); transform: translateY(-1px); box-shadow: var(--shadow-green); }
 .cbtn-next:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
-.cbtn-next:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.5); }
+.cbtn-next:disabled { background: var(--bg-2); border-color: var(--line); color: var(--dim); cursor: not-allowed; opacity: 1; filter: none; }
 
 /* ---- result ---- */
 .result-top { text-align: center; max-width: 60ch; margin: 0 auto clamp(2rem, 4vw, 3rem); }

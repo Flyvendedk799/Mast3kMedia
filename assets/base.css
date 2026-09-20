@@ -30,8 +30,8 @@
   --ink-2:     #E8E8F0;
   --lead:      #C4C4D6;
   --muted:     #9A9AB2;
-  --faint:     #8A8AA2;
-  --dim:       #7A7A94;
+  --faint:     #9A9AB2;
+  --dim:       #8E8EA8;
 
   /* ── Borders ──
      hair = section rules and rail gaps · line-soft = card edges ·
@@ -275,6 +275,9 @@ h1, h2, h3, h4 {
 .shell-read { max-width: var(--readw); }
 section { position: relative; }
 .section-pad { padding-block: clamp(4rem, 8vw, 7rem); }
+section[id], [id].section-pad, h1[id], h2[id], h3[id] {
+  scroll-margin-top: 5rem;
+}
 
 .rule { height: 1px; background: var(--hair); width: 100%; }
 .grid { display: grid; }
