@@ -17,7 +17,7 @@ Public: `http://localhost:3000/blog.html` · post `blog-post.html?slug=…`
 - `blog_categories` — `id`, `name`, `slug` UNIQUE, `description`, `created_at`
 - `blog_posts` — `id`, `title`, `slug` UNIQUE, `excerpt`, `body`, `cover_image`, `status` (`draft`|`published`), `category_id` FK nullable, `published_at`, `created_at`, `updated_at`, `author`
 
-Indexes on `slug`, `status`, `category_id`. Schemas are created in both `server.js` and `mcp-server.mjs`.
+Indexes on `slug`, `status`, `category_id`. Schemas are created in `server.js` and ensured by `lib/mcp-app.mjs` (stdio + HTTP MCP).
 
 ## Public API
 
@@ -40,7 +40,19 @@ Indexes on `slug`, `status`, `category_id`. Schemas are created in both `server.
 
 Sidebar: **Blog-indlæg**, **Kategorier**. Same SPA patterns as projects (list / form / status / delete).
 
-## MCP tools (`npm run mcp`)
+## MCP tools
+
+Shared tool logic lives in `lib/mcp-app.mjs`.
+
+| Transport | How |
+|-----------|-----|
+| Stdio | `npm run mcp` / `.mcp.json` |
+| HTTP | `POST https://mast3kmedia.dk/mcp` with `Authorization: Bearer <MCP_AUTH_TOKEN\|admin JWT>` |
+
+Full HTTP auth, Cursor/Grok config, and smoke tests: **[docs/mcp.md](./mcp.md)**.
+
+### Tool list (`npm run mcp` or HTTP)
+
 
 | Tool | Purpose |
 |------|---------|
@@ -50,7 +62,7 @@ Sidebar: **Blog-indlæg**, **Kategorier**. Same SPA patterns as projects (list /
 | `blog_create_post` / `blog_update_post` / `blog_delete_post` | Post CRUD |
 | `blog_create_category` / `blog_update_category` / `blog_delete_category` | Category CRUD |
 
-Resources: `blog://posts`, `blog://categories`. Client config: `.mcp.json` → `node mcp-server.mjs`.
+Resources: `blog://posts`, `blog://categories`. Stdio client config: `.mcp.json` → `node mcp-server.mjs`. See [mcp.md](./mcp.md) for HTTP.
 
 ## Quick smoke test
 
