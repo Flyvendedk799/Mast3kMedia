@@ -28,12 +28,11 @@
     }
   }
 
-  /* Lightweight markdown → HTML (headings, lists, code, paragraphs, links, bold/italic).
-     If body already looks like HTML, return as-is. */
+  /* Lightweight markdown → HTML (headings, lists, code, paragraphs, links, bold/italic, images).
+     No longer treats HTML-like bodies as raw HTML to allow markdown image processing. */
   function renderBody(raw) {
     var src = String(raw || '');
     if (!src.trim()) return '<p class="faint">Ingen indhold.</p>';
-    if (/<[a-z][\s\S]*>/i.test(src)) return src;
 
     var lines = src.replace(/\r\n/g, '\n').split('\n');
     var out = [];
@@ -50,6 +49,10 @@
         .replace(/\*([^*]+)\*/g, '<em>$1</em>')
         .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" rel="noopener noreferrer">$1</a>');
     }
+    function isAllowedImageUrl(url) {
+      // Allow http(s) and site-relative /uploads/... and /assets/...
+      return (/^https?:\/\//i.test(url) || /^\/uploads\//.test(url) || /^\/assets\//.test(url));
+    }
 
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i];
@@ -65,6 +68,39 @@
       if (inCode) { codeBuf.push(line); continue; }
 
       if (/^\s*$/.test(line)) { closeLists(); continue; }
+
+      // Check for markdown image: ![alt](url)
+      var imgMatch = line.match(/^\s*!\s*\[([^\]]*)\]\s*\(([^)]+)\)\s*$/);
+      if (imgMatch) {
+        var alt = imgMatch[1];
+        var url = imgMatch[2];
+        var caption = '';
+
+        // Check next line for optional caption (italic line)
+        if (i + 1 < lines.length) {
+          var nextLine = lines[i + 1];
+          var capMatch = nextLine.match(/^\s*\*([^*]+)\*\s*$/) || nextLine.match(/^\s*_([^_]+)_\s*$/);
+          if (capMatch) {
+            caption = capMatch[1];
+            i++; // skip the caption line
+          }
+        }
+
+        // Build image HTML only if URL is allowed
+        if (isAllowedImageUrl(url)) {
+          var imgTag = '<img src="' + ESC(url) + '" alt="' + ESC(alt) + '" loading="lazy" />';
+          if (caption) {
+            out.push('<figure>' + imgTag + '<figcaption>' + ESC(caption) + '</figcaption></figure>');
+          } else {
+            out.push('<p>' + imgTag + '</p>');
+          }
+        } else {
+          // If URL not allowed, treat as plain text (so the image syntax is shown as text)
+          closeLists();
+          out.push('<p>' + inline(line) + '</p>');
+        }
+        continue;
+      }
 
       var hm = line.match(/^(#{1,3})\s+(.+)$/);
       if (hm) {
@@ -125,7 +161,16 @@
       var media = p.cover_image
         ? '<img src="' + ESC(p.cover_image) + '" alt="' + ESC(p.title) + '" loading="lazy" />'
         : '<div class="ph-inner"><span class="ph-label">' + ESC(cat) + '</span></div>';
-      return '<a class="bcard" href="blog-post.html?slug=' + ESC(p.slug) + '" data-reveal="up">' +
+
+      // Tags display (similar to work.js)
+      var tags = Array.isArray(p.tags) ? p.tags.filter(function(t){ return t && t.toLowerCase() !== String(p.category || '').toLowerCase(); }).slice(0, 3) : [];
+      var tagsHtml = tags.length
+        ? '<div class="bcard-tags">' +
+            tags.map(function(t){ return '<span class="tag">' + ESC(t) + '</span>'; }).join('') +
+          '</div>'
+        : '';
+
+      return '<a class="bcard" href="/blog/' + ESC(p.slug) + '" data-reveal="up">' +
         '<div class="bcard-media' + (p.cover_image ? '' : ' ph') + '">' + media +
           '<span class="bcard-badge">' + ESC(cat) + '</span></div>' +
         '<div class="bcard-body">' +
@@ -133,6 +178,7 @@
             (p.author ? '<span>' + ESC(p.author) + '</span>' : '') + '</div>' +
           '<h3 class="bcard-title">' + ESC(p.title) + '</h3>' +
           (p.excerpt ? '<p class="bcard-excerpt">' + ESC(p.excerpt) + '</p>' : '') +
+          tagsHtml +
           '<span class="bcard-arrow">Læs indlæg →</span>' +
         '</div></a>';
     }
@@ -226,6 +272,12 @@
     var article = document.getElementById('blogArticle');
     if (!article) return;
     var slug = qs('slug');
+    if (!slug && location.pathname.startsWith('/blog/')) {
+      var parts = location.pathname.split('/');
+      if (parts.length >= 3) {
+        slug = parts[2];
+      }
+    }
     var shell = article.querySelector('.blog-article-shell') || article;
     if (!slug) {
       shell.innerHTML = '<div class="blog-post-error">Mangler slug. <a href="blog.html" class="ulink">Tilbage til bloggen</a></div>';
@@ -241,17 +293,38 @@
         var desc = p.excerpt || p.title;
         var md = document.querySelector('meta[name="description"]');
         if (md) md.setAttribute('content', desc);
+        // Set canonical URL
+        var canonicalLink = document.querySelector('link[rel="canonical"]');
+        if (canonicalLink) {
+          canonicalLink.setAttribute('href', location.origin + '/blog/' + ESC(p.slug));
+        }
+        // Set og:url
+        var ogUrlMeta = document.querySelector('meta[property="og:url"]');
+        if (!ogUrlMeta) {
+          ogUrlMeta = document.createElement('meta');
+          ogUrlMeta.setAttribute('property', 'og:url');
+          document.head.appendChild(ogUrlMeta);
+        }
+        ogUrlMeta.setAttribute('content', location.origin + '/blog/' + ESC(p.slug));
         var cat = p.category ? '<span class="blog-post-cat">' + ESC(p.category.name) + '</span>' : '';
-        shell.innerHTML =
-          '<span class="crumb mono blog-post-crumb"><a href="index.html">Forside</a> <span class="sep">/</span> <a href="blog.html">Blog</a> <span class="sep">/</span> ' + ESC(p.title) + '</span>' +
-          '<div class="blog-post-meta">' + cat +
-            '<span>' + ESC(fmtDate(p.published_at || p.created_at)) + '</span>' +
-            (p.author ? '<span>' + ESC(p.author) + '</span>' : '') +
-          '</div>' +
-          '<h1 class="blog-post-title display">' + ESC(p.title) + '</h1>' +
-          (p.excerpt ? '<p class="blog-post-excerpt">' + ESC(p.excerpt) + '</p>' : '') +
-          (p.cover_image ? '<div class="blog-post-cover"><img src="' + ESC(p.cover_image) + '" alt="' + ESC(p.title) + '" /></div>' : '') +
-          '<div class="blog-post-body">' + renderBody(p.body) + '</div>';
+      // Tags display
+      var tags = Array.isArray(p.tags) ? p.tags.filter(function(t){ return t && t.toLowerCase() !== String(p.category || '').toLowerCase(); }).slice(0, 3) : [];
+      var tagsHtml = tags.length
+        ? '<div class="blog-post-tags">' +
+            tags.map(function(t){ return '<span class="tag">' + ESC(t) + '</span>'; }).join('') +
+          '</div>'
+        : '';
+      shell.innerHTML =
+        '<span class="crumb mono blog-post-crumb"><a href="index.html">Forside</a> <span class="sep">/</span> <a href="blog.html">Blog</a> <span class="sep">/</span> ' + ESC(p.title) + '</span>' +
+        '<div class="blog-post-meta">' + cat +
+          '<span>' + ESC(fmtDate(p.published_at || p.created_at)) + '</span>' +
+          (p.author ? '<span>' + ESC(p.author) + '</span>' : '') +
+        '</div>' +
+        tagsHtml +
+        '<h1 class="blog-post-title display">' + ESC(p.title) + '</h1>' +
+        (p.excerpt ? '<p class="blog-post-excerpt">' + ESC(p.excerpt) + '</p>' : '') +
+        (p.cover_image ? '<div class="blog-post-cover"><img src="' + ESC(p.cover_image) + '" alt="' + ESC(p.title) + '" /></div>' : '') +
+        '<div class="blog-post-body">' + renderBody(p.body) + '</div>';
       })
       .catch(function () {
         shell.innerHTML = '<div class="blog-post-error">Indlægget blev ikke fundet. <a href="blog.html" class="ulink">Tilbage til bloggen</a></div>';

@@ -10,12 +10,12 @@ npm run mcp        # MCP stdio server (blog + project tools)
 ```
 
 Admin: `http://localhost:3000/admin`  
-Public: `http://localhost:3000/blog.html` · post `blog-post.html?slug=…`
+Public: `http://localhost:3000/blog.html` · post `/blog/<slug>`
 
 ## Schema
 
 - `blog_categories` — `id`, `name`, `slug` UNIQUE, `description`, `created_at`
-- `blog_posts` — `id`, `title`, `slug` UNIQUE, `excerpt`, `body`, `cover_image`, `status` (`draft`|`published`), `category_id` FK nullable, `published_at`, `created_at`, `updated_at`, `author`
+- `blog_posts` — `id`, `title`, `slug` UNIQUE, `excerpt`, `body`, `cover_image`, `status` (`draft`|`published`), `category_id` FK nullable, `tags` (JSON string array), `published_at`, `created_at`, `updated_at`, `author`
 
 Indexes on `slug`, `status`, `category_id`. Schemas are created in `server.js` and ensured by `lib/mcp-app.mjs` (stdio + HTTP MCP).
 
@@ -24,8 +24,9 @@ Indexes on `slug`, `status`, `category_id`. Schemas are created in `server.js` a
 | Method | Path | Notes |
 |--------|------|--------|
 | GET | `/api/blog/categories` | All categories |
-| GET | `/api/blog/posts?category=&page=&limit=` | Published only; paginated `{ posts, page, limit, total, pages }` |
+| GET | `/api/blog/posts?category=&page=&limit=&tag=` | Published only; paginated `{ posts, page, limit, total, pages }` |
 | GET | `/api/blog/posts/:slug` | Published only |
+| GET | `/blog/:slug` | Pretty URL for published posts (redirects from `blog-post.html?slug=`) |
 
 ## Admin API (`Authorization: Bearer <jwt>`)
 
@@ -61,8 +62,27 @@ Full HTTP auth, Cursor/Grok config, and smoke tests: **[docs/mcp.md](./mcp.md)**
 | `blog_list_categories` | List categories |
 | `blog_create_post` / `blog_update_post` / `blog_delete_post` | Post CRUD |
 | `blog_create_category` / `blog_update_category` / `blog_delete_category` | Category CRUD |
+| `blog_upload_media` | Upload image/video to persistent storage, returns public URL |
+| `blog_list_media` | List recent uploaded media files |
+| `blog_publish_post` | Set post status to published |
+| `blog_unpublish_post` | Set post status to draft |
+| `blog_set_cover` | Set cover image URL for a post |
 
 Resources: `blog://posts`, `blog://categories`. Stdio client config: `.mcp.json` → `node mcp-server.mjs`. See [mcp.md](./mcp.md) for HTTP.
+
+## For Mast3kMedia Blogger bot
+
+The recommended publish sequence for agents:
+
+1. `blog_upload_media` (for cover image)
+2. `blog_upload_media` (for in-article images as needed)
+3. `blog_create_post` / `blog_update_post` with:
+   - `cover_image`: URL from step 1
+   - `body`: markdown containing `![alt](/uploads/...)` for images
+   - `tags`: array of strings
+   - `category`: slug or ID
+4. `blog_publish_post` (if not published in step 3)
+5. Verify with `blog_get_post` and public `/blog/<slug>`
 
 ## Quick smoke test
 
@@ -71,4 +91,6 @@ Resources: `blog://posts`, `blog://categories`. Stdio client config: `.mcp.json`
 curl -s 'http://localhost:3000/api/blog/categories'
 curl -s 'http://localhost:3000/api/blog/posts'
 curl -s 'http://localhost:3000/api/blog/posts/<slug>'
+# or with pretty URL:
+curl -s 'http://localhost:3000/blog/<slug>'
 ```

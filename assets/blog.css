@@ -257,3 +257,33 @@
   padding: 3rem 0;
   color: var(--muted, #8a8a9a);
 }
+
+/* Tags */
+.bcard-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.blog-post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.5rem 0 1rem;
+}
+.tag {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #e8e8f0;
+  backdrop-filter: blur(6px);
+}
+.tag:hover {
+  background: rgba(0,0,0,0.5);
+  transform: translateY(-1px);
+}
