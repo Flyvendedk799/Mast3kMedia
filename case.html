@@ -1146,7 +1146,12 @@
       if (brief) {
         var briefSec = brief.closest('section');
         if (p.long_description) {
-          brief.textContent = p.long_description;
+          var paragraphs = p.long_description.split(/\n\s*\n/).filter(function(s){ return s.trim(); });
+          if (paragraphs.length > 1) {
+            brief.innerHTML = paragraphs.map(function(para){ return '<p>' + ESC(para.trim()) + '</p>'; }).join('');
+          } else {
+            brief.textContent = p.long_description;
+          }
           if (briefSec) briefSec.hidden = false;
         } else {
           if (briefSec) briefSec.hidden = true;
