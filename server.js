@@ -225,6 +225,47 @@ const clipText = (val, max = 1800) =>
   String(val ?? '').trim().replace(/\r\n/g, '\n').replace(/\n{4,}/g, '\n\n\n').slice(0, max);
 const validEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val || '').trim());
 
+const SITE_ORIGIN = 'https://mast3kmedia.dk';
+const escHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;');
+const jsLit = (value) => JSON.stringify(String(value ?? ''))
+  .replace(/</g, '\\u003c')
+  .replace(/>/g, '\\u003e')
+  .replace(/&/g, '\\u0026');
+
+function renderMeasuredPage(html, opts) {
+  const description = String(opts.description || '').replace(/\s+/g, ' ').trim();
+  const canonical = opts.canonical;
+  const image = opts.image || '';
+  const swap = (source, regex, next) => source.replace(regex, () => next);
+  html = swap(html, /<title>[^<]*<\/title>/, `<title>${escHtml(opts.fullTitle)}</title>`);
+  html = swap(html, /<meta name="description" content="[^"]*"\s*\/?>/, `<meta name="description" content="${escHtml(description)}" />`);
+  html = swap(html, /<link rel="canonical" href="[^"]*"\s*\/?>/, `<link rel="canonical" href="${escHtml(canonical)}" />`);
+  html = swap(html, /<meta property="og:url" content="[^"]*"\s*\/?>/, `<meta property="og:url" content="${escHtml(canonical)}" />`);
+  html = swap(html, /<meta property="og:title" content="[^"]*"\s*\/?>/, `<meta property="og:title" content="${escHtml(opts.fullTitle)}" />`);
+  html = swap(html, /<meta property="og:description" content="[^"]*"\s*\/?>/, `<meta property="og:description" content="${escHtml(description)}" />`);
+  html = swap(html, /<meta property="og:type" content="[^"]*"\s*\/?>/, `<meta property="og:type" content="article" />`);
+  html = swap(html, /<meta name="twitter:title" content="[^"]*"\s*\/?>/, `<meta name="twitter:title" content="${escHtml(opts.fullTitle)}" />`);
+  html = swap(html, /<meta name="twitter:description" content="[^"]*"\s*\/?>/, `<meta name="twitter:description" content="${escHtml(description)}" />`);
+  if (image) {
+    html = swap(html, /<meta property="og:image" content="[^"]*"\s*\/?>/, `<meta property="og:image" content="${escHtml(image)}" />`);
+    html = swap(html, /<meta name="twitter:image" content="[^"]*"\s*\/?>/, `<meta name="twitter:image" content="${escHtml(image)}" />`);
+  }
+  const push = `<script>window.dataLayer=window.dataLayer||[];dataLayer.push({page_type:${jsLit(opts.pageType)},content_type:${jsLit(opts.contentType)},content_id:${jsLit(opts.contentId)},content_title:${jsLit(opts.contentTitle)},content_category:${jsLit(opts.contentCategory)}})</script>`;
+  html = swap(
+    html,
+    /<script>window\.dataLayer=window\.dataLayer\|\|\[\];dataLayer\.push\(\{page_type:'[^']*'\}\)<\/script>/,
+    push,
+  );
+  return html;
+}
+
+const blogPostTemplate = fs.readFileSync(path.join(__dirname, 'blog-post.html'), 'utf8');
+const caseTemplate = fs.readFileSync(path.join(__dirname, 'case.html'), 'utf8');
+
 // ── Upload helpers ──────────────────────────────────────────────────────────────
 const crypto = require('crypto');
 
@@ -375,7 +416,37 @@ const requireAuth = (req, res, next) => {
 
 // ── App ───────────────────────────────────────────────────────────────────────
 const app = express();
+app.set('trust proxy', true);
+app.use((req, res, next) => {
+  if (req.headers['x-forwarded-proto'] === 'http') {
+    return res.redirect(301, 'https://' + req.headers.host + req.originalUrl);
+  }
+  next();
+});
 app.use(express.json({ limit: '24mb' }));
+
+const requestSearch = (req) => {
+  const i = req.originalUrl.indexOf('?');
+  return i === -1 ? '' : req.originalUrl.slice(i);
+};
+
+app.get('/index.html', (req, res) => {
+  res.redirect(301, '/' + requestSearch(req));
+});
+
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  const urlPath = req.path;
+  if (urlPath === '/' || path.extname(urlPath)) return next();
+  if (/^\/(api|admin|uploads|mcp|assets)(\/|$)/.test(urlPath)) return next();
+  const resolved = path.resolve(__dirname, '.' + urlPath + '.html');
+  if (!resolved.startsWith(__dirname + path.sep)) return next();
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return next();
+  if (path.basename(resolved) === 'index.html') {
+    return res.redirect(301, '/' + requestSearch(req));
+  }
+  res.redirect(301, urlPath + '.html' + requestSearch(req));
+});
 
 // Admin SPA — serve index.html for /admin and /admin/*
 app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin', 'index.html')));
@@ -396,7 +467,7 @@ app.get('/blog-post.html', (req, res) => {
   }
 });
 
-app.get('/blog/:slug', async (req, res) => {
+app.get('/blog/:slug', (req, res) => {
   const { slug } = req.params;
   try {
     const post = db.prepare(
@@ -404,17 +475,92 @@ app.get('/blog/:slug', async (req, res) => {
     ).get(slug);
 
     if (!post) {
-      // Post not found - serve blog-post.html with 404 status
-      return res.status(404).sendFile(path.join(__dirname, 'blog-post.html'));
+      return res.status(404).type('html').send(blogPostTemplate);
     }
 
-    // Post found - serve blog-post.html with 200 status
-    res.sendFile(path.join(__dirname, 'blog-post.html'));
+    const html = renderMeasuredPage(blogPostTemplate, {
+      fullTitle: `${post.title} — Mast3kMedia`,
+      description: post.excerpt || '',
+      canonical: `${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}`,
+      image: post.cover_image || '',
+      pageType: 'blog_post',
+      contentType: 'blog_post',
+      contentId: post.slug,
+      contentTitle: post.title,
+      contentCategory: post.category_name || '',
+    });
+    res.type('html').send(html);
   } catch (error) {
     console.error('Error fetching blog post:', error);
-    // Server error - serve blog-post.html with 500 status
-    res.status(500).sendFile(path.join(__dirname, 'blog-post.html'));
+    res.status(500).type('html').send(blogPostTemplate);
   }
+});
+
+app.get('/case.html', (req, res, next) => {
+  const slug = typeof req.query.slug === 'string' ? req.query.slug.trim() : '';
+  if (!slug) return next();
+  try {
+    const row = db.prepare(
+      'SELECT * FROM projects WHERE slug=? AND status=?'
+    ).get(slug, 'published');
+    if (!row) return res.status(404).type('html').send(caseTemplate);
+    const project = fmt(row);
+    const html = renderMeasuredPage(caseTemplate, {
+      fullTitle: `${project.title} — Case · Mast3kMedia`,
+      description: project.description || '',
+      canonical: `${SITE_ORIGIN}/case.html?slug=${encodeURIComponent(project.slug)}`,
+      image: project.og_image || project.thumbnail_url || '',
+      pageType: 'case',
+      contentType: 'case',
+      contentId: project.slug,
+      contentTitle: project.title,
+      contentCategory: project.category || '',
+    });
+    res.type('html').send(html);
+  } catch (error) {
+    console.error('Error fetching case:', error);
+    res.status(500).type('html').send(caseTemplate);
+  }
+});
+
+app.get('/robots.txt', (_req, res) => {
+  res.type('text/plain').send(
+    'User-agent: *\nAllow: /\n\nSitemap: https://mast3kmedia.dk/sitemap.xml\n'
+  );
+});
+
+const SITEMAP_PAGES = [
+  '/',
+  '/ydelser.html',
+  '/pris.html',
+  '/arbejde.html',
+  '/blog.html',
+  '/kontakt.html',
+  '/om.html',
+  '/oss.html',
+  '/saas.html',
+];
+
+app.get('/sitemap.xml', (_req, res) => {
+  const urls = SITEMAP_PAGES.map((page) => SITE_ORIGIN + page);
+  const posts = db.prepare(
+    "SELECT slug FROM blog_posts WHERE status='published' ORDER BY slug"
+  ).all();
+  const projects = db.prepare(
+    "SELECT slug FROM projects WHERE status='published' ORDER BY slug"
+  ).all();
+  for (const post of posts) urls.push(`${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}`);
+  for (const project of projects) {
+    urls.push(`${SITE_ORIGIN}/case.html?slug=${encodeURIComponent(project.slug)}`);
+  }
+  const xml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...urls.map((url) => `  <url><loc>${escHtml(url)}</loc></url>`),
+    '</urlset>',
+    '',
+  ].join('\n');
+  res.type('application/xml').send(xml);
 });
 
 // Root static files
@@ -547,7 +693,7 @@ app.post('/api/leads', (req, res) => {
 
   const lead = {
     source:       clipLine(b.source || 'hero', 40),
-    project_type: clipLine(b.project_type || b.projectType, 80),
+    project_type: clipLine(b.project_type || b.projectType, 240),
     goal:         clipText(b.goal, 900),
     budget:       clipLine(b.budget, 80),
     timeline:     clipLine(b.timeline, 80),

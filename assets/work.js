@@ -79,7 +79,7 @@
         '</div>'
       : '';
 
-    return '<a href="case.html?slug=' + ESC(p.slug) + '" class="wcard" data-cat="' + ESC(filter) + '" data-reveal="up">' +
+    return '<a href="case.html?slug=' + ESC(p.slug) + '" class="wcard" data-cat="' + ESC(filter) + '" data-reveal="up" data-track="content" data-content-type="case" data-content-id="' + ESC(p.slug) + '">' +
       '<div class="wcard-media' + (p.thumbnail_url ? '' : ' ph') + '">' +
         media +
         '<span class="wcard-badge">' + badge + '</span>' +
@@ -212,6 +212,8 @@
   function initSearch() {
     if (!searchInput) return;
     var t = null;
+    var trackTimer = null;
+    var lastTracked = '';
     searchInput.addEventListener('input', function () {
       var raw = searchInput.value;
       if (searchWrap) searchWrap.classList.toggle('has-value', raw.length > 0);
@@ -220,6 +222,13 @@
         searchTerm = raw.trim().toLowerCase();
         applyFilters();
       }, 150);
+      clearTimeout(trackTimer);
+      trackTimer = setTimeout(function () {
+        var term = raw.trim();
+        if (term.length < 3 || term === lastTracked || !window.m3kTrack) return;
+        lastTracked = term;
+        m3kTrack('search', { search_term: term });
+      }, 1000);
     });
   }
 

@@ -112,6 +112,27 @@
       if (hint) hint.style.visibility = n === 6 ? 'hidden' : 'visible';
       if (n === 6) buildResult();
       updateNav();
+      if (dir > 0 && window.m3kTrack) {
+        if (n >= 1 && n <= 5) {
+          const step = steps.find((s) => s.dataset.step === String(n));
+          m3kTrack('form_progress', {
+            form_id: 'price_calculator',
+            step_number: n,
+            step_name: step ? step.dataset.name : ''
+          });
+        } else if (n === 6) {
+          const estimate = compute();
+          const projectType = Array.from(calc.querySelectorAll('.step[data-kind="base"] .opt.sel .opt-name'))
+            .map((el) => el.textContent.trim())
+            .join(', ');
+          m3kTrack('calculator_complete', {
+            project_type: projectType,
+            estimate_low: estimate.low,
+            estimate_high: estimate.high,
+            currency: 'EUR'
+          });
+        }
+      }
       // keep the calculator in view
       const L = window.MAST3K && window.MAST3K.getLenis && window.MAST3K.getLenis();
       const y = calc.getBoundingClientRect().top + window.scrollY - 90;
@@ -157,10 +178,83 @@
     function resetCalc() {
       calc.querySelectorAll('.opt.sel').forEach((o) => o.classList.remove('sel'));
       const f = document.getElementById('rcForm'), d = document.getElementById('rcDone');
+      const errEl = document.getElementById('rcError');
+      const btn = f && f.querySelector('.rc-send');
       if (f && d) { f.hidden = false; d.hidden = true; }
+      if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
+      if (btn) btn.disabled = false;
       updateLive();
       setStep(1, -1);
     }
+
+    let sending = false;
+    window.prisContact = async function (e) {
+      e.preventDefault();
+      if (sending) return false;
+      const form = document.getElementById('rcForm');
+      const done = document.getElementById('rcDone');
+      const errEl = document.getElementById('rcError');
+      const email = (document.getElementById('rcEmail')?.value || '').trim();
+      const website = (document.getElementById('rcWebsite')?.value || '').trim();
+      const btn = form.querySelector('.rc-send');
+      const estimate = compute();
+      const projectType = Array.from(calc.querySelectorAll('.step[data-kind="base"] .opt.sel .opt-name'))
+        .map((el) => el.textContent.trim())
+        .join(', ');
+      const timelineEl = calc.querySelector('.step[data-step="4"] .opt.sel .opt-name');
+      const brief = Array.from(document.querySelectorAll('#breakdown .brk-row')).map((row) => {
+        const k = (row.querySelector('.brk-k')?.textContent || '').trim();
+        const v = (row.querySelector('.brk-v')?.textContent || '').trim();
+        return k + ': ' + v;
+      }).join('\n');
+      if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
+      if (btn) btn.disabled = true;
+      sending = true;
+      try {
+        const response = await fetch('/api/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source: 'pris',
+            project_type: projectType,
+            goal: 'Prisestimat',
+            budget: '€' + estimate.low + '–€' + estimate.high,
+            timeline: timelineEl ? timelineEl.textContent.trim() : '',
+            email,
+            brief,
+            page_path: window.location.pathname || '/pris.html',
+            website,
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Kunne ikke sende');
+        form.hidden = true;
+        done.hidden = false;
+        if (window.gsap) gsap.fromTo(done, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power3.out' });
+        if (data.id && window.m3kTrack) {
+          m3kTrack('generate_lead', {
+            form_id: 'pris_estimate',
+            lead_source: 'pris',
+            project_type: projectType,
+            estimate_low: estimate.low,
+            estimate_high: estimate.high,
+            value: estimate.low,
+            currency: 'EUR',
+            lead_id: String(data.id),
+          });
+        }
+      } catch (err) {
+        sending = false;
+        if (btn) btn.disabled = false;
+        if (errEl) {
+          errEl.hidden = false;
+          errEl.textContent = /email/i.test(err.message || '')
+            ? 'Skriv en email vi kan svare på.'
+            : 'Kunne ikke sende estimatet. Prøv igen.';
+        }
+      }
+      return false;
+    };
 
     updateLive();
     updateNav();
@@ -168,14 +262,4 @@
 
   if (document.readyState !== 'loading') boot();
   else document.addEventListener('DOMContentLoaded', boot);
-
-  /* result contact submit */
-  window.prisContact = function (e) {
-    e.preventDefault();
-    const form = document.getElementById('rcForm');
-    const done = document.getElementById('rcDone');
-    form.hidden = true; done.hidden = false;   // swap synchronously
-    if (window.gsap) gsap.fromTo(done, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power3.out' });
-    return false;
-  };
 })();
