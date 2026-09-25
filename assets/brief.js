@@ -39,6 +39,8 @@
       phone: ''
     };
     let current = 1;
+    let step1Tracked = false;
+    let leadTracked = false;
 
     const formValue = (name) => String(form.elements[name]?.value || '').trim();
 
@@ -131,7 +133,15 @@
     };
 
     const showStep = (step) => {
+      const prev = current;
       current = Math.max(1, Math.min(step, TOTAL));
+      if (current > prev && window.m3kTrack) {
+        m3kTrack('form_progress', {
+          form_id: 'brief_kontakt',
+          step_number: current,
+          step_name: titles[current]
+        });
+      }
       steps.forEach((panel) => {
         const idx = Number(panel.dataset.step);
         panel.classList.toggle('is-active', idx === current);
@@ -225,10 +235,29 @@
         const ref = data.id ? 'M3K-' + String(data.id).padStart(4, '0') : 'M3K-' + String(Math.floor(1000 + Math.random() * 8999));
         if (refEl) refEl.textContent = 'REF · ' + ref;
         if (success) success.classList.add('show');
+        if (data.id && !leadTracked && window.m3kTrack) {
+          leadTracked = true;
+          const payload = collectPayload();
+          m3kTrack('generate_lead', {
+            form_id: 'brief_kontakt',
+            lead_source: payload.source,
+            project_type: state.type,
+            budget: state.budget || '',
+            timeline: state.timeline || '',
+            lead_id: String(data.id)
+          });
+        }
       } catch (error) {
         nextBtn.classList.remove('loading');
         nextBtn.disabled = false;
         if (backBtn) backBtn.disabled = false;
+        const msg = error.message || '';
+        if (window.m3kTrack) {
+          m3kTrack('lead_error', {
+            form_id: 'brief_kontakt',
+            error_type: /email/i.test(msg) ? 'email' : 'validation_or_server'
+          });
+        }
         const emailField = $('#f-email')?.closest('.field');
         if (emailField && /email/i.test(error.message || '')) {
           showStep(3);
@@ -254,6 +283,14 @@
         state.type = button.dataset.value;
         clearError(button.closest('.field'));
         applyScopeMode();
+        if (!step1Tracked && window.m3kTrack) {
+          step1Tracked = true;
+          m3kTrack('form_progress', {
+            form_id: 'brief_kontakt',
+            step_number: 1,
+            step_name: titles[1]
+          });
+        }
       });
     });
 

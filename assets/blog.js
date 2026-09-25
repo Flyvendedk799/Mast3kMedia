@@ -170,7 +170,7 @@
           '</div>'
         : '';
 
-      return '<a class="bcard" href="/blog/' + ESC(p.slug) + '" data-reveal="up">' +
+      return '<a class="bcard" href="/blog/' + ESC(p.slug) + '" data-reveal="up" data-track="content" data-content-type="blog_post" data-content-id="' + ESC(p.slug) + '">' +
         '<div class="bcard-media' + (p.cover_image ? '' : ' ph') + '">' + media +
           '<span class="bcard-badge">' + ESC(cat) + '</span></div>' +
         '<div class="bcard-body">' +
@@ -290,6 +290,14 @@
       })
       .then(function (p) {
         document.title = p.title + ' — Mast3kMedia';
+        if (window.m3kTrack) {
+          m3kTrack('content_view', {
+            content_type: 'blog_post',
+            content_id: p.slug,
+            content_title: p.title,
+            content_category: (p.category && p.category.name) || ''
+          });
+        }
         var desc = p.excerpt || p.title;
         var md = document.querySelector('meta[name="description"]');
         if (md) md.setAttribute('content', desc);
