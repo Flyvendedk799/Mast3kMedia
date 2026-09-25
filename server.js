@@ -16,6 +16,7 @@ const express    = require('express');
 const Database   = require('better-sqlite3');
 const jwt        = require('jsonwebtoken');
 const bcrypt     = require('bcryptjs');
+const { injectBlogArticle } = require('./assets/blog-markdown');
 
 const PORT       = process.env.PORT        || 3000;
 const JWT_SECRET = process.env.JWT_SECRET  || 'mast3k_dev_secret_CHANGE_ME';
@@ -478,7 +479,7 @@ app.get('/blog/:slug', (req, res) => {
       return res.status(404).type('html').send(blogPostTemplate);
     }
 
-    const html = renderMeasuredPage(blogPostTemplate, {
+    const measured = renderMeasuredPage(blogPostTemplate, {
       fullTitle: `${post.title} — Mast3kMedia`,
       description: post.excerpt || '',
       canonical: `${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}`,
@@ -489,7 +490,7 @@ app.get('/blog/:slug', (req, res) => {
       contentTitle: post.title,
       contentCategory: post.category_name || '',
     });
-    res.type('html').send(html);
+    res.type('html').send(injectBlogArticle(measured, fmtPost(post)));
   } catch (error) {
     console.error('Error fetching blog post:', error);
     res.status(500).type('html').send(blogPostTemplate);

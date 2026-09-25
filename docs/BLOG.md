@@ -26,7 +26,7 @@ Indexes on `slug`, `status`, `category_id`. Schemas are created in `server.js` a
 | GET | `/api/blog/categories` | All categories |
 | GET | `/api/blog/posts?category=&page=&limit=&tag=` | Published only; paginated `{ posts, page, limit, total, pages }` |
 | GET | `/api/blog/posts/:slug` | Published only |
-| GET | `/blog/:slug` | Pretty URL for published posts (redirects from `blog-post.html?slug=`) |
+| GET | `/blog/:slug` | Pretty URL for published posts. The article body is rendered to HTML on the server (redirects from `blog-post.html?slug=`) |
 
 ## Admin API (`Authorization: Bearer <jwt>`)
 
@@ -78,7 +78,19 @@ The recommended publish sequence for agents:
 2. `blog_upload_media` (for in-article images as needed)
 3. `blog_create_post` / `blog_update_post` with:
    - `cover_image`: URL from step 1
-   - `body`: markdown containing `![alt](/uploads/...)` for images
+   - `body`: markdown (see below), including `![alt](/uploads/...)` for images
+
+## Body markdown
+
+`/blog/:slug` renders `body` in the HTML response, using the same renderer the browser loads from `assets/blog-markdown.js`. Source HTML is escaped.
+
+- `#` and `##` → `<h2>`, `###` → `<h3>`, `####` → `<h4>` (the post title is the only `<h1>`)
+- paragraphs, `**bold**`, `*italic*`, `~~strikethrough~~`, `` `code` ``, fenced code
+- links: `[text](https://…)`, `[text](/ydelser)`, `[text](/kontakt)`, and other root-relative paths
+- images: `![alt](/uploads/…)` with an optional italic caption on the next line
+- lists, including nested lists
+- GitHub-style tables
+- blockquotes (`>`) and dividers (`---`)
    - `tags`: array of strings
    - `category`: slug or ID
 4. `blog_publish_post` (if not published in step 3)

@@ -28,112 +28,8 @@
     }
   }
 
-  /* Lightweight markdown → HTML (headings, lists, code, paragraphs, links, bold/italic, images).
-     No longer treats HTML-like bodies as raw HTML to allow markdown image processing. */
-  function renderBody(raw) {
-    var src = String(raw || '');
-    if (!src.trim()) return '<p class="faint">Ingen indhold.</p>';
-
-    var lines = src.replace(/\r\n/g, '\n').split('\n');
-    var out = [];
-    var inUl = false, inOl = false, inCode = false, codeBuf = [];
-
-    function closeLists() {
-      if (inUl) { out.push('</ul>'); inUl = false; }
-      if (inOl) { out.push('</ol>'); inOl = false; }
-    }
-    function inline(t) {
-      return ESC(t)
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" rel="noopener noreferrer">$1</a>');
-    }
-    function isAllowedImageUrl(url) {
-      // Allow http(s) and site-relative /uploads/... and /assets/...
-      return (/^https?:\/\//i.test(url) || /^\/uploads\//.test(url) || /^\/assets\//.test(url));
-    }
-
-    for (var i = 0; i < lines.length; i++) {
-      var line = lines[i];
-      if (line.indexOf('```') === 0) {
-        if (inCode) {
-          out.push('<pre><code>' + ESC(codeBuf.join('\n')) + '</code></pre>');
-          codeBuf = []; inCode = false;
-        } else {
-          closeLists(); inCode = true;
-        }
-        continue;
-      }
-      if (inCode) { codeBuf.push(line); continue; }
-
-      if (/^\s*$/.test(line)) { closeLists(); continue; }
-
-      // Check for markdown image: ![alt](url)
-      var imgMatch = line.match(/^\s*!\s*\[([^\]]*)\]\s*\(([^)]+)\)\s*$/);
-      if (imgMatch) {
-        var alt = imgMatch[1];
-        var url = imgMatch[2];
-        var caption = '';
-
-        // Check next line for optional caption (italic line)
-        if (i + 1 < lines.length) {
-          var nextLine = lines[i + 1];
-          var capMatch = nextLine.match(/^\s*\*([^*]+)\*\s*$/) || nextLine.match(/^\s*_([^_]+)_\s*$/);
-          if (capMatch) {
-            caption = capMatch[1];
-            i++; // skip the caption line
-          }
-        }
-
-        // Build image HTML only if URL is allowed
-        if (isAllowedImageUrl(url)) {
-          var imgTag = '<img src="' + ESC(url) + '" alt="' + ESC(alt) + '" loading="lazy" />';
-          if (caption) {
-            out.push('<figure>' + imgTag + '<figcaption>' + ESC(caption) + '</figcaption></figure>');
-          } else {
-            out.push('<p>' + imgTag + '</p>');
-          }
-        } else {
-          // If URL not allowed, treat as plain text (so the image syntax is shown as text)
-          closeLists();
-          out.push('<p>' + inline(line) + '</p>');
-        }
-        continue;
-      }
-
-      var hm = line.match(/^(#{1,3})\s+(.+)$/);
-      if (hm) {
-        closeLists();
-        var tag = 'h' + (hm[1].length + 1);
-        if (hm[1].length === 1) tag = 'h2';
-        else if (hm[1].length === 2) tag = 'h3';
-        else tag = 'h3';
-        out.push('<' + tag + '>' + inline(hm[2]) + '</' + tag + '>');
-        continue;
-      }
-
-      var ul = line.match(/^\s*[-*]\s+(.+)$/);
-      if (ul) {
-        if (inOl) { out.push('</ol>'); inOl = false; }
-        if (!inUl) { out.push('<ul>'); inUl = true; }
-        out.push('<li>' + inline(ul[1]) + '</li>');
-        continue;
-      }
-      var ol = line.match(/^\s*\d+\.\s+(.+)$/);
-      if (ol) {
-        if (inUl) { out.push('</ul>'); inUl = false; }
-        if (!inOl) { out.push('<ol>'); inOl = true; }
-        out.push('<li>' + inline(ol[1]) + '</li>');
-        continue;
-      }
-
-      closeLists();
-      out.push('<p>' + inline(line) + '</p>');
-    }
-    closeLists();
-    if (inCode) out.push('<pre><code>' + ESC(codeBuf.join('\n')) + '</code></pre>');
-    return out.join('\n');
+  function markdownApi() {
+    return window.M3kBlogMarkdown || {};
   }
 
   /* ── List page ── */
@@ -267,10 +163,28 @@
     loadPosts();
   }
 
+  function trackPost(id, title, category) {
+    if (!window.m3kTrack) return;
+    m3kTrack('content_view', {
+      content_type: 'blog_post',
+      content_id: id || '',
+      content_title: title || '',
+      content_category: category || ''
+    });
+  }
+
   /* ── Post detail ── */
   function initPost() {
     var article = document.getElementById('blogArticle');
     if (!article) return;
+    if (article.querySelector('.blog-post-body')) {
+      trackPost(
+        article.getAttribute('data-slug'),
+        article.getAttribute('data-title'),
+        article.getAttribute('data-category')
+      );
+      return;
+    }
     var slug = qs('slug');
     if (!slug && location.pathname.startsWith('/blog/')) {
       var parts = location.pathname.split('/');
@@ -280,7 +194,7 @@
     }
     var shell = article.querySelector('.blog-article-shell') || article;
     if (!slug) {
-      shell.innerHTML = '<div class="blog-post-error">Mangler slug. <a href="blog.html" class="ulink">Tilbage til bloggen</a></div>';
+      shell.innerHTML = '<div class="blog-post-error">Mangler slug. <a href="/blog.html" class="ulink">Tilbage til bloggen</a></div>';
       return;
     }
     fetch('/api/blog/posts/' + encodeURIComponent(slug))
@@ -290,14 +204,7 @@
       })
       .then(function (p) {
         document.title = p.title + ' — Mast3kMedia';
-        if (window.m3kTrack) {
-          m3kTrack('content_view', {
-            content_type: 'blog_post',
-            content_id: p.slug,
-            content_title: p.title,
-            content_category: (p.category && p.category.name) || ''
-          });
-        }
+        trackPost(p.slug, p.title, (p.category && p.category.name) || '');
         var desc = p.excerpt || p.title;
         var md = document.querySelector('meta[name="description"]');
         if (md) md.setAttribute('content', desc);
@@ -314,28 +221,13 @@
           document.head.appendChild(ogUrlMeta);
         }
         ogUrlMeta.setAttribute('content', location.origin + '/blog/' + ESC(p.slug));
-        var cat = p.category ? '<span class="blog-post-cat">' + ESC(p.category.name) + '</span>' : '';
-      // Tags display
-      var tags = Array.isArray(p.tags) ? p.tags.filter(function(t){ return t && t.toLowerCase() !== String(p.category || '').toLowerCase(); }).slice(0, 3) : [];
-      var tagsHtml = tags.length
-        ? '<div class="blog-post-tags">' +
-            tags.map(function(t){ return '<span class="tag">' + ESC(t) + '</span>'; }).join('') +
-          '</div>'
-        : '';
-      shell.innerHTML =
-        '<span class="crumb mono blog-post-crumb"><a href="index.html">Forside</a> <span class="sep">/</span> <a href="blog.html">Blog</a> <span class="sep">/</span> ' + ESC(p.title) + '</span>' +
-        '<div class="blog-post-meta">' + cat +
-          '<span>' + ESC(fmtDate(p.published_at || p.created_at)) + '</span>' +
-          (p.author ? '<span>' + ESC(p.author) + '</span>' : '') +
-        '</div>' +
-        tagsHtml +
-        '<h1 class="blog-post-title display">' + ESC(p.title) + '</h1>' +
-        (p.excerpt ? '<p class="blog-post-excerpt">' + ESC(p.excerpt) + '</p>' : '') +
-        (p.cover_image ? '<div class="blog-post-cover"><img src="' + ESC(p.cover_image) + '" alt="' + ESC(p.title) + '" /></div>' : '') +
-        '<div class="blog-post-body">' + renderBody(p.body) + '</div>';
+        var renderArticle = markdownApi().renderBlogArticle;
+        shell.innerHTML = renderArticle
+          ? renderArticle(p)
+          : '<div class="blog-post-error">Indholdet kunne ikke vises.</div>';
       })
       .catch(function () {
-        shell.innerHTML = '<div class="blog-post-error">Indlægget blev ikke fundet. <a href="blog.html" class="ulink">Tilbage til bloggen</a></div>';
+        shell.innerHTML = '<div class="blog-post-error">Indlægget blev ikke fundet. <a href="/blog.html" class="ulink">Tilbage til bloggen</a></div>';
       });
   }
 
