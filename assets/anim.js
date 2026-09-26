@@ -61,7 +61,7 @@
     if (burger && menu) {
       burger.setAttribute('aria-expanded', 'false');
       burger.addEventListener('click', () => {
-        const open = menu.classList.toggle('open');
+        const open = const isOpen = menu.classList.toggle('open'); menu.inert = !isOpen; burger.setAttribute('aria-expanded', isOpen);
         burger.classList.toggle('is-open', open);
         burger.setAttribute('aria-expanded', String(open));
         burger.setAttribute('aria-label', open ? 'Luk menu' : 'Menu');

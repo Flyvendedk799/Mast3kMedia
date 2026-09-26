@@ -799,3 +799,6 @@ a:hover .ph[data-monogram]::before {
   .spin { animation: none; }
   .marquee { -webkit-mask-image: none; mask-image: none; }
 }
+
+.menu { visibility: hidden; }
+.menu.open { visibility: visible; }

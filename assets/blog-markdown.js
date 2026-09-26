@@ -48,9 +48,17 @@
     s = s.replace(/(^|[^!])\[([^\]]+)\]\(((?:[^()\s]|\([^)]*\))+)\)/g, function (full, prefix, text, url) {
       var raw = unescapeHtml(url).trim();
       if (!isSafeHref(raw)) return full;
+      
+      // T2.1 Internal link normalisation
+      if (raw.indexOf('https://mast3kmedia.dk/') === 0) {
+        raw = raw.substring(22); // strip domain
+        if (raw === '' || raw === '/') raw = '/';
+        else if (/^\/(kontakt|ydelser|arbejde|pris|blog|om|oss|saas)$/.test(raw)) raw += '.html';
+      }
+      
       var external = /^https?:/i.test(raw);
       var rel = external ? ' rel="noopener noreferrer"' : '';
-      return prefix + '<a href="' + url + '"' + rel + '>' + text + '</a>';
+      return prefix + '<a href="' + raw + '"' + rel + '>' + text + '</a>';
     });
     s = s.replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>');
     s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -163,7 +171,7 @@
   }
 
   function parseMarkdown(raw, state) {
-    state = state || { ids: {}, toc: [] };
+    state = state || { ids: {}, toc: [], faq: [] };
     var src = String(raw || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     if (!src.trim()) return '';
     var lines = src.split('\n');
@@ -171,6 +179,18 @@
     var listStack = [];
     var inCode = false;
     var codeBuf = [];
+    
+    var faqMode = false;
+    var curQ = null;
+    var curA = [];
+
+    function closeFaq() {
+      if (curQ) {
+        state.faq.push({ q: curQ, a: curA.join('\n\n') });
+        curQ = null;
+        curA = [];
+      }
+    }
 
     function closeLists() {
       while (listStack.length) {
@@ -234,9 +254,15 @@
         var tag = headingTag(hm[1].length);
         var content = inline(text);
         if (tag === 'h2') {
+          closeFaq();
+          faqMode = /^(FAQ|Ofte stillede spørgsmål|Spørgsmål og svar)/i.test(text);
           var id = headingId(content, state.ids);
           if (state.toc) state.toc.push({ id: id, text: content.replace(/<[^>]+>/g, '') });
           out.push('<h2 id="' + id + '">' + content + '</h2>');
+        } else if (tag === 'h3' && faqMode) {
+          closeFaq();
+          curQ = text;
+          out.push('<' + tag + '>' + content + '</' + tag + '>');
         } else {
           out.push('<' + tag + '>' + content + '</' + tag + '>');
         }
@@ -297,9 +323,11 @@
       }
 
       closeLists();
+      if (faqMode && curQ) curA.push(line);
       out.push('<p>' + inline(line) + '</p>');
     }
 
+    closeFaq();
     closeLists();
     if (inCode) out.push('<pre><code>' + esc(codeBuf.join('\n')) + '</code></pre>');
     return out.join('\n');
@@ -319,7 +347,7 @@
     if (isNaN(d.getTime())) d = new Date(raw.replace(' ', 'T'));
     if (isNaN(d.getTime())) return raw.slice(0, 10);
     try {
-      return d.toLocaleDateString('da-DK', { year: 'numeric', month: 'short', day: 'numeric' });
+      return d.toLocaleDateString('da-DK', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Europe/Copenhagen' });
     } catch (_) {
       return raw.slice(0, 10);
     }
@@ -332,8 +360,9 @@
       : '';
     var tags = Array.isArray(p.tags)
       ? p.tags.filter(function (t) {
-          return t && String(t).toLowerCase() !== String(p.category || '').toLowerCase();
-        }).slice(0, 3)
+          var cn = p.category && typeof p.category === 'object' ? p.category.name : (p.category_name || p.category || '');
+          return t && String(t).toLowerCase() !== String(cn).toLowerCase();
+        })
       : [];
     var tagsHtml = tags.length
       ? '<div class="blog-post-tags">' +
@@ -354,15 +383,23 @@
       '<div class="blog-post-rail-meta">' + cat + '<span>' + date + '</span>' + author +
         '<span>' + Math.max(1, Math.round(words / 220)) + ' min. læsning</span></div>' +
       tagsHtml + '</aside>';
+    var authorHtml = p.author === 'Tobias Mastek' 
+      ? '<div class="author-box section-pad" style="margin-top:2rem;padding:2rem;background:var(--card-bg);border-radius:var(--radius-lg);display:flex;align-items:center;gap:1rem;">' +
+          '<div class="ph" style="width:60px;height:60px;border-radius:50%;display:grid;place-items:center;font-weight:bold;">TM</div>' +
+          '<div><strong style="display:block;margin-bottom:0.2rem;"><a href="/forfatter/tobias-mastek" style="color:var(--text);text-decoration:none;">Tobias Mastek</a></strong>' +
+          '<p class="muted" style="margin:0;font-size:0.9rem;">Stifter af Mast3kMedia. Udvikler og designer med fokus på SaaS og AI.</p></div>' +
+        '</div>'
+      : '';
+
     return '<span class="crumb mono blog-post-crumb"><a href="/">Forside</a> <span class="sep">/</span> <a href="/blog.html">Blog</a> <span class="sep">/</span> ' + esc(p.title) + '</span>' +
       '<div class="blog-post-meta">' + cat +
-        '<span>' + date + '</span>' + author +
+        '<time datetime="' + (p.published_at || p.created_at) + '">' + date + '</time>' + author +
       '</div>' +
       tagsHtml +
       '<h1 class="blog-post-title display">' + esc(p.title) + '</h1>' +
       (p.excerpt ? '<p class="blog-post-excerpt">' + esc(p.excerpt) + '</p>' : '') +
-      (p.cover_image ? '<div class="blog-post-cover"><img src="' + esc(p.cover_image) + '" alt="' + esc(p.title) + '" /></div>' : '') +
-      '<div class="blog-post-body">' + bodyHtml + '</div>' + rail;
+      (p.cover_image ? '<div class="blog-post-cover"><img src="' + esc(p.cover_image) + '" alt="' + esc(p.cover_alt || p.title) + '" width="1600" height="900" fetchpriority="high" decoding="async" /></div>' : '') +
+      '<div class="blog-post-body">' + bodyHtml + authorHtml + '</div>' + rail;
   }
 
   function injectBlogArticle(templateHtml, post) {
@@ -379,9 +416,53 @@
     );
   }
 
+  function renderBlogCard(p) {
+    if (!p) return '';
+    var catName = p.category && p.category.name ? esc(p.category.name) : '';
+    var tags = Array.isArray(p.tags)
+      ? p.tags.filter(function (t) { return t && String(t).toLowerCase() !== String(catName).toLowerCase(); }).slice(0, 3)
+      : [];
+    var tagsHtml = tags.length
+      ? '<div class="bcard-tags">' + tags.map(function(t){ return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>'
+      : '';
+    var mediaHtml = p.cover_image
+      ? '<img src="' + esc(p.cover_image) + '" alt="' + esc(p.title) + '" loading="lazy" />'
+      : '<div class="ph-inner"><span class="ph-label">' + catName + '</span></div>';
+    var badge = catName + ' · ' + esc(fmtDate(p.published_at || p.created_at));
+    
+    return '<a href="/blog/' + esc(p.slug) + '" class="bcard" data-reveal="up">' +
+      '<div class="bcard-media' + (p.cover_image ? '' : ' ph') + '">' +
+        mediaHtml +
+        '<span class="bcard-badge">' + badge + '</span>' +
+      '</div>' +
+      '<div class="bcard-info">' +
+        '<h3 class="bcard-title">' + esc(p.title) + '</h3>' +
+        (p.excerpt ? '<p class="bcard-desc">' + esc(p.excerpt) + '</p>' : '') +
+      '</div>' + tagsHtml + '</a>';
+  }
+
+  function renderBlogPager(state) {
+    var page = Number(state.page) || 1;
+    var pages = Number(state.pages) || 1;
+    var base = state.base || '/blog.html';
+    var sep = base.indexOf('?') === -1 ? '?' : '&';
+    var html = [];
+    if (page > 1) {
+      var prev = page === 2 ? base : base + sep + 'page=' + (page - 1);
+      html.push('<a href="' + prev + '" class="btn" rel="prev">Forrige side</a>');
+    }
+    if (page < pages) {
+      html.push('<a href="' + base + sep + 'page=' + (page + 1) + '" class="btn" rel="next">Næste side</a>');
+    }
+    return html.join('');
+  }
+
   return {
+    parseMarkdown: parseMarkdown,
     renderBlogMarkdown: renderBlogMarkdown,
     renderBlogArticle: renderBlogArticle,
     injectBlogArticle: injectBlogArticle,
+    renderBlogCard: renderBlogCard,
+    renderBlogPager: renderBlogPager,
   };
 });
