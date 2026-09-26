@@ -7,8 +7,8 @@ const { renderBlogMarkdown, renderBlogArticle, injectBlogArticle } = require('..
 
 test('heading levels: ## is h2, ### is h3, #### is h4', () => {
   const html = renderBlogMarkdown('# Top\n\n## Afsnit\n\n### Under\n\n#### Detalje\n\n##### Mindre');
-  assert.match(html, /<h2>Top<\/h2>/);
-  assert.match(html, /<h2>Afsnit<\/h2>/);
+  assert.match(html, /<h2 id="top">Top<\/h2>/);
+  assert.match(html, /<h2 id="afsnit">Afsnit<\/h2>/);
   assert.match(html, /<h3>Under<\/h3>/);
   assert.match(html, /<h4>Detalje<\/h4>/);
   assert.match(html, /<h5>Mindre<\/h5>/);
@@ -89,11 +89,32 @@ test('article HTML includes the rendered body for crawlers', () => {
   assert.match(html, /data-title="Pris &amp; plan"/);
   assert.match(html, /<h1 class="blog-post-title display">Pris &amp; plan<\/h1>/);
   assert.match(html, /<div class="blog-post-body">/);
-  assert.match(html, /<h2>Afsnit<\/h2>/);
+  assert.match(html, /<h2 id="afsnit">Afsnit<\/h2>/);
   assert.match(html, /href="\/ydelser"/);
   assert.match(html, /<table>/);
   assert.match(html, /\$100/);
   assert.match(html, /\$&/);
   assert.doesNotMatch(html, /id="blogPostLoading"/);
   assert.equal(renderBlogArticle({ title: 'Tom', body: '   ' }).includes('Ingen indhold'), true);
+});
+
+test('h2 ids are unique and feed the table of contents', () => {
+  const html = renderBlogArticle({
+    title: 'T',
+    author: 'Mast3kMedia',
+    tags: ['seo'],
+    body: '## Hvad får du?\n\ntekst\n\n## Hvad får du?\n\n> ## Citat\n\n## **Pris** & [plan](/pris)\n\n### Under',
+  });
+  assert.match(html, /<h2 id="hvad-faar-du">Hvad får du\?<\/h2>/);
+  assert.match(html, /<h2 id="hvad-faar-du-2">Hvad får du\?<\/h2>/);
+  assert.match(html, /<blockquote><h2 id="citat">Citat<\/h2><\/blockquote>/);
+  assert.match(html, /<h2 id="pris-plan"><strong>Pris<\/strong> &amp; <a href="\/pris">plan<\/a><\/h2>/);
+  const toc = html.match(/<nav class="blog-post-toc"[\s\S]*?<\/nav>/)[0];
+  assert.deepEqual([...toc.matchAll(/href="#([^"]+)">([^<]*)</g)].map((m) => [m[1], m[2]]), [
+    ['hvad-faar-du', 'Hvad får du?'],
+    ['hvad-faar-du-2', 'Hvad får du?'],
+    ['pris-plan', 'Pris &amp; plan'],
+  ]);
+  assert.match(html, /<aside class="blog-post-rail">[\s\S]*Mast3kMedia[\s\S]*1 min\. læsning[\s\S]*<span class="tag">seo<\/span>[\s\S]*<\/aside>$/);
+  assert.doesNotMatch(renderBlogArticle({ title: 'T', body: '## Kun én\n\ntekst' }), /blog-post-toc/);
 });
