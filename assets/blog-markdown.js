@@ -72,6 +72,16 @@
     return 'h6';
   }
 
+  function headingId(html, ids) {
+    var base = unescapeHtml(html.replace(/<[^>]+>/g, '')).toLowerCase()
+      .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'afsnit';
+    var id = base;
+    for (var n = 2; ids[id]; n++) id = base + '-' + n;
+    ids[id] = true;
+    return id;
+  }
+
   function isHr(line) {
     return /^\s*((?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})\s*$/.test(line);
   }
@@ -152,7 +162,8 @@
     return { html: html.join(''), next: i };
   }
 
-  function parseMarkdown(raw) {
+  function parseMarkdown(raw, state) {
+    state = state || { ids: {}, toc: [] };
     var src = String(raw || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     if (!src.trim()) return '';
     var lines = src.split('\n');
@@ -221,7 +232,14 @@
         closeLists();
         var text = hm[2].replace(/\s+#+\s*$/, '');
         var tag = headingTag(hm[1].length);
-        out.push('<' + tag + '>' + inline(text) + '</' + tag + '>');
+        var content = inline(text);
+        if (tag === 'h2') {
+          var id = headingId(content, state.ids);
+          if (state.toc) state.toc.push({ id: id, text: content.replace(/<[^>]+>/g, '') });
+          out.push('<h2 id="' + id + '">' + content + '</h2>');
+        } else {
+          out.push('<' + tag + '>' + content + '</' + tag + '>');
+        }
         continue;
       }
 
@@ -233,7 +251,7 @@
           i++;
         }
         i--;
-        var inner = parseMarkdown(quote.join('\n'));
+        var inner = parseMarkdown(quote.join('\n'), { ids: state.ids, toc: null });
         out.push('<blockquote>' + inner + '</blockquote>');
         continue;
       }
@@ -287,8 +305,8 @@
     return out.join('\n');
   }
 
-  function renderBlogMarkdown(raw) {
-    var html = parseMarkdown(raw);
+  function renderBlogMarkdown(raw, state) {
+    var html = parseMarkdown(raw, state);
     if (!html || !String(html).trim()) return '<p class="faint">Ingen indhold.</p>';
     return html;
   }
@@ -322,16 +340,29 @@
           tags.map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
         '</div>'
       : '';
+    var state = { ids: {}, toc: [] };
+    var bodyHtml = renderBlogMarkdown(p.body, state);
+    var words = String(p.body || '').split(/\s+/).filter(Boolean).length;
+    var date = esc(fmtDate(p.published_at || p.created_at));
+    var author = p.author ? '<span>' + esc(p.author) + '</span>' : '';
+    var toc = state.toc.length > 1
+      ? '<nav class="blog-post-toc" aria-label="Indhold"><span class="blog-post-rail-label">Indhold</span><ol>' +
+          state.toc.map(function (h) { return '<li><a href="#' + h.id + '">' + h.text + '</a></li>'; }).join('') +
+        '</ol></nav>'
+      : '';
+    var rail = '<aside class="blog-post-rail">' + toc +
+      '<div class="blog-post-rail-meta">' + cat + '<span>' + date + '</span>' + author +
+        '<span>' + Math.max(1, Math.round(words / 220)) + ' min. læsning</span></div>' +
+      tagsHtml + '</aside>';
     return '<span class="crumb mono blog-post-crumb"><a href="/">Forside</a> <span class="sep">/</span> <a href="/blog.html">Blog</a> <span class="sep">/</span> ' + esc(p.title) + '</span>' +
       '<div class="blog-post-meta">' + cat +
-        '<span>' + esc(fmtDate(p.published_at || p.created_at)) + '</span>' +
-        (p.author ? '<span>' + esc(p.author) + '</span>' : '') +
+        '<span>' + date + '</span>' + author +
       '</div>' +
       tagsHtml +
       '<h1 class="blog-post-title display">' + esc(p.title) + '</h1>' +
       (p.excerpt ? '<p class="blog-post-excerpt">' + esc(p.excerpt) + '</p>' : '') +
       (p.cover_image ? '<div class="blog-post-cover"><img src="' + esc(p.cover_image) + '" alt="' + esc(p.title) + '" /></div>' : '') +
-      '<div class="blog-post-body">' + renderBlogMarkdown(p.body) + '</div>';
+      '<div class="blog-post-body">' + bodyHtml + '</div>' + rail;
   }
 
   function injectBlogArticle(templateHtml, post) {

@@ -177,6 +177,17 @@
   function initPost() {
     var article = document.getElementById('blogArticle');
     if (!article) return;
+    // Lazy images above a heading load mid-scroll and push it down, so land again once the scroll ends.
+    article.addEventListener('click', function (e) {
+      var a = e.target.closest('.blog-post-toc a');
+      var el = a && document.getElementById(a.getAttribute('href').slice(1));
+      var lenis = window.MAST3K && window.MAST3K.getLenis();
+      if (!el || !lenis) return;
+      e.preventDefault();
+      lenis.scrollTo(el, { offset: -96, duration: 1.3, onComplete: function () {
+        lenis.scrollTo(el, { offset: -96, immediate: true });
+      } });
+    });
     if (article.querySelector('.blog-post-body')) {
       trackPost(
         article.getAttribute('data-slug'),
