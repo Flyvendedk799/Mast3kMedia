@@ -239,7 +239,8 @@
 .blog-post-body h5,
 .blog-post-body h6 { font-size: 1.12rem; margin-top: 1.35rem; }
 .blog-post-body p { margin: 0 0 1.15rem; }
-.blog-post-body a { color: #00FF88; }
+.blog-post-body a { color: var(--lime); text-decoration: underline; text-underline-offset: .15em; text-decoration-thickness: 1px; }
+.blog-post-body a:hover, .blog-post-body a:focus-visible { color: var(--lime-lift); text-decoration-thickness: 2px; }
 .blog-post-body ul,
 .blog-post-body ol {
   margin: 0 0 1.15rem;

@@ -1478,6 +1478,14 @@ async function loadBlogForm() {
     slugInput?.addEventListener('input', () => { slugInput.dataset.manual = '1'; });
   }
 
+  $('#blogFieldSeoTitle')?.addEventListener('input', (e) => {
+    const c = $('#seoTitleCount');
+    if (c) { c.textContent = e.target.value.length; c.style.color = e.target.value.length > 60 ? 'red' : 'inherit'; }
+  });
+  $('#blogFieldSeoDesc')?.addEventListener('input', (e) => {
+    const c = $('#seoDescCount');
+    if (c) { c.textContent = e.target.value.length; c.style.color = e.target.value.length > 155 ? 'red' : 'inherit'; }
+  });
   // reset
   $('#blogFieldId').value = '';
   $('#blogFieldTitle').value = '';
@@ -1485,7 +1493,10 @@ async function loadBlogForm() {
   if (slugInput) delete slugInput.dataset.manual;
   $('#blogFieldAuthor').value = '';
   $('#blogFieldCover').value = '';
+  $('#blogFieldCoverAlt').value = '';
   $('#blogFieldExcerpt').value = '';
+  $('#blogFieldSeoTitle').value = '';
+  $('#blogFieldSeoDesc').value = '';
   $('#blogFieldBody').value = '';
   await fillBlogCategorySelect(null);
 
@@ -1498,7 +1509,10 @@ async function loadBlogForm() {
       if (slugInput) slugInput.dataset.manual = '1';
       $('#blogFieldAuthor').value = p.author || '';
       $('#blogFieldCover').value = p.cover_image || '';
+      $('#blogFieldCoverAlt').value = p.cover_alt || '';
       $('#blogFieldExcerpt').value = p.excerpt || '';
+      $('#blogFieldSeoTitle').value = p.seo_title || '';
+      $('#blogFieldSeoDesc').value = p.seo_description || '';
       $('#blogFieldBody').value = p.body || '';
       await fillBlogCategorySelect(p.category_id);
     } catch (err) {
@@ -1518,6 +1532,9 @@ async function submitBlogForm(status) {
     excerpt: $('#blogFieldExcerpt').value.trim(),
     body: $('#blogFieldBody').value,
     cover_image: $('#blogFieldCover').value.trim(),
+    cover_alt: $('#blogFieldCoverAlt').value.trim(),
+    seo_title: $('#blogFieldSeoTitle').value.trim(),
+    seo_description: $('#blogFieldSeoDesc').value.trim(),
     author: $('#blogFieldAuthor').value.trim(),
     category_id: categoryVal ? parseInt(categoryVal, 10) : null,
     status,

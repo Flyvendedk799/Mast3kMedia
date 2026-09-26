@@ -22,7 +22,7 @@
     }
     if (isNaN(d.getTime())) return String(iso).slice(0, 10);
     try {
-      return d.toLocaleDateString('da-DK', { year: 'numeric', month: 'short', day: 'numeric' });
+      return d.toLocaleDateString('da-DK', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Europe/Copenhagen' });
     } catch (_) {
       return String(iso).slice(0, 10);
     }
@@ -159,6 +159,11 @@
       loadPosts();
     });
 
+    if (grid.querySelector('.bcard')) {
+      reveal(grid);
+      // Wait, we don't need to load categories or posts, since everything is server-rendered links!
+      return;
+    }
     loadCategories();
     loadPosts();
   }

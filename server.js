@@ -16,13 +16,30 @@ const express    = require('express');
 const Database   = require('better-sqlite3');
 const jwt        = require('jsonwebtoken');
 const bcrypt     = require('bcryptjs');
-const { injectBlogArticle } = require('./assets/blog-markdown');
+const { injectBlogArticle, renderBlogCard, renderBlogPager, parseMarkdown } = require('./assets/blog-markdown');
+const { injectCase } = require('./assets/case-render');
 
 const PORT       = process.env.PORT        || 3000;
 const JWT_SECRET = process.env.JWT_SECRET  || 'mast3k_dev_secret_CHANGE_ME';
 const ADMIN_USER = process.env.ADMIN_USER  || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS  || 'abe12345';
 const MCP_AUTH_TOKEN = process.env.MCP_AUTH_TOKEN || '';
+
+if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEV_DEFAULTS !== '1') {
+  if (JWT_SECRET === 'mast3k_dev_secret_CHANGE_ME') {
+    console.error('FATAL: JWT_SECRET must be set in production');
+    process.exit(1);
+  }
+  if (ADMIN_PASS === 'abe12345') {
+    console.error('FATAL: ADMIN_PASS must be set in production');
+    process.exit(1);
+  }
+  if (!ADMIN_PASS.startsWith('$2')) {
+    console.error('FATAL: ADMIN_PASS must be a bcrypt hash in production');
+    process.exit(1);
+  }
+}
+
 
 // ── Database ─────────────────────────────────────────────────────────────────
 const DB_DIR = path.join(__dirname, 'db');
@@ -109,6 +126,9 @@ db.exec(`
     excerpt      TEXT,
     body         TEXT,
     cover_image  TEXT,
+    seo_title    TEXT,
+    seo_description TEXT,
+    cover_alt    TEXT,
     status       TEXT    NOT NULL DEFAULT 'draft'
                          CHECK(status IN ('draft','published')),
     category_id  INTEGER REFERENCES blog_categories(id) ON DELETE SET NULL,
@@ -213,6 +233,10 @@ try {
   if (!/duplicate column/i.test(e.message)) throw e;
 }
 
+try { db.prepare("ALTER TABLE blog_posts ADD COLUMN seo_title TEXT").run(); } catch (e) { if (!/duplicate column/i.test(e.message)) throw e; }
+try { db.prepare("ALTER TABLE blog_posts ADD COLUMN seo_description TEXT").run(); } catch (e) { if (!/duplicate column/i.test(e.message)) throw e; }
+try { db.prepare("ALTER TABLE blog_posts ADD COLUMN cover_alt TEXT").run(); } catch (e) { if (!/duplicate column/i.test(e.message)) throw e; }
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const slugify = (s) =>
   String(s).toLowerCase().trim()
@@ -224,6 +248,13 @@ const clipLine = (val, max = 240) =>
   String(val ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
 const clipText = (val, max = 1800) =>
   String(val ?? '').trim().replace(/\r\n/g, '\n').replace(/\n{4,}/g, '\n\n\n').slice(0, max);
+const trimDesc = (val, max = 155) => {
+  const s = String(val ?? '').trim();
+  if (s.length <= max) return s;
+  const sub = s.slice(0, max + 1);
+  const lastSpace = sub.lastIndexOf(' ');
+  return (lastSpace > 0 ? sub.slice(0, lastSpace) : sub.slice(0, max)) + '…';
+};
 const validEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val || '').trim());
 
 const SITE_ORIGIN = 'https://mast3kmedia.dk';
@@ -251,16 +282,40 @@ function renderMeasuredPage(html, opts) {
   html = swap(html, /<meta property="og:type" content="[^"]*"\s*\/?>/, `<meta property="og:type" content="article" />`);
   html = swap(html, /<meta name="twitter:title" content="[^"]*"\s*\/?>/, `<meta name="twitter:title" content="${escHtml(opts.fullTitle)}" />`);
   html = swap(html, /<meta name="twitter:description" content="[^"]*"\s*\/?>/, `<meta name="twitter:description" content="${escHtml(description)}" />`);
-  if (image) {
-    html = swap(html, /<meta property="og:image" content="[^"]*"\s*\/?>/, `<meta property="og:image" content="${escHtml(image)}" />`);
-    html = swap(html, /<meta name="twitter:image" content="[^"]*"\s*\/?>/, `<meta name="twitter:image" content="${escHtml(image)}" />`);
-  }
   const push = `<script>window.dataLayer=window.dataLayer||[];dataLayer.push({page_type:${jsLit(opts.pageType)},content_type:${jsLit(opts.contentType)},content_id:${jsLit(opts.contentId)},content_title:${jsLit(opts.contentTitle)},content_category:${jsLit(opts.contentCategory)}})</script>`;
   html = swap(
     html,
     /<script>window\.dataLayer=window\.dataLayer\|\|\[\];dataLayer\.push\(\{page_type:'[^']*'\}\)<\/script>/,
     push,
   );
+
+  let extraHead = '';
+  if (opts.image) {
+    extraHead += `<meta property="og:image" content="${escHtml(opts.image)}" />\n`;
+    extraHead += `<meta name="twitter:image" content="${escHtml(opts.image)}" />\n`;
+    if (opts.imageWidth) extraHead += `<meta property="og:image:width" content="${opts.imageWidth}" />\n`;
+    if (opts.imageHeight) extraHead += `<meta property="og:image:height" content="${opts.imageHeight}" />\n`;
+    if (opts.imageAlt) {
+      extraHead += `<meta property="og:image:alt" content="${escHtml(opts.imageAlt)}" />\n`;
+      extraHead += `<meta name="twitter:image:alt" content="${escHtml(opts.imageAlt)}" />\n`;
+    }
+  }
+  if (opts.article) {
+    extraHead += `<meta property="article:published_time" content="${escHtml(opts.article.published_time)}" />\n`;
+    extraHead += `<meta property="article:modified_time" content="${escHtml(opts.article.modified_time)}" />\n`;
+    if (opts.article.author) extraHead += `<meta property="article:author" content="${escHtml(opts.article.author)}" />\n`;
+    if (opts.article.section) extraHead += `<meta property="article:section" content="${escHtml(opts.article.section)}" />\n`;
+    (opts.article.tags || []).forEach(t => {
+      extraHead += `<meta property="article:tag" content="${escHtml(t)}" />\n`;
+    });
+  }
+  if (opts.jsonLd) {
+    extraHead += `<script type="application/ld+json">\n${opts.jsonLd.replace(/</g, '\\u003c')}\n</script>\n`;
+  }
+  if (extraHead) {
+    html = html.replace('</head>', extraHead + '</head>');
+  }
+
   return html;
 }
 
@@ -384,6 +439,9 @@ const fmtPost = (row) => {
     excerpt: row.excerpt || null,
     body: row.body || null,
     cover_image: row.cover_image || null,
+    seo_title: row.seo_title || null,
+    seo_description: row.seo_description || null,
+    cover_alt: row.cover_alt || null,
     status: row.status,
     category_id: row.category_id || null,
     category,
@@ -419,6 +477,9 @@ const requireAuth = (req, res, next) => {
 const app = express();
 app.set('trust proxy', true);
 app.use((req, res, next) => {
+  if (req.hostname === 'www.mast3kmedia.dk') {
+    return res.redirect(301, 'https://mast3kmedia.dk' + req.originalUrl);
+  }
   if (req.headers['x-forwarded-proto'] === 'http') {
     return res.redirect(301, 'https://' + req.headers.host + req.originalUrl);
   }
@@ -431,13 +492,93 @@ const requestSearch = (req) => {
   return i === -1 ? '' : req.originalUrl.slice(i);
 };
 
-app.get('/index.html', (req, res) => {
-  res.redirect(301, '/' + requestSearch(req));
+app.get('/', (req, res, next) => {
+  try {
+    let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+    const projects = db.prepare('SELECT * FROM projects WHERE status=? AND featured=1 ORDER BY sort_order ASC, created_at DESC').all('published').map(fmt);
+    
+    const buildCaseCard = (p, idx, total) => {
+      const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      let plate;
+      if (p.thumbnail_url) {
+        plate = '<img src="' + esc(p.thumbnail_url) + '" alt="' + esc(p.title) + '" class="case-shot" loading="lazy" />';
+      } else {
+        plate = '<span class="ph-label">' + esc(p.category) + '</span>';
+      }
+      const num = String(idx + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+      const tags = (p.tags || []).slice(0, 3).map(t => '<span class="tag">' + esc(t) + '</span>').join('');
+      return '<a href="/arbejde/' + esc(p.slug) + '" class="card case-card" data-reveal="up" data-track="content" data-content-type="case" data-content-id="' + esc(p.slug) + '">' +
+          '<div class="case-plate' + (p.thumbnail_url ? ' has-shot' : ' ph') + '" data-parallax-scope>' +
+            '<div class="ph-inner" data-parallax="-0.06">' + plate + '</div>' +
+            '<span class="ph-index">' + num + '</span>' +
+          '</div>' +
+          '<div class="case-body">' +
+            '<div class="case-head"><h3 class="case-title">' + esc(p.title) + '</h3>' +
+            '<span class="case-cat">' + esc(p.category) + ' · ' + esc(p.year) + '</span></div>' +
+            '<p class="case-desc">' + esc(p.description || '') + '</p>' +
+            '<div class="case-tags">' + tags + '</div>' +
+          '</div>' +
+        '</a>';
+    };
+
+    const cardsHtml = projects.map((p, i) => buildCaseCard(p, i, projects.length)).join('');
+    html = html.replace(/<div class="case-grid">[\s\S]*?<\/div>\s*<\/div>\s*<\/section>/, '<div class="case-grid">' + cardsHtml + '</div></div></section>');
+    
+    // Remove the client-side script for featured projects
+    html = html.replace(/<script>\s*\/\*\s*── Featured projects from the API.*?\s*\*\/[\s\S]*?<\/script>/, '');
+
+    // Server-render the "Senest leveret" list
+    const recentProjects = db.prepare('SELECT * FROM projects WHERE status=? ORDER BY sort_order ASC, created_at DESC LIMIT 3').all('published').map(fmt);
+    const recentHtml = '<div class="hero-recent-head"><span class="eyebrow">Senest leveret</span></div>' + 
+      recentProjects.map(p => '<div class="hero-recent-row"><span class="hero-recent-n">' + (p.title) + '</span><span class="hero-recent-c">' + (p.category || '') + (p.year ? ' · ' + p.year : '') + '</span></div>').join('');
+    
+    html = html.replace(/<a class="hero-recent" href="\/arbejde\.html">[\s\S]*?<\/a>/, '<a class="hero-recent" href="/arbejde.html">' + recentHtml + '</a>');
+    html = html.replace(/<script>\s*\/\*\s*── Dynamic "Senest leveret".*?\s*\*\/[\s\S]*?<\/script>/, '');
+
+    res.type('html').send(html);
+  } catch(e) {
+    next(e);
+  }
+});
+
+app.get('/arbejde.html', (req, res, next) => {
+  try {
+    let html = fs.readFileSync(path.join(__dirname, 'arbejde.html'), 'utf8');
+    const projects = db.prepare('SELECT * FROM projects WHERE status=? ORDER BY sort_order ASC, created_at DESC').all('published').map(fmt);
+    
+    const buildWorkCard = (p) => {
+      const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const media = p.thumbnail_url 
+        ? '<img src="' + esc(p.thumbnail_url) + '" alt="' + esc(p.title) + '" loading="lazy">' 
+        : '<div class="ph-inner"><span class="ph-label">' + esc(p.category || 'Case') + '</span></div>';
+      const badge = esc(p.category || 'Case') + (p.year ? ' · ' + esc(p.year) : '');
+      const tags = (p.tags || []).slice(0, 3).map(t => '<span class="tag">' + esc(t) + '</span>').join('');
+      const tagsHtml = tags ? '<div class="wcard-tags">' + tags + '</div>' : '';
+
+      return '<a href="/arbejde/' + esc(p.slug) + '" class="wcard work-item" data-cat="' + esc(p.category) + '" data-tags="' + esc((p.tags||[]).join(',')) + '" data-track="content" data-content-type="case" data-content-id="' + esc(p.slug) + '">' +
+        '<div class="wcard-media' + (p.thumbnail_url ? '' : ' ph') + '">' + media +
+        '<span class="wcard-badge">' + badge + '</span><span class="wcard-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></div>' +
+        '<div class="wcard-info"><h3 class="wcard-title">' + esc(p.title) + '</h3><span class="wcard-cat">' + esc(p.year) + '</span></div>' +
+        '<p class="wcard-desc">' + esc(p.description) + '</p>' + tagsHtml + '</a>';
+    };
+
+    const cardsHtml = projects.map(p => buildWorkCard(p)).join('');
+    html = html.replace(/<div class="work-grid" id="workGrid">[\s\S]*?<\/div>\s*<\/div>\s*<\/section>/, '<div class="work-grid" id="workGrid">' + cardsHtml + '</div></div></section>');
+    
+    res.type('html').send(html);
+  } catch(e) {
+    next(e);
+  }
 });
 
 app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
   const urlPath = req.path;
+  if (urlPath !== '/' && urlPath.endsWith('/')) {
+    if (!/^\/(admin|mcp)\//.test(urlPath)) {
+      return res.redirect(301, urlPath.slice(0, -1) + requestSearch(req));
+    }
+  }
   if (urlPath === '/' || path.extname(urlPath)) return next();
   if (/^\/(api|admin|uploads|mcp|assets)(\/|$)/.test(urlPath)) return next();
   const resolved = path.resolve(__dirname, '.' + urlPath + '.html');
@@ -456,7 +597,188 @@ app.use('/admin', express.static(path.join(__dirname, 'admin')));
 app.get('/admin/*', (_, res) => res.sendFile(path.join(__dirname, 'admin', 'index.html')));
 
 // Uploaded media (runtime data)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '1y',
+  immutable: true
+}));
+
+app.use('/assets', express.static(path.join(__dirname, 'assets'), {
+  setHeaders: (res, fp) => {
+    if (res.req && res.req.query && res.req.query.v) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+  }
+}));
+
+app.get('/blog.html', (req, res, next) => {
+  if (req.query.category) {
+    return res.redirect(301, `/blog/kategori/${encodeURIComponent(req.query.category)}`);
+  }
+  const page = Math.max(1, parseInt(req.query.page || '1', 10) || 1);
+  const limit = 12;
+  const offset = (page - 1) * limit;
+  const total = db.prepare(`SELECT COUNT(*) n FROM blog_posts WHERE status='published'`).get().n;
+  const pages = Math.ceil(total / limit) || 1;
+  if (page > pages && pages > 0) return res.status(404).send('Not found');
+  
+  const posts = db.prepare(`${POST_SELECT} WHERE p.status='published' ORDER BY COALESCE(p.published_at, p.created_at) DESC LIMIT ? OFFSET ?`)
+    .all(limit, offset).map(fmtPost);
+  
+  let html = fs.readFileSync(path.join(__dirname, 'blog.html'), 'utf8');
+  const cardsHtml = posts.map(renderBlogCard).join('');
+  html = html.replace(/<div class="blog-grid" id="blogGrid">[\s\S]*?<\/div>/, '<div class="blog-grid" id="blogGrid">' + cardsHtml + '</div>');
+  html = html.replace(/<div class="blog-pager" id="blogPager">[\s\S]*?<\/div>/, '<div class="blog-pager" id="blogPager">' + renderBlogPager({page, pages, base: '/blog.html'}) + '</div>');
+  html = html.replace(/<span id="blogCount">[\s\S]*?<\/span>/, `<span id="blogCount">${total}</span>`);
+  
+  // Replace filters to be links
+  const categories = db.prepare('SELECT name, slug FROM blog_categories ORDER BY name ASC').all();
+  const filtersHtml = '<a href="/blog.html" class="filter active" aria-current="page">Alle <span class="filter-count">' + total + '</span></a>' +
+    categories.map(c => {
+      const ccount = db.prepare(`SELECT COUNT(*) n FROM blog_posts WHERE category_id=(SELECT id FROM blog_categories WHERE slug=?) AND status='published'`).get(c.slug).n;
+      return '<a href="/blog/kategori/' + escHtml(c.slug) + '" class="filter">' + escHtml(c.name) + ' <span class="filter-count">' + ccount + '</span></a>';
+    }).join('');
+  html = html.replace(/<div class="blog-filters" id="blogFilters" role="tablist">[\s\S]*?<\/div>/, '<nav class="blog-filters" id="blogFilters" aria-label="Kategorier">' + filtersHtml + '</nav>');
+
+  if (page > 1) {
+    html = renderMeasuredPage(html, {
+      fullTitle: `Blog, side ${page} — Mast3kMedia`,
+      description: `Læs artikler om software, SaaS, AI og vækst fra Mast3kMedia. Side ${page}.`,
+      canonical: `${SITE_ORIGIN}/blog.html?page=${page}`,
+      pageType: 'blog_index', contentType: 'blog_index', contentId: 'blog', contentTitle: 'Blog', contentCategory: ''
+    });
+  }
+  
+  // Strip client-side fetch script
+  html = html.replace(/<script>\s*\/\*\s*── Dynamic blog.*?\s*\*\/[\s\S]*?<\/script>/, '');
+
+  res.type('html').send(html);
+});
+
+app.get('/blog/kategori/:slug', (req, res, next) => {
+  const slug = req.params.slug;
+  const category = db.prepare('SELECT * FROM blog_categories WHERE slug=?').get(slug);
+  if (!category) return res.status(404).send('Not found');
+
+  const page = Math.max(1, parseInt(req.query.page || '1', 10) || 1);
+  const limit = 12;
+  const offset = (page - 1) * limit;
+  const total = db.prepare(`SELECT COUNT(*) n FROM blog_posts WHERE status='published' AND category_id=?`).get(category.id).n;
+  const pages = Math.ceil(total / limit) || 1;
+  if (page > pages && pages > 0) return res.status(404).send('Not found');
+
+  const posts = db.prepare(`${POST_SELECT} WHERE p.status='published' AND p.category_id=? ORDER BY COALESCE(p.published_at, p.created_at) DESC LIMIT ? OFFSET ?`)
+    .all(category.id, limit, offset).map(fmtPost);
+
+  let html = fs.readFileSync(path.join(__dirname, 'blog.html'), 'utf8');
+  const cardsHtml = posts.map(renderBlogCard).join('');
+  html = html.replace(/<div class="blog-grid" id="blogGrid">[\s\S]*?<\/div>/, '<div class="blog-grid" id="blogGrid">' + cardsHtml + '</div>');
+  html = html.replace(/<div class="blog-pager" id="blogPager">[\s\S]*?<\/div>/, '<div class="blog-pager" id="blogPager">' + renderBlogPager({page, pages, base: `/blog/kategori/${slug}`}) + '</div>');
+  html = html.replace(/<span id="blogCount">[\s\S]*?<\/span>/, `<span id="blogCount">${total}</span>`);
+  
+  // Replace filters to be links, setting active on the right one
+  const totalAll = db.prepare(`SELECT COUNT(*) n FROM blog_posts WHERE status='published'`).get().n;
+  const categories = db.prepare('SELECT name, slug FROM blog_categories ORDER BY name ASC').all();
+  const filtersHtml = '<a href="/blog.html" class="filter">Alle <span class="filter-count">' + totalAll + '</span></a>' +
+    categories.map(c => {
+      const ccount = db.prepare(`SELECT COUNT(*) n FROM blog_posts WHERE category_id=(SELECT id FROM blog_categories WHERE slug=?) AND status='published'`).get(c.slug).n;
+      const act = c.slug === slug ? ' active" aria-current="page"' : '"';
+      return '<a href="/blog/kategori/' + escHtml(c.slug) + '" class="filter' + act + '>' + escHtml(c.name) + ' <span class="filter-count">' + ccount + '</span></a>';
+    }).join('');
+  html = html.replace(/<div class="blog-filters" id="blogFilters" role="tablist">[\s\S]*?<\/div>/, '<nav class="blog-filters" id="blogFilters" aria-label="Kategorier">' + filtersHtml + '</nav>');
+
+  const desc = category.description || `Læs de seneste artikler om ${category.name} fra Mast3kMedia.`;
+  html = renderMeasuredPage(html, {
+    fullTitle: `${category.name} — Blog | Mast3kMedia${page > 1 ? `, side ${page}` : ''}`,
+    description: desc,
+    canonical: `${SITE_ORIGIN}/blog/kategori/${slug}${page > 1 ? `?page=${page}` : ''}`,
+    pageType: 'blog_category', contentType: 'blog_category', contentId: slug, contentTitle: category.name, contentCategory: category.name
+  });
+  
+  html = html.replace(/<script>\s*\/\*\s*── Dynamic blog.*?\s*\*\/[\s\S]*?<\/script>/, '');
+
+  res.type('html').send(html);
+});
+
+app.get('/forfatter/tobias-mastek', (req, res) => {
+  const posts = db.prepare(`${POST_SELECT} WHERE p.status='published' AND p.author='Tobias Mastek' ORDER BY COALESCE(p.published_at, p.created_at) DESC`).all().map(fmtPost);
+  
+  let html = fs.readFileSync(path.join(__dirname, 'blog.html'), 'utf8');
+  const cardsHtml = posts.map(renderBlogCard).join('');
+  html = html.replace(/<div class="blog-grid" id="blogGrid">[\s\S]*?<\/div>/, 
+    `<div class="author-bio section-pad">
+      <div class="shell" style="max-width:800px; margin:0 auto; padding-bottom:3rem">
+        <h1 class="display">Tobias Mastek</h1>
+        <p class="muted">Stifter af Mast3kMedia. Udvikler og designer med fokus på SaaS og AI-automatisering.</p>
+      </div>
+    </div>
+    <div class="blog-grid" id="blogGrid">${cardsHtml}</div>`
+  );
+  html = html.replace(/<div class="blog-pager" id="blogPager">[\s\S]*?<\/div>/, '<div class="blog-pager" id="blogPager"></div>');
+  html = html.replace(/<div class="blog-filters" id="blogFilters" role="tablist">[\s\S]*?<\/div>/, '');
+
+  html = renderMeasuredPage(html, {
+    fullTitle: `Tobias Mastek — Mast3kMedia`,
+    description: `Læs artikler skrevet af Tobias Mastek.`,
+    canonical: `${SITE_ORIGIN}/forfatter/tobias-mastek`,
+    pageType: 'author', contentType: 'author', contentId: 'tobias', contentTitle: 'Tobias Mastek', contentCategory: ''
+  });
+  
+  const personJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Tobias Mastek",
+    "url": `${SITE_ORIGIN}/forfatter/tobias-mastek`,
+    "jobTitle": "Stifter",
+    "worksFor": { "@type": "Organization", "name": "Mast3kMedia ApS" },
+    "sameAs": ["https://linkedin.com/", "https://github.com/Flyvendedk799"]
+  };
+  html = html.replace('</head>', `\n<script type="application/ld+json">\n${JSON.stringify(personJsonLd)}\n</script>\n</head>`);
+  html = html.replace(/<script>\s*\/\*\s*── Dynamic blog.*?\s*\*\/[\s\S]*?<\/script>/, '');
+
+  res.type('html').send(html);
+});
+
+app.get('/rss.xml', (req, res) => res.redirect(301, '/blog/rss.xml'));
+app.get('/feed.xml', (req, res) => res.redirect(301, '/blog/rss.xml'));
+
+app.get('/blog/rss.xml', (req, res) => {
+  const posts = db.prepare(`${POST_SELECT} WHERE p.status='published' ORDER BY COALESCE(p.published_at, p.created_at) DESC LIMIT 20`).all().map(fmtPost);
+  
+  const items = posts.map(p => {
+    const pubDate = new Date(p.published_at ? p.published_at + 'Z' : p.created_at + 'Z').toUTCString();
+    const url = `${SITE_ORIGIN}/blog/${encodeURIComponent(p.slug)}`;
+    const desc = p.seo_description || trimDesc(p.excerpt || '', 155);
+    let enc = '';
+    if (p.cover_image) {
+      enc = `\n      <enclosure url="${SITE_ORIGIN}${p.cover_image}" type="image/webp" length="0" />`;
+    }
+    return `    <item>
+      <title>${escHtml(p.title)}</title>
+      <link>${url}</link>
+      <guid isPermaLink="true">${url}</guid>
+      <pubDate>${pubDate}</pubDate>
+      <description>${escHtml(desc)}</description>
+      <category>${escHtml(p.category_name || '')}</category>
+      <dc:creator>Tobias Mastek</dc:creator>${enc}
+    </item>`;
+  }).join('\n');
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Mast3kMedia blog</title>
+    <link>${SITE_ORIGIN}/blog.html</link>
+    <description>Læs artikler om software, SaaS, AI og vækst fra Mast3kMedia.</description>
+    <language>da-DK</language>
+    <atom:link href="${SITE_ORIGIN}/blog/rss.xml" rel="self" type="application/rss+xml" />
+${items}
+  </channel>
+</rss>`;
+
+  res.type('application/rss+xml; charset=utf-8').send(xml);
+});
 
 // Blog post pretty URLs
 app.get('/blog-post.html', (req, res) => {
@@ -476,21 +798,147 @@ app.get('/blog/:slug', (req, res) => {
     ).get(slug);
 
     if (!post) {
-      return res.status(404).type('html').send(blogPostTemplate);
+      return res.status(404).type('html').send(notFoundHtml);
     }
 
-    const measured = renderMeasuredPage(blogPostTemplate, {
-      fullTitle: `${post.title} — Mast3kMedia`,
-      description: post.excerpt || '',
+    const fmtP = fmtPost(post);
+
+    const baseTitle = fmtP.seo_title || fmtP.title;
+    const suffix = " — Mast3kMedia";
+    const fullTitle = (baseTitle + suffix).length <= 60 ? baseTitle + suffix : baseTitle;
+    const finalDesc = fmtP.seo_description || trimDesc(fmtP.excerpt || '', 155);
+    const pubDate = new Date(post.published_at ? post.published_at + 'Z' : post.created_at + 'Z').toISOString();
+    const modDate = new Date(post.updated_at ? post.updated_at + 'Z' : pubDate).toISOString();
+
+    let jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": fmtP.title,
+      "description": finalDesc,
+      "image": post.cover_image ? `${SITE_ORIGIN}${post.cover_image}` : '',
+      "datePublished": pubDate,
+      "dateModified": modDate,
+      "author": {
+        "@type": "Person",
+        "name": "Tobias Mastek",
+        "url": `${SITE_ORIGIN}/forfatter/tobias-mastek`
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Mast3kMedia ApS",
+        "logo": { "@type": "ImageObject", "url": `${SITE_ORIGIN}/assets/og-image.png` }
+      },
+      "mainEntityOfPage": `${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}`,
+      "inLanguage": "da-DK",
+      "articleSection": post.category_name || '',
+      "keywords": fmtP.tags.join(', ')
+    };
+
+    const mdState = { ids: {}, toc: [], faq: [] };
+    parseMarkdown(post.body || '', mdState);
+    if (mdState.faq.length >= 2) {
+      jsonLd = [jsonLd, {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": mdState.faq.map(f => ({
+          "@type": "Question",
+          "name": f.q,
+          "acceptedAnswer": { "@type": "Answer", "text": f.a }
+        }))
+      }];
+    }
+
+    // Related posts
+    const candidates = db.prepare(`${POST_SELECT} WHERE p.status='published' AND p.slug<>? ORDER BY COALESCE(p.published_at, p.created_at) DESC`).all(slug).map(fmtPost);
+    const ownValues = new Set([...fmtP.tags].map(v => String(v).toLowerCase()));
+    
+    fmtP.related = candidates.sort((a, b) => {
+      let aScore = 0, bScore = 0;
+      if (a.category_id === fmtP.category_id) aScore += 100;
+      if (b.category_id === fmtP.category_id) bScore += 100;
+      aScore += a.tags.filter(t => ownValues.has(String(t).toLowerCase())).length;
+      bScore += b.tags.filter(t => ownValues.has(String(t).toLowerCase())).length;
+      return bScore - aScore;
+    }).slice(0, 3);
+
+    const catId = (fmtP.category_name || '').toLowerCase();
+    const ctaConfig = {
+      ai: { text: "Klar til at sætte AI i produktion?", srv: "AI & Automatisering", url: "/ydelser/ai-automatisering.html" },
+      software: { text: "Skal vi bygge dit næste projekt?", srv: "Softwareudvikling", url: "/ydelser/softwareudvikling.html" }
+    };
+    fmtP.cta = ctaConfig[catId] || { text: "Klar til at bygge noget nyt?", srv: "Se vores ydelser", url: "/ydelser.html" };
+
+    let imgW, imgH;
+    if (post.cover_image && post.cover_image.startsWith('/uploads/')) {
+      try {
+        const buf = fs.readFileSync(path.join(__dirname, post.cover_image));
+        const dim = imageDimensions(buf);
+        if (dim.width) imgW = dim.width;
+        if (dim.height) imgH = dim.height;
+      } catch (e) {}
+    }
+
+    let measured = renderMeasuredPage(blogPostTemplate, {
+      fullTitle: fullTitle,
+      description: finalDesc,
       canonical: `${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}`,
-      image: post.cover_image || '',
+      image: post.cover_image ? `${SITE_ORIGIN}${post.cover_image}` : '',
+      imageAlt: post.cover_alt || post.title,
+      imageWidth: imgW,
+      imageHeight: imgH,
       pageType: 'blog_post',
       contentType: 'blog_post',
       contentId: post.slug,
       contentTitle: post.title,
       contentCategory: post.category_name || '',
+      article: {
+        published_time: pubDate,
+        modified_time: modDate,
+        author: `${SITE_ORIGIN}/forfatter/tobias-mastek`,
+        section: post.category_name || '',
+        tags: fmtP.tags
+      },
+      jsonLd: JSON.stringify((Array.isArray(jsonLd) ? jsonLd : [jsonLd]).concat([{
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Forside", "item": SITE_ORIGIN + '/' },
+          { "@type": "ListItem", "position": 2, "name": "Blog", "item": SITE_ORIGIN + '/blog.html' },
+          { "@type": "ListItem", "position": 3, "name": post.category_name || 'Kategori', "item": SITE_ORIGIN + '/blog/kategori/' + encodeURIComponent(post.category_slug || 'andet') },
+          { "@type": "ListItem", "position": 4, "name": fmtP.title }
+        ]
+      }]))
     });
-    res.type('html').send(injectBlogArticle(measured, fmtPost(post)));
+
+    const ctaHtml = `
+<section class="post-cta section-pad" data-track="cta" data-cta-id="blog_post_end_${catId}" data-cta-location="blog_post_end">
+  <div class="shell">
+    <div class="ih" data-reveal="up">
+      <span class="eyebrow">Læst færdig?</span>
+      <h2 class="ih-title display">${fmtP.cta.text}</h2>
+    </div>
+    <div style="display:flex;gap:1rem;margin-top:2rem;" data-reveal="up">
+      <a href="${fmtP.cta.url}" class="btn btn-solid"><span class="btn-label">${fmtP.cta.srv} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
+      <a href="/kontakt.html#brief" class="btn">Kontakt os</a>
+      <a href="/blog.html" class="btn">Tilbage til bloggen</a>
+    </div>
+  </div>
+</section>
+<section class="section-pad related-section">
+  <div class="shell">
+    <div class="ih" data-reveal="up">
+      <span class="eyebrow">Mere fra bloggen</span>
+      <h2 class="ih-title display">Læs også.</h2>
+    </div>
+    <div class="blog-grid" data-reveal="stagger">
+      ${fmtP.related.map(renderBlogCard).join('')}
+    </div>
+  </div>
+</section>`;
+
+    measured = measured.replace(/<section class="next-cta">[\s\S]*?<\/section>/, ctaHtml);
+
+    res.type('html').send(injectBlogArticle(measured, fmtP));
   } catch (error) {
     console.error('Error fetching blog post:', error);
     res.status(500).type('html').send(blogPostTemplate);
@@ -499,17 +947,41 @@ app.get('/blog/:slug', (req, res) => {
 
 app.get('/case.html', (req, res, next) => {
   const slug = typeof req.query.slug === 'string' ? req.query.slug.trim() : '';
-  if (!slug) return next();
+  if (slug) {
+    return res.redirect(301, `/arbejde/${encodeURIComponent(slug)}`);
+  }
+  return res.redirect(301, '/arbejde.html');
+});
+
+app.get('/arbejde/:slug', (req, res) => {
+  const slug = req.params.slug;
   try {
     const row = db.prepare(
       'SELECT * FROM projects WHERE slug=? AND status=?'
     ).get(slug, 'published');
-    if (!row) return res.status(404).type('html').send(caseTemplate);
+    if (!row) {
+      return res.status(404).type('html').send(notFoundHtml);
+    }
     const project = fmt(row);
+    // Add related cases for injection
+    const candidates = db.prepare(
+      'SELECT slug, title, category, year, thumbnail_url, description, tags, tech_stack ' +
+      'FROM projects WHERE status=? AND slug<>? ORDER BY sort_order ASC, created_at DESC'
+    ).all('published', project.slug);
+    const ownValues = new Set([...project.tags, ...project.tech_stack].map(v => String(v).toLowerCase()));
+    project.related = candidates.filter(c => {
+      if (c.category === project.category) return true;
+      const cv = [...safeJSON(c.tags, []), ...safeJSON(c.tech_stack, [])].map(v => String(v).toLowerCase());
+      return cv.some(v => ownValues.has(v));
+    }).slice(0, 3).map(c => ({
+      slug: c.slug, title: c.title, category: c.category, year: c.year,
+      thumbnail_url: c.thumbnail_url, description: c.description, tags: safeJSON(c.tags, [])
+    }));
+
     const html = renderMeasuredPage(caseTemplate, {
       fullTitle: `${project.title} — Case · Mast3kMedia`,
       description: project.description || '',
-      canonical: `${SITE_ORIGIN}/case.html?slug=${encodeURIComponent(project.slug)}`,
+      canonical: `${SITE_ORIGIN}/arbejde/${encodeURIComponent(project.slug)}`,
       image: project.og_image || project.thumbnail_url || '',
       pageType: 'case',
       contentType: 'case',
@@ -517,7 +989,7 @@ app.get('/case.html', (req, res, next) => {
       contentTitle: project.title,
       contentCategory: project.category || '',
     });
-    res.type('html').send(html);
+    res.type('html').send(injectCase(html, project));
   } catch (error) {
     console.error('Error fetching case:', error);
     res.status(500).type('html').send(caseTemplate);
@@ -531,7 +1003,7 @@ app.get('/robots.txt', (_req, res) => {
 });
 
 const SITEMAP_PAGES = [
-  '/',
+'/',
   '/ydelser.html',
   '/pris.html',
   '/arbejde.html',
@@ -540,29 +1012,74 @@ const SITEMAP_PAGES = [
   '/om.html',
   '/oss.html',
   '/saas.html',
+  '/privatlivspolitik.html',
+  '/ydelser/softwareudvikling.html',
+  '/ydelser/saas-produkter.html',
+  '/ydelser/ai-automatisering.html',
+  '/ydelser/marketing-vaekst.html',
 ];
 
 app.get('/sitemap.xml', (_req, res) => {
-  const urls = SITEMAP_PAGES.map((page) => SITE_ORIGIN + page);
+  const urls = SITEMAP_PAGES.map((page) => `<url><loc>${SITE_ORIGIN + page}</loc></url>`);
   const posts = db.prepare(
-    "SELECT slug FROM blog_posts WHERE status='published' ORDER BY slug"
+    "SELECT slug, updated_at FROM blog_posts WHERE status='published' ORDER BY slug"
   ).all();
   const projects = db.prepare(
-    "SELECT slug FROM projects WHERE status='published' ORDER BY slug"
+    "SELECT slug, updated_at FROM projects WHERE status='published' ORDER BY slug"
   ).all();
-  for (const post of posts) urls.push(`${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}`);
-  for (const project of projects) {
-    urls.push(`${SITE_ORIGIN}/case.html?slug=${encodeURIComponent(project.slug)}`);
+  const cats = db.prepare(
+    "SELECT slug FROM blog_categories ORDER BY slug"
+  ).all();
+
+  for (const post of posts) {
+    const d = new Date(post.updated_at ? post.updated_at + 'Z' : new Date()).toISOString();
+    urls.push(`<url><loc>${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}</loc><lastmod>${d}</lastmod></url>`);
   }
+  for (const project of projects) {
+    const d = new Date(project.updated_at ? project.updated_at + 'Z' : new Date()).toISOString();
+    urls.push(`<url><loc>${SITE_ORIGIN}/arbejde/${encodeURIComponent(project.slug)}</loc><lastmod>${d}</lastmod></url>`);
+  }
+  for (const c of cats) {
+    urls.push(`<url><loc>${SITE_ORIGIN}/blog/kategori/${encodeURIComponent(c.slug)}</loc></url>`);
+  }
+  urls.push(`<url><loc>${SITE_ORIGIN}/forfatter/tobias-mastek</loc></url>`);
+
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    ...urls.map((url) => `  <url><loc>${escHtml(url)}</loc></url>`),
+    ...urls.map((u) => `  ${u}`),
     '</urlset>',
     '',
   ].join('\n');
+  res.setHeader('Cache-Control', 'max-age=3600');
   res.type('application/xml').send(xml);
 });
+
+// Deny access to sensitive files and directories before the static handler
+app.use((req, res, next) => {
+  const p = req.path.toLowerCase();
+  
+  // Deny sensitive directories
+  const blockedDirs = ['/db', '/logs', '/lib', '/test', '/docs', '/chats', '/project', '/mast3kmedia-repo-case', '/_ds', '/node_modules'];
+  if (blockedDirs.some(dir => p === dir || p.startsWith(dir + '/'))) {
+    return res.status(404).send('Not found');
+  }
+  
+  // Deny root .js and specific extensions anywhere
+  if (p === '/server.js' || p === '/mailer.js' || p === '/mcp-server.js') {
+    return res.status(404).send('Not found');
+  }
+  
+  const ext = path.extname(p);
+  const blockedExts = ['.mjs', '.md', '.json', '.db', '.log', '.gz', '.toml', '.yaml'];
+  if (blockedExts.includes(ext)) {
+    return res.status(404).send('Not found');
+  }
+  
+  next();
+});
+
+const notFoundHtml = fs.readFileSync(path.join(__dirname, '404.html'), 'utf8');
 
 // Root static files
 app.use(express.static(path.join(__dirname), {
@@ -570,17 +1087,51 @@ app.use(express.static(path.join(__dirname), {
   extensions: ['html'],
 }));
 
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).type('html').send(notFoundHtml);
+});
+
+// 500 Handler
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).type('html').send(notFoundHtml.replace('Siden findes <span class="lime">ikke</span>.', 'Der skete en <span class="lime">fejl</span>.').replace('404', '500'));
+});
+
 // ── Auth endpoints ─────────────────────────────────────────────────────────────
+const loginAttempts = new Map();
+
 app.post('/api/auth/login', (req, res) => {
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const now = Date.now();
+  const attempt = loginAttempts.get(ip) || { count: 0, time: now };
+  if (now - attempt.time > 15 * 60 * 1000) {
+    attempt.count = 0;
+    attempt.time = now;
+  }
+  if (attempt.count >= 5) {
+    return res.status(429).json({ error: 'Too many login attempts, please try again later' });
+  }
+
   const { username, password } = req.body || {};
   if (!username || !password)
     return res.status(400).json({ error: 'username and password required' });
-  if (username !== ADMIN_USER)
+  if (username !== ADMIN_USER) {
+    attempt.count++;
+    loginAttempts.set(ip, attempt);
     return res.status(401).json({ error: 'Invalid credentials' });
+  }
   // Support plain-text env pw (dev) or bcrypt hash
   const ok = password === ADMIN_PASS ||
     (ADMIN_PASS.startsWith('$2') && bcrypt.compareSync(password, ADMIN_PASS));
-  if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+  if (!ok) {
+    attempt.count++;
+    loginAttempts.set(ip, attempt);
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  
+  loginAttempts.delete(ip);
   const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '24h' });
   res.json({ token, username });
 });
@@ -1099,13 +1650,16 @@ app.post('/api/admin/blog/posts', requireAuth, (req, res) => {
   try {
     const r = db.prepare(`
       INSERT INTO blog_posts
-        (title, slug, excerpt, body, cover_image, status, category_id, published_at, author, tags)
-      VALUES (?,?,?,?,?,?,?,?,?,?)
+        (title, slug, excerpt, body, cover_image, seo_title, seo_description, cover_alt, status, category_id, published_at, author, tags)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
     `).run(
       b.title, slug,
       b.excerpt || null,
       b.body || null,
       b.cover_image || null,
+      b.seo_title || null,
+      b.seo_description || null,
+      b.cover_alt || null,
       status,
       Number.isFinite(categoryId) ? categoryId : null,
       publishedAt,
@@ -1149,6 +1703,7 @@ app.put('/api/admin/blog/posts/:id', requireAuth, (req, res) => {
     db.prepare(`
       UPDATE blog_posts SET
         title=?, slug=?, excerpt=?, body=?, cover_image=?,
+        seo_title=?, seo_description=?, cover_alt=?,
         status=?, category_id=?, published_at=?, author=?, tags=?
       WHERE id=?
     `).run(
@@ -1157,6 +1712,9 @@ app.put('/api/admin/blog/posts/:id', requireAuth, (req, res) => {
       b.excerpt !== undefined ? b.excerpt : old.excerpt,
       b.body !== undefined ? b.body : old.body,
       b.cover_image !== undefined ? b.cover_image : old.cover_image,
+      b.seo_title !== undefined ? b.seo_title : old.seo_title,
+      b.seo_description !== undefined ? b.seo_description : old.seo_description,
+      b.cover_alt !== undefined ? b.cover_alt : old.cover_alt,
       status,
       categoryId,
       publishedAt,
@@ -1213,7 +1771,7 @@ async function start() {
     console.log(`  │  API    →  http://localhost:${PORT}/api/projects${' '.repeat(W - 38 - PORT.toString().length)}│`);
     console.log(`  │  MCP    →  http://localhost:${PORT}${mcpPath}${' '.repeat(Math.max(0, W - 26 - PORT.toString().length - mcpPath.length))}│`);
     console.log(`  └${line}┘`);
-    console.log(`\n  Login: ${ADMIN_USER} / ${ADMIN_PASS.startsWith('$2') ? '[bcrypt hash]' : ADMIN_PASS}`);
+    console.log(`\n  Login: ${ADMIN_USER} / [set via ADMIN_PASS]`);
     if (MCP_AUTH_TOKEN) {
       console.log(`  MCP auth: MCP_AUTH_TOKEN is set (Bearer)`);
     } else {

@@ -2,6 +2,20 @@
 <html lang="da" class="no-js">
 <head>
 <script>window.dataLayer=window.dataLayer||[];dataLayer.push({page_type:'contact'})</script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent','default',{
+  ad_storage:'denied',
+  ad_user_data:'denied',
+  ad_personalization:'denied',
+  analytics_storage:'denied',
+  wait_for_update:500
+});
+</script>
+<!-- CMP Script placeholder (e.g. Cookiebot) -->
+<script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="00000000-0000-0000-0000-000000000000" data-blockingmode="auto" type="text/javascript"></script>
+
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -9,7 +23,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','GTM-PS7PV9XN');</script>
 <!-- End Google Tag Manager -->
-<script src="/assets/analytics.js?v=1"></script>
+<script src="/assets/analytics.js?v=1" defer></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Kontakt — Mast3kMedia</title>
@@ -37,6 +51,46 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <link rel="stylesheet" href="assets/base.css?v=20260818-hero" />
 <link rel="stylesheet" href="assets/sub.css?v=20260818-hero" />
 <link rel="stylesheet" href="assets/brief.css?v=20260818-hero" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Hvor hurtigt kan I starte?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Typisk inden for 1–2 uger. Akutte projekter kan vi ofte tage hånd om hurtigere — spørg endelig."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Hvem ejer koden?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Det gør du — fra dag ét. Alt lever i dit eget GitHub. Ingen lock-in, ingen black box."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Arbejder I fast pris eller løbende?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Begge dele. Sprints er fast pris, produkt-forløb er månedlige. Vi finder den model der passer dig."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Tager I små projekter?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Ja — en landing page eller et MVP er et perfekt sted at starte et samarbejde."
+      }
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <!-- Google Tag Manager (noscript) -->
@@ -63,10 +117,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <div class="nav-cta">
     <a href="#brief" class="btn btn-solid" data-track="cta" data-cta-id="nav_build_brief" data-cta-location="nav" data-magnetic="0.3"><span class="btn-label">Byg din brief
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
-    <button class="nav-burger" aria-label="Menu"><span></span><span></span></button>
+    <button class="nav-burger" aria-label="Menu" aria-controls="site-menu" aria-expanded="false"><span></span><span></span></button>
   </div>
 </nav>
-<div class="menu">
+<div class="menu" id="site-menu" inert aria-hidden="true">
   <a href="/ydelser.html">Ydelser</a>
   <a href="/pris.html">Priser</a>
   <a href="/arbejde.html">Arbejde</a>
@@ -213,7 +267,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <div class="step" data-step="3">
             <div class="two">
               <div class="field" data-req="name">
-                <div class="label">Navn</div>
+                <label class="label" for="f-name">Navn</label>
                 <div class="control"><input class="input" id="f-name" data-field="name" type="text" placeholder="Dit navn" autocomplete="name"></div>
                 <div class="err">Vi skal vide hvem vi skriver til.</div>
               </div>
@@ -223,7 +277,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               </div>
             </div>
             <div class="field" data-req="email">
-              <div class="label">Email</div>
+              <label class="label" for="f-email">Email</label>
               <div class="control"><input class="input" id="f-email" data-field="email" type="email" placeholder="dig@firma.dk" autocomplete="email" inputmode="email"></div>
               <div class="err" id="emailErr">Skriv en email vi kan svare på.</div>
             </div>
@@ -284,7 +338,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
       <div class="contact-block">
         <span class="mono">Book direkte</span>
-        <a href="#" class="ulink" data-track="booking" data-cta-id="contact_book_call" data-track-location="contact_aside">cal.com/mast3kmedia →</a>
+        <a  class="ulink" data-track="booking" data-cta-id="contact_book_call" data-track-location="contact_aside">cal.com/mast3kmedia →</a>
       </div>
       <div class="contact-block">
         <span class="mono">Telefon</span>
@@ -323,19 +377,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <p>Digitalt bureau for software, SaaS, AI &amp; vækst. Bygget i Danmark, sendt til hele verden.</p>
       </div>
       <div class="footer-col"><span class="mono">Sitemap</span><a href="/ydelser.html" class="ulink">Ydelser</a><a href="/pris.html" class="ulink">Priser</a><a href="/arbejde.html" class="ulink">Arbejde</a><a href="/blog.html" class="ulink">Blog</a><a href="/oss.html" class="ulink">Open Source</a><a href="/saas.html" class="ulink">SaaS</a><a href="/om.html" class="ulink">Om os</a><a href="/kontakt.html" class="ulink">Kontakt</a></div>
-      <div class="footer-col"><span class="mono">Social</span><a href="#" class="ulink">LinkedIn</a><a href="#" class="ulink">GitHub</a><a href="#" class="ulink">Instagram</a><a href="#" class="ulink">Dribbble</a></div>
+      <div class="footer-col"><span class="mono">Social</span><a href="https://linkedin.com/" class="ulink" rel="me">LinkedIn</a><a href="https://github.com/Flyvendedk799" class="ulink" rel="me">GitHub</a><a href="https://instagram.com/" class="ulink" rel="me">Instagram</a><a href="https://dribbble.com/" class="ulink" rel="me">Dribbble</a></div>
       <div class="footer-col"><span class="mono">Kontor</span><span class="faint">København · DK</span><a href="mailto:hej@mast3kmedia.dk" class="faint">hej@mast3kmedia.dk</a><a href="tel:+4523822482" class="faint">+45 23 82 24 82</a></div>
     </div>
-    <div class="footer-bottom"><span class="mono">© 2026 Mast3kMedia ApS</span><span class="mono">Designet &amp; kodet i København</span></div>
+    <div class="footer-bottom"><span class="mono">© 2026 Mast3kMedia ApS</span><a href="/privatlivspolitik.html" class="mono" style="margin-left: 1rem; text-decoration: underline;">Privatlivspolitik</a><span class="mono">Designet &amp; kodet i København</span></div>
   </div>
 </footer>
 
 </main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-<script src="assets/anim.js?v=20260818-hero"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js" defer></script>
+<script src="assets/anim.js?v=20260818-hero" defer></script>
 <script src="assets/brief.js?v=20260818-hero"></script>
 </body>
 </html>

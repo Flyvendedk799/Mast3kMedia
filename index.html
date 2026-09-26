@@ -2,6 +2,20 @@
 <html lang="da" class="no-js">
 <head>
 <script>window.dataLayer=window.dataLayer||[];dataLayer.push({page_type:'home'})</script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent','default',{
+  ad_storage:'denied',
+  ad_user_data:'denied',
+  ad_personalization:'denied',
+  analytics_storage:'denied',
+  wait_for_update:500
+});
+</script>
+<!-- CMP Script placeholder (e.g. Cookiebot) -->
+<script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="00000000-0000-0000-0000-000000000000" data-blockingmode="auto" type="text/javascript"></script>
+
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -9,7 +23,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','GTM-PS7PV9XN');</script>
 <!-- End Google Tag Manager -->
-<script src="/assets/analytics.js?v=1"></script>
+<script src="/assets/analytics.js?v=1" defer></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mast3kMedia — Digitalt bureau for software, SaaS, AI &amp; vækst</title>
@@ -22,20 +36,24 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <meta property="og:site_name" content="Mast3kMedia" />
 <meta property="og:locale" content="da_DK" />
 <meta property="og:url" content="https://mast3kmedia.dk/" />
-<meta property="og:title" content="Mast3kMedia — Digitalt bureau for software, SaaS, AI &amp;amp; vækst" />
+<meta property="og:title" content="Mast3kMedia — Digitalt bureau for software, SaaS, AI &amp; vækst" />
 <meta property="og:description" content="Mast3kMedia er det danske bureau for alt digitalt. Vi designer, koder og skalerer software, SaaS, AI og marketing for ambitiøse virksomheder." />
 <meta property="og:image" content="https://mast3kmedia.dk/assets/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="Mast3kMedia — mindre snak, mere kode, rigtig vækst." />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Mast3kMedia — Digitalt bureau for software, SaaS, AI &amp;amp; vækst" />
+<meta name="twitter:title" content="Mast3kMedia — Digitalt bureau for software, SaaS, AI &amp; vækst" />
 <meta name="twitter:description" content="Mast3kMedia er det danske bureau for alt digitalt. Vi designer, koder og skalerer software, SaaS, AI og marketing for ambitiøse virksomheder." />
 <meta name="twitter:image" content="https://mast3kmedia.dk/assets/og-image.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="assets/base.css?v=20260818-hero" />
 <link rel="stylesheet" href="assets/home.css?v=20260818-hero" />
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://mast3kmedia.dk/#organization","name":"Mast3kMedia ApS","url":"https://mast3kmedia.dk/","logo":"https://mast3kmedia.dk/assets/og-image.png","contactPoint":{"@type":"ContactPoint","telephone":"+45 23 82 24 82","contactType":"customer service","email":"hej@mast3kmedia.dk"},"sameAs":["https://linkedin.com/","https://github.com/Flyvendedk799"]},{"@type":"WebSite","@id":"https://mast3kmedia.dk/#website","url":"https://mast3kmedia.dk/","name":"Mast3kMedia","publisher":{"@id":"https://mast3kmedia.dk/#organization"}}]}
+</script>
 </head>
 <body>
 <!-- Google Tag Manager (noscript) -->
@@ -63,12 +81,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <div class="nav-cta">
     <a href="/kontakt.html" class="btn btn-solid" data-track="cta" data-cta-id="nav_start_project" data-cta-location="nav" data-magnetic="0.3"><span class="btn-label">Start projekt
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
-    <button class="nav-burger" aria-label="Menu"><span></span><span></span></button>
+    <button class="nav-burger" aria-label="Menu" id="navBurger" aria-controls="site-menu" aria-expanded="false"><span></span><span></span></button>
   </div>
 </nav>
 
 <!-- ===== Mobile menu ===== -->
-<div class="menu">
+<div class="menu" id="site-menu" inert aria-hidden="true">
   <a href="/ydelser.html">Ydelser</a>
   <a href="/pris.html">Priser</a>
   <a href="/arbejde.html">Arbejde</a>
@@ -93,7 +111,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     <div class="hero-top" data-hero-fade>
       <span class="eyebrow">Kodebureau · København · siden 2026</span>
-      <span class="pill-live"><span class="dot"></span>Plads til 2 nye i Q3</span>
+      <span class="pill-live"><span class="dot"></span>Plads til 2 nye</span>
     </div>
 
     <div class="hero-grid">
@@ -346,10 +364,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
     </div>
     <div class="why-right" data-reveal="stagger">
-      <div class="why-item"><span class="why-n">/01</span><div><h4>Seniorer, hele vejen</h4><p>Dem du møder til mødet, er dem der skriver koden. Ingen bait-and-switch.</p></div></div>
-      <div class="why-item"><span class="why-n">/02</span><div><h4>Du ejer det hele</h4><p>Din kode i dit eget GitHub fra dag ét. Vi gør dig ikke afhængig af os.</p></div></div>
-      <div class="why-item"><span class="why-n">/03</span><div><h4>Hurtigt, men ikke sjusket</h4><p>Vi leverer i uger, ikke kvartaler — uden at det kommer til at ligne det.</p></div></div>
-      <div class="why-item"><span class="why-n">/04</span><div><h4>Vækst er ikke en eftertanke</h4><p>SEO og konvertering tænkes ind fra første skitse — ikke bolt’et på til sidst.</p></div></div>
+      <div class="why-item"><span class="why-n">/01</span><div><h3>Seniorer, hele vejen</h3><p>Dem du møder til mødet, er dem der skriver koden. Ingen bait-and-switch.</p></div></div>
+      <div class="why-item"><span class="why-n">/02</span><div><h3>Du ejer det hele</h3><p>Din kode i dit eget GitHub fra dag ét. Vi gør dig ikke afhængig af os.</p></div></div>
+      <div class="why-item"><span class="why-n">/03</span><div><h3>Hurtigt, men ikke sjusket</h3><p>Vi leverer i uger, ikke kvartaler — uden at det kommer til at ligne det.</p></div></div>
+      <div class="why-item"><span class="why-n">/04</span><div><h3>Vækst er ikke en eftertanke</h3><p>SEO og konvertering tænkes ind fra første skitse — ikke bolt’et på til sidst.</p></div></div>
     </div>
   </div>
 </section>
@@ -393,12 +411,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <p class="coord footer-coord">55.6761° N · 12.5683° E — København, DK</p>
       </div>
       <div class="footer-col"><span class="mono">Sitemap</span><a href="/ydelser.html" class="ulink">Ydelser</a><a href="/pris.html" class="ulink">Priser</a><a href="/arbejde.html" class="ulink">Arbejde</a><a href="/blog.html" class="ulink">Blog</a><a href="/oss.html" class="ulink">Open Source</a><a href="/saas.html" class="ulink">SaaS</a><a href="/om.html" class="ulink">Om os</a><a href="/kontakt.html" class="ulink">Kontakt</a></div>
-      <div class="footer-col"><span class="mono">Social</span><a href="#" class="ulink">LinkedIn</a><a href="#" class="ulink">GitHub</a><a href="#" class="ulink">Instagram</a><a href="#" class="ulink">Dribbble</a></div>
+      <div class="footer-col"><span class="mono">Social</span><a href="https://linkedin.com/" class="ulink" rel="me">LinkedIn</a><a href="https://github.com/Flyvendedk799" class="ulink" rel="me">GitHub</a><a href="https://instagram.com/" class="ulink" rel="me">Instagram</a><a href="https://dribbble.com/" class="ulink" rel="me">Dribbble</a></div>
       <div class="footer-col"><span class="mono">Kontor</span><span class="faint">København · DK</span><a href="mailto:hej@mast3kmedia.dk" class="faint">hej@mast3kmedia.dk</a><a href="tel:+4523822482" class="faint">+45 23 82 24 82</a></div>
     </div>
 
     <div class="footer-bottom">
-      <span class="mono">© 2026 Mast3kMedia ApS</span>
+      <span class="mono">© 2026 Mast3kMedia ApS</span><a href="/privatlivspolitik.html" class="mono" style="margin-left: 1rem; text-decoration: underline;">Privatlivspolitik</a>
       <span class="mono">Designet &amp; kodet i København</span>
     </div>
   </div>
@@ -407,10 +425,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </main>
 
 <!-- ===== Scripts ===== -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-<script src="assets/anim.js?v=20260818-hero"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js" defer></script>
+<script src="assets/anim.js?v=20260818-hero" defer></script>
 <script>
   /* ── Featured projects from the API, rendered as design-system case cards ── */
   (function () {
