@@ -506,7 +506,7 @@
           r.tags.slice(0, 3).map(function(t){ return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
         '</div>';
       }
-      return '<a href="/case.html?slug=' + attr(r.slug) + '" class="wcard related-card" data-reveal="up" data-track="content" data-content-type="case" data-content-id="' + attr(r.slug) + '">' +
+      return '<a href="/arbejde/' + encodeURIComponent(r.slug) + '" class="wcard related-card" data-reveal="up" data-track="content" data-content-type="case" data-content-id="' + attr(r.slug) + '">' +
         '<div class="wcard-media' + (r.thumbnail_url ? '' : ' ph') + '">' + media +
           '<span class="wcard-badge">' + badge + '</span>' +
           '<span class="wcard-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span></div>' +
@@ -519,7 +519,7 @@
     if (next) {
       var nextCat = (next.category || '') + (next.year ? ' · ' + next.year : '');
       nextSection = '<section class="next-cta next-cta-card"><div class="shell">' +
-        '<a href="case.html?slug=' + encodeURIComponent(next.slug) + '" class="next-case" data-track="content" data-content-type="case" data-content-id="' + attr(next.slug) + '">' +
+        '<a href="/arbejde/' + encodeURIComponent(next.slug) + '" class="next-case" data-track="content" data-content-type="case" data-content-id="' + attr(next.slug) + '">' +
         '<div><span class="nc-k">Næste case</span><span class="nc-title" data-next-title>' + esc(next.title) + ' <span class="lime">→</span></span></div>' +
         '<span class="nc-cat" data-next-cat>' + esc(nextCat) + '</span>' +
         '</a></div></section>';

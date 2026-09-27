@@ -185,11 +185,9 @@
     var curA = [];
 
     function closeFaq() {
-      if (curQ) {
-        state.faq.push({ q: curQ, a: curA.join('\n\n') });
-        curQ = null;
-        curA = [];
-      }
+      if (curQ && state.faq) state.faq.push({ q: curQ, a: curA.join('\n\n') });
+      curQ = null;
+      curA = [];
     }
 
     function closeLists() {

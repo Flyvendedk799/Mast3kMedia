@@ -258,6 +258,7 @@ const trimDesc = (val, max = 155) => {
 const validEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val || '').trim());
 
 const SITE_ORIGIN = 'https://mast3kmedia.dk';
+const absUrl = (url) => (/^https?:\/\//i.test(url) ? url : SITE_ORIGIN + url);
 const escHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -591,6 +592,10 @@ app.use((req, res, next) => {
 });
 
 // Admin SPA — serve index.html for /admin and /admin/*
+app.use('/admin', (req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  next();
+});
 app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin', 'index.html')));
 app.get('/admin/', (_, res) => res.sendFile(path.join(__dirname, 'admin', 'index.html')));
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
@@ -752,7 +757,7 @@ app.get('/blog/rss.xml', (req, res) => {
     const desc = p.seo_description || trimDesc(p.excerpt || '', 155);
     let enc = '';
     if (p.cover_image) {
-      enc = `\n      <enclosure url="${SITE_ORIGIN}${p.cover_image}" type="image/webp" length="0" />`;
+      enc = `\n      <enclosure url="${absUrl(p.cover_image)}" type="image/webp" length="0" />`;
     }
     return `    <item>
       <title>${escHtml(p.title)}</title>
@@ -815,7 +820,7 @@ app.get('/blog/:slug', (req, res) => {
       "@type": "BlogPosting",
       "headline": fmtP.title,
       "description": finalDesc,
-      "image": post.cover_image ? `${SITE_ORIGIN}${post.cover_image}` : '',
+      "image": post.cover_image ? absUrl(post.cover_image) : '',
       "datePublished": pubDate,
       "dateModified": modDate,
       "author": {
@@ -882,7 +887,7 @@ app.get('/blog/:slug', (req, res) => {
       fullTitle: fullTitle,
       description: finalDesc,
       canonical: `${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}`,
-      image: post.cover_image ? `${SITE_ORIGIN}${post.cover_image}` : '',
+      image: post.cover_image ? absUrl(post.cover_image) : '',
       imageAlt: post.cover_alt || post.title,
       imageWidth: imgW,
       imageHeight: imgH,
@@ -1081,23 +1086,9 @@ app.use((req, res, next) => {
 
 const notFoundHtml = fs.readFileSync(path.join(__dirname, '404.html'), 'utf8');
 
-// Root static files
-app.use(express.static(path.join(__dirname), {
-  index: 'index.html',
-  extensions: ['html'],
-}));
-
-// 404 Handler
-app.use((req, res) => {
-  res.status(404).type('html').send(notFoundHtml);
-});
-
-// 500 Handler
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  if (res.headersSent) return next(err);
-  res.status(500).type('html').send(notFoundHtml.replace('Siden findes <span class="lime">ikke</span>.', 'Der skete en <span class="lime">fejl</span>.').replace('404', '500'));
-});
+// Root static: HTML pages only (assets, uploads and admin have their own mounts), never dot-paths like /.git
+const rootPages = express.static(__dirname, { dotfiles: 'ignore' });
+app.use((req, res, next) => (req.path.endsWith('.html') ? rootPages(req, res, next) : next()));
 
 // ── Auth endpoints ─────────────────────────────────────────────────────────────
 const loginAttempts = new Map();
@@ -1758,6 +1749,17 @@ async function start() {
     mcpAuthToken: MCP_AUTH_TOKEN,
     jwtSecret: JWT_SECRET,
     path: '/mcp',
+  });
+
+  // Registered last so they never shadow the API routes or /mcp above.
+  app.use((req, res) => {
+    res.status(404).type('html').send(notFoundHtml);
+  });
+
+  app.use((err, req, res, next) => {
+    console.error('Server error:', err);
+    if (res.headersSent) return next(err);
+    res.status(500).type('html').send(notFoundHtml.replace('Siden findes <span class="lime">ikke</span>.', 'Der skete en <span class="lime">fejl</span>.').replace('404', '500'));
   });
 
   app.listen(PORT, () => {
