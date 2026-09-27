@@ -62,13 +62,15 @@ Full HTTP auth, Cursor/Grok config, and smoke tests: **[docs/mcp.md](./mcp.md)**
 | `blog_list_categories` | List categories |
 | `blog_create_post` / `blog_update_post` / `blog_delete_post` | Post CRUD |
 | `blog_create_category` / `blog_update_category` / `blog_delete_category` | Category CRUD |
-| `blog_upload_media` | Upload image/video to persistent storage, returns public URL |
+| `blog_upload_media` | Upload image/video to persistent storage, returns public URL (same pipeline as `upload_media`, see [PORTFOLIO.md](./PORTFOLIO.md#uploads)) |
 | `blog_list_media` | List recent uploaded media files |
 | `blog_publish_post` | Set post status to published |
 | `blog_unpublish_post` | Set post status to draft |
 | `blog_set_cover` | Set cover image URL for a post |
 
 Resources: `blog://posts`, `blog://categories`. Stdio client config: `.mcp.json` → `node mcp-server.mjs`. See [mcp.md](./mcp.md) for HTTP.
+
+Portfolio and case tools are documented in [PORTFOLIO.md](./PORTFOLIO.md).
 
 ## For Mast3kMedia Blogger bot
 
