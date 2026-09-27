@@ -16,11 +16,9 @@ Turn a GitHub repo, a live URL or both into a published case on `https://mast3km
 - **Tobias's own projects are written in first person singular** ("jeg byggede", "min tilgang"). For client work, write what I delivered in first person and the client in third person.
 - **Never invent anything:** no metrics, client results, testimonials, quotes, team members, awards or logos that are not documented in the repo, on the live site or given by Tobias. Leave the field empty instead. A `metrics` item needs a source you can point to.
 - **Slugs are Danish ASCII:** æ becomes ae, ø becomes oe, å becomes aa, lowercase words joined by a hyphen (`kursusplads`, `faerdighedsmatrix`). Short and stable; never rename a published slug.
+- **Case pages never link to `/kontakt` or `/ydelser`**, same as blog posts. No call to action in any field, block, alt text or caption, not even as a bare path. The case template already has the site navigation and its own buttons. `validate_project` warns with `sales_link` if one slips in.
 - **Draft first.** Publish only when Tobias says publish or "læg op", or when he explicitly asked for a published case.
 - Use production HTTP MCP `https://mast3kmedia.dk/mcp` with Bearer `MCP_AUTH_TOKEN` so uploads land in production `uploads/`. Never print or commit the token.
-
-## Open question for Tobias
-Blog posts must never link to `/kontakt` or `/ydelser`. **Is a case page allowed to point readers to `/kontakt` or `/ydelser`** (for example a closing line like "Skal du have bygget noget lignende?")? Until Tobias answers, write no call to action in case text. The case template already has the site navigation and its own buttons; do not add more. Case text fields have no link syntax anyway (plain paragraphs, `**bold**` in `richtext` blocks).
 
 ## Workflow
 
@@ -94,11 +92,12 @@ Separate paragraphs in text fields with a blank line. Then call `set_blocks` for
 ## Style checklist before publishing
 - Every sentence Danish, read aloud in your head, no translationese.
 - Zero em dashes, en dashes or double hyphens in any field, block, alt text or caption.
+- No mention of `/kontakt` or `/ydelser` and no call to action.
 - First person for my own projects, no marketing fluff ("revolutionerende", "banebrydende").
 - Every number, quote and client claim traceable to a source.
 - Alt text and captions in Danish on every image.
 - `validate_project` returns `ok: true`.
 
-## Known gaps
-- All image uploads become WebP. Some social platforms (LinkedIn in particular) have been unreliable with WebP previews. If a case will be shared there, ask Tobias whether a PNG or JPEG `og_image` hosted elsewhere is needed.
-- Publishing is not blocked by validation errors, so always validate first.
+## Good to know
+- `publish_project` never blocks on validation errors; it publishes whatever is saved. Validation only reports, so always run it first and fix the errors yourself.
+- The preview link carries no analytics, so reviewing a draft never shows up in GA4.

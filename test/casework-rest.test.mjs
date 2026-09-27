@@ -102,7 +102,7 @@ test('REST media delete reports usage and refuses unless forced', async () => {
   assert.equal((await api('DELETE', `/api/admin/uploads/${up.data.name}`)).status, 404);
 });
 
-test('preview links render drafts like the public page with noindex, and reject expired or tampered tokens', async () => {
+test('preview links render drafts like the public page with noindex and no analytics, and reject expired or tampered tokens', async () => {
   const draft = await api('POST', '/api/admin/projects', { title: 'Hemmelig kladde', description: 'Kladdebeskrivelse', challenge: 'Udfordringstekst', og_image: '/uploads/kladde.webp' });
   assert.equal((await fetch(`${base}/arbejde/hemmelig-kladde`)).status, 404);
   assert.doesNotMatch(await (await fetch(`${base}/arbejde.html`)).text(), /href="\/arbejde\/hemmelig-kladde"/);
@@ -118,8 +118,9 @@ test('preview links render drafts like the public page with noindex, and reject 
   assert.match(html, /<meta name="robots" content="noindex, nofollow" \/>/);
   assert.match(html, /<title>Hemmelig kladde — Case · Mast3kMedia<\/title>/);
   assert.match(html, /Udfordringstekst/);
-  assert.match(html, /page_type:"case_preview"/);
-  assert.match(html, /googletagmanager\.com\/gtm\.js/);
+  for (const tracker of ['googletagmanager.com', 'GTM-PS7PV9XN', 'dataLayer', 'gtag(', 'analytics.js', 'Cookiebot']) {
+    assert.equal(html.includes(tracker), false, `preview must not include ${tracker}`);
+  }
   assert.deepEqual(html.match(/property="og:image" content="[^"]*"/g), ['property="og:image" content="https://mast3kmedia.dk/uploads/kladde.webp"']);
 
   const token = preview.data.path.split('/').pop();
@@ -135,10 +136,16 @@ test('preview links render drafts like the public page with noindex, and reject 
 
   await api('PATCH', `/api/admin/projects/${draft.data.id}/status`, { status: 'published' });
   const live = await (await fetch(`${base}/arbejde/hemmelig-kladde`)).text();
-  assert.match(live, /page_type:"case"/);
   assert.doesNotMatch(live, /name="robots"/);
-  assert.equal(live.replace(/<main id="main">[\s\S]*<\/main>/, ''), html.replace(/<main id="main">[\s\S]*<\/main>/, '')
-    .replace('<meta name="robots" content="noindex, nofollow" />\n', '').replace('case_preview', 'case'));
+  const tpl = fs.readFileSync(path.join(root, 'case.html'), 'utf8');
+  const analyticsHead = tpl.slice(tpl.indexOf('<script>\nwindow.dataLayer'), tpl.indexOf('<meta charset'));
+  const gtmNoscript = tpl.match(/<!-- Google Tag Manager \(noscript\) -->[\s\S]*?<!-- End Google Tag Manager \(noscript\) -->\n/)[0];
+  const push = live.match(/<script>window\.dataLayer=window\.dataLayer\|\|\[\];dataLayer\.push\(\{page_type:"case",[^\n]*<\/script>\n/)[0];
+  assert.match(analyticsHead, /GTM-PS7PV9XN/);
+  assert.ok(live.includes(analyticsHead) && live.includes(gtmNoscript), 'public case keeps the GTM snippet unchanged');
+  const outsideMain = (s) => s.replace(/<main id="main">[\s\S]*<\/main>/, '');
+  assert.equal(outsideMain(live).replace(push, '').replace(analyticsHead, '').replace(gtmNoscript, ''),
+    outsideMain(html).replace('<meta name="robots" content="noindex, nofollow" />\n', ''));
 
   const listing = await (await fetch(`${base}/arbejde.html`)).text();
   assert.match(listing, /<div class="work-grid" id="workGrid"><a href="\/arbejde\/hemmelig-kladde"/);

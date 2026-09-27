@@ -218,7 +218,8 @@ test('MCP describe_project_schema, validate_project and preview_project', async 
   await call('create_project', {
     title: 'Halv case', description: 'Kort — med tankestreg',
     media: [{ url: '/uploads/findes-ikke.webp', role: 'hero' }],
-    blocks: [{ type: 'gallery', items: [] }, { type: 'mystery' }],
+    blocks: [{ type: 'gallery', items: [] }, { type: 'mystery' }, { type: 'richtext', body: 'Skriv til mig på /kontakt' }],
+    approach: 'Se https://kunde.dk/kontakt og mine /kontakter',
   });
   const report = (await call('validate_project', { ref: 'halv-case', remote: false })).data;
   assert.equal(report.ok, false);
@@ -229,6 +230,8 @@ test('MCP describe_project_schema, validate_project and preview_project', async 
   }
   assert.ok(codes(report.warnings).includes('description:dash'));
   assert.ok(codes(report.warnings).includes('media[0]:caption_missing'));
+  assert.ok(codes(report.warnings).includes('blocks[2].body:sales_link'));
+  assert.equal(codes(report.warnings).includes('approach:sales_link'), false);
 
   const preview = (await call('preview_project', { ref: 'halv-case', hours: 2 })).data;
   assert.match(preview.path, /^\/arbejde\/preview\/[\w-]+\.[\w-]+\.[\w-]+$/);
