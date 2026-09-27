@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { renderBlogMarkdown, renderBlogArticle, injectBlogArticle } = require('../assets/blog-markdown.js');
+const { parseMarkdown, renderBlogMarkdown, renderBlogArticle, injectBlogArticle } = require('../assets/blog-markdown.js');
 
 test('heading levels: ## is h2, ### is h3, #### is h4', () => {
   const html = renderBlogMarkdown('# Top\n\n## Afsnit\n\n### Under\n\n#### Detalje\n\n##### Mindre');
@@ -117,4 +117,16 @@ test('h2 ids are unique and feed the table of contents', () => {
   ]);
   assert.match(html, /<aside class="blog-post-rail">[\s\S]*Mast3kMedia[\s\S]*1 min\. læsning[\s\S]*<span class="tag">seo<\/span>[\s\S]*<\/aside>$/);
   assert.doesNotMatch(renderBlogArticle({ title: 'T', body: '## Kun én\n\ntekst' }), /blog-post-toc/);
+});
+
+test('FAQ sections render in the article and are collected only when state.faq is given', () => {
+  const body = '## Ofte stillede spørgsmål\n\n### Hvad koster det?\n\nDet kommer an på.\n\n### Hvor lang tid tager det?\n\nTo uger.';
+  const html = renderBlogArticle({ title: 'FAQ', body });
+  assert.match(html, /<h3>Hvad koster det\?<\/h3>/);
+  const state = { ids: {}, toc: [], faq: [] };
+  parseMarkdown(body, state);
+  assert.deepEqual(state.faq, [
+    { q: 'Hvad koster det?', a: 'Det kommer an på.' },
+    { q: 'Hvor lang tid tager det?', a: 'To uger.' },
+  ]);
 });

@@ -61,7 +61,8 @@
     if (burger && menu) {
       burger.setAttribute('aria-expanded', 'false');
       burger.addEventListener('click', () => {
-        const open = const isOpen = menu.classList.toggle('open'); menu.inert = !isOpen; burger.setAttribute('aria-expanded', isOpen);
+        const open = menu.classList.toggle('open');
+        menu.inert = !open;
         burger.classList.toggle('is-open', open);
         burger.setAttribute('aria-expanded', String(open));
         burger.setAttribute('aria-label', open ? 'Luk menu' : 'Menu');
@@ -83,6 +84,7 @@
     const burger = document.querySelector('.nav-burger');
     if (menu && menu.classList.contains('open')) {
       menu.classList.remove('open');
+      menu.inert = true;
       menu.setAttribute('aria-hidden', 'true');
       if (burger) {
         burger.classList.remove('is-open');
