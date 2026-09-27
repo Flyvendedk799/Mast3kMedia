@@ -81,15 +81,15 @@ Deleting: `DELETE /api/admin/uploads/<name>` or MCP `delete_media { url }`. Whil
 
 Errors (fix before publishing): missing required fields, no `og_image` and no `thumbnail_url`, an invalid slug, a year out of range, images with neither alt nor caption, unknown media types, roles or providers, unknown block types or blocks missing required fields, a testimonial without an author, incomplete metrics, team or awards, a relative `case_url`, local `/uploads` or `/assets` files that do not exist, and remote URLs answering 404 or 410.
 
-Warnings: empty recommended fields, text over the recommended length, values outside the category or industry lists, alt text that looks English, missing captions, em dashes, en dashes or `--` in prose, no case media, non embed URLs in embed blocks, inline `data:` URLs, plain `http://` URLs and remote URLs that could not be checked. Remote URLs get a HEAD request (5 s timeout, GET fallback); pass `remote=0` (REST) or `remote: false` (MCP) to skip that.
+Warnings: empty recommended fields, text over the recommended length, values outside the category or industry lists, alt text that looks English, missing captions, em dashes, en dashes or `--` in prose, mentions of `/kontakt` or `/ydelser` in prose (`sales_link`; case pages must not link there), no case media, non embed URLs in embed blocks, inline `data:` URLs, plain `http://` URLs and remote URLs that could not be checked. Remote URLs get a HEAD request (5 s timeout, GET fallback); pass `remote=0` (REST) or `remote: false` (MCP) to skip that.
 
-Publishing is not gated by validate; run it before `publish_project`.
+`publish_project` (and `PATCH /api/admin/projects/:id/status`) never block on validation errors: validation only reports. Run it before publishing.
 
 ## Preview
 
 `POST /api/admin/projects/<id|slug>/preview { hours? }` or MCP `preview_project { ref, hours? }` returns `{ url, path, expires_at }`. Default lifetime 24 hours, max 168.
 
-The link renders the case exactly like the public page, with `<meta name="robots" content="noindex, nofollow">`, `X-Robots-Tag: noindex, nofollow`, `Cache-Control: private, no-store` and `page_type: "case_preview"` in the dataLayer. Tokens are signed with a key derived from `JWT_SECRET` and only grant access to that one case; they are not valid admin tokens. Expired or tampered tokens return 404.
+The link renders the case exactly like the public page, with `<meta name="robots" content="noindex, nofollow">`, `X-Robots-Tag: noindex, nofollow`, `Cache-Control: private, no-store` and `Referrer-Policy: no-referrer`, and without the consent script, Cookiebot, GTM, `analytics.js` and the dataLayer push, so draft URLs never reach analytics. Public case pages keep GTM unchanged. Tokens are signed with a key derived from `JWT_SECRET` and only grant access to that one case; they are not valid admin tokens. Expired or tampered tokens return 404.
 
 ## REST endpoints (`Authorization: Bearer <jwt>`)
 
@@ -132,5 +132,9 @@ The link renders the case exactly like the public page, with `<meta name="robots
 5. `validate_project` until `errors` is empty, and fix warnings where possible.
 6. `preview_project` and check the page at desktop and mobile widths.
 7. `publish_project`, then check `/arbejde/<slug>` and that the case shows on `/arbejde.html`.
+
+Case text and blocks must not link to or mention `/kontakt` or `/ydelser`.
+
+Leads (admin "Henvendelser", `GET /api/admin/leads`) are intentionally not exposed over MCP because they hold personal data.
 
 The portable agent skill for this flow is [`skills/mast3kmedia-portfolio-case/SKILL.md`](../skills/mast3kmedia-portfolio-case/SKILL.md).

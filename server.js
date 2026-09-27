@@ -947,16 +947,19 @@ function renderCasePage(row, preview = false) {
   }));
 
   const image = project.og_image || project.thumbnail_url;
+  let template = caseTemplate;
   // The template's default og:image would otherwise come first and win over the case image.
-  const template = image
-    ? caseTemplate.replace(/<meta (property="og:image(:\w+)?"|name="twitter:image") content="[^"]*" \/>\n/g, '')
-    : caseTemplate;
+  if (image) template = template.replace(/<meta (property="og:image(:\w+)?"|name="twitter:image") content="[^"]*" \/>\n/g, '');
+  // Draft previews never reach analytics: drop the dataLayer, consent, GTM and analytics.js.
+  if (preview) template = template
+    .replace(/(<head>\n)[\s\S]*?(?=<meta charset)/, '$1')
+    .replace(/<!-- Google Tag Manager \(noscript\) -->[\s\S]*?<!-- End Google Tag Manager \(noscript\) -->\n/, '');
   let html = renderMeasuredPage(template, {
     fullTitle: `${project.title} — Case · Mast3kMedia`,
     description: project.description || '',
     canonical: `${SITE_ORIGIN}/arbejde/${encodeURIComponent(project.slug)}`,
     image: image ? absUrl(image) : '',
-    pageType: preview ? 'case_preview' : 'case',
+    pageType: 'case',
     contentType: 'case',
     contentId: project.slug,
     contentTitle: project.title,
