@@ -93,7 +93,7 @@ Automated smoke: `npm run test:mcp` (node:test).
 | `blog_list_categories` | List categories |
 | `blog_create_post` / `blog_update_post` / `blog_delete_post` | Post CRUD |
 | `blog_create_category` / `blog_update_category` / `blog_delete_category` | Category CRUD |
-| `blog_upload_media` | Upload image/video bytes (base64) + filename, returns `{ url, mime, bytes, width?, height? }` where url is `/uploads/<file>` |
+| `blog_upload_media` | Upload image/video bytes (base64) + filename, optional `sha256`/`bytes`. Images become WebP. Returns `{ url, absolute_url, mime, bytes, width?, height?, source_sha256 }` where url is `/uploads/<file>` (see [PORTFOLIO.md](./PORTFOLIO.md#uploads)) |
 | `blog_list_media` | List recent uploaded media files (name, url, bytes, mtime), capped at ~100 |
 | `blog_publish_post` | Set post status to published, sets published_at if empty |
 | `blog_unpublish_post` | Set post status to draft |
@@ -103,7 +103,7 @@ Resources: `blog://posts`, `blog://categories`.
 
 ### Projects (also registered)
 
-`list_projects`, `get_project`, `get_stats`, `create_project`, `update_project`, `delete_project`, `publish_project`, `unpublish_project`, `set_featured`, `reorder_projects`, `bulk_import`, `set_blocks`, `add_media`, plus resources `projects://all` / `projects://published`.
+`list_projects`, `get_project`, `get_stats`, `create_project`, `update_project`, `delete_project`, `publish_project`, `unpublish_project`, `set_featured`, `reorder_projects`, `bulk_import`, `set_blocks`, `add_media`, `describe_project_schema`, `validate_project`, `preview_project`, `upload_media`, `delete_media`, plus resources `projects://all` / `projects://published`. See [PORTFOLIO.md](./PORTFOLIO.md) for fields, blocks, uploads, validation and previews.
 
 ## Architecture
 

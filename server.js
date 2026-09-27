@@ -18,6 +18,7 @@ const jwt        = require('jsonwebtoken');
 const bcrypt     = require('bcryptjs');
 const { injectBlogArticle, renderBlogCard, renderBlogPager, parseMarkdown } = require('./assets/blog-markdown');
 const { injectCase } = require('./assets/case-render');
+const casework   = require('./lib/casework');
 
 const PORT       = process.env.PORT        || 3000;
 const JWT_SECRET = process.env.JWT_SECRET  || 'mast3k_dev_secret_CHANGE_ME';
@@ -44,7 +45,7 @@ if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEV_DEFAULTS !== 
 // ── Database ─────────────────────────────────────────────────────────────────
 const DB_DIR = path.join(__dirname, 'db');
 if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
-const db = new Database(path.join(DB_DIR, 'mast3k.db'));
+const db = new Database(process.env.DB_PATH || path.join(DB_DIR, 'mast3k.db'));
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
@@ -323,26 +324,6 @@ function renderMeasuredPage(html, opts) {
 const blogPostTemplate = fs.readFileSync(path.join(__dirname, 'blog-post.html'), 'utf8');
 const caseTemplate = fs.readFileSync(path.join(__dirname, 'case.html'), 'utf8');
 
-// ── Upload helpers ──────────────────────────────────────────────────────────────
-const crypto = require('crypto');
-
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
-
-// mime → file extension (fallbacks; X-Filename ext used when mime is generic)
-const MIME_EXT = {
-  'image/png':  'png',
-  'image/jpeg': 'jpg',
-  'image/jpg':  'jpg',
-  'image/webp': 'webp',
-  'image/gif':  'gif',
-  'image/avif': 'avif',
-  'image/svg+xml': 'svg',
-  'video/mp4':  'mp4',
-  'video/webm': 'webm',
-  'video/quicktime': 'mov',
-  'video/ogg':  'ogv',
-};
-
 // Best-effort image dimension parser for PNG / JPEG / WebP. Returns {width,height} or {}.
 const imageDimensions = (buf) => {
   try {
@@ -398,17 +379,7 @@ const imageDimensions = (buf) => {
   return {};
 };
 
-const fmt = (row) => ({
-  ...row,
-  tags:       safeJSON(row.tags,       []),
-  tech_stack: safeJSON(row.tech_stack, []),
-  metrics:    safeJSON(row.metrics,    []),
-  media:      safeJSON(row.media,      []),
-  blocks:     safeJSON(row.blocks,     []),
-  team:       safeJSON(row.team,       []),
-  awards:     safeJSON(row.awards,     []),
-  featured:   row.featured === 1,
-});
+const { fmt } = casework;
 
 const fmtCategory = (row) => row ? ({
   id: row.id,
@@ -958,47 +929,65 @@ app.get('/case.html', (req, res, next) => {
   return res.redirect(301, '/arbejde.html');
 });
 
+function renderCasePage(row, preview = false) {
+  const project = fmt(row);
+  // Add related cases for injection
+  const candidates = db.prepare(
+    'SELECT slug, title, category, year, thumbnail_url, description, tags, tech_stack ' +
+    'FROM projects WHERE status=? AND slug<>? ORDER BY sort_order ASC, created_at DESC'
+  ).all('published', project.slug);
+  const ownValues = new Set([...project.tags, ...project.tech_stack].map(v => String(v).toLowerCase()));
+  project.related = candidates.filter(c => {
+    if (c.category === project.category) return true;
+    const cv = [...safeJSON(c.tags, []), ...safeJSON(c.tech_stack, [])].map(v => String(v).toLowerCase());
+    return cv.some(v => ownValues.has(v));
+  }).slice(0, 3).map(c => ({
+    slug: c.slug, title: c.title, category: c.category, year: c.year,
+    thumbnail_url: c.thumbnail_url, description: c.description, tags: safeJSON(c.tags, [])
+  }));
+
+  const image = project.og_image || project.thumbnail_url;
+  // The template's default og:image would otherwise come first and win over the case image.
+  const template = image
+    ? caseTemplate.replace(/<meta (property="og:image(:\w+)?"|name="twitter:image") content="[^"]*" \/>\n/g, '')
+    : caseTemplate;
+  let html = renderMeasuredPage(template, {
+    fullTitle: `${project.title} — Case · Mast3kMedia`,
+    description: project.description || '',
+    canonical: `${SITE_ORIGIN}/arbejde/${encodeURIComponent(project.slug)}`,
+    image: image ? absUrl(image) : '',
+    pageType: preview ? 'case_preview' : 'case',
+    contentType: 'case',
+    contentId: project.slug,
+    contentTitle: project.title,
+    contentCategory: project.category || '',
+  });
+  if (preview) html = html.replace('</head>', '<meta name="robots" content="noindex, nofollow" />\n</head>');
+  return injectCase(html, project);
+}
+
 app.get('/arbejde/:slug', (req, res) => {
-  const slug = req.params.slug;
   try {
     const row = db.prepare(
       'SELECT * FROM projects WHERE slug=? AND status=?'
-    ).get(slug, 'published');
+    ).get(req.params.slug, 'published');
     if (!row) {
       return res.status(404).type('html').send(notFoundHtml);
     }
-    const project = fmt(row);
-    // Add related cases for injection
-    const candidates = db.prepare(
-      'SELECT slug, title, category, year, thumbnail_url, description, tags, tech_stack ' +
-      'FROM projects WHERE status=? AND slug<>? ORDER BY sort_order ASC, created_at DESC'
-    ).all('published', project.slug);
-    const ownValues = new Set([...project.tags, ...project.tech_stack].map(v => String(v).toLowerCase()));
-    project.related = candidates.filter(c => {
-      if (c.category === project.category) return true;
-      const cv = [...safeJSON(c.tags, []), ...safeJSON(c.tech_stack, [])].map(v => String(v).toLowerCase());
-      return cv.some(v => ownValues.has(v));
-    }).slice(0, 3).map(c => ({
-      slug: c.slug, title: c.title, category: c.category, year: c.year,
-      thumbnail_url: c.thumbnail_url, description: c.description, tags: safeJSON(c.tags, [])
-    }));
-
-    const html = renderMeasuredPage(caseTemplate, {
-      fullTitle: `${project.title} — Case · Mast3kMedia`,
-      description: project.description || '',
-      canonical: `${SITE_ORIGIN}/arbejde/${encodeURIComponent(project.slug)}`,
-      image: project.og_image || project.thumbnail_url || '',
-      pageType: 'case',
-      contentType: 'case',
-      contentId: project.slug,
-      contentTitle: project.title,
-      contentCategory: project.category || '',
-    });
-    res.type('html').send(injectCase(html, project));
+    res.type('html').send(renderCasePage(row));
   } catch (error) {
     console.error('Error fetching case:', error);
     res.status(500).type('html').send(caseTemplate);
   }
+});
+
+// Signed, expiring preview of any project (drafts included), rendered like the public case page.
+app.get('/arbejde/preview/:token', (req, res) => {
+  res.set({ 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' });
+  const id = casework.verifyPreview(JWT_SECRET, req.params.token);
+  const row = id && db.prepare('SELECT * FROM projects WHERE id=?').get(id);
+  if (!row) return res.status(404).type('html').send(notFoundHtml);
+  res.type('html').send(renderCasePage(row, true));
 });
 
 app.get('/robots.txt', (_req, res) => {
@@ -1309,54 +1298,34 @@ app.get('/api/admin/leads', requireAuth, (req, res) => {
   res.json(rows.map((row) => ({ ...row, metadata: safeJSON(row.metadata, {}) })));
 });
 
-// ── Admin: media upload (dependency-free, raw binary body) ──────────────────────
+// ── Admin: media (raw binary body; images become webp, integrity + magic bytes checked) ──
+const sendError = (res, e) =>
+  res.status(e.status || 500).json({ error: e.message, ...(e.used_by && { used_by: e.used_by }) });
+
+const rawUpload = express.raw({ type: () => true, limit: '64mb' });
 app.post(
   '/api/admin/uploads',
   requireAuth,
-  express.raw({ type: () => true, limit: '64mb' }),
-  (req, res) => {
-    const buf = Buffer.isBuffer(req.body) ? req.body : null;
-    if (!buf || buf.length === 0)
-      return res.status(400).json({ error: 'Empty body' });
-
-    const mime = String(req.headers['content-type'] || '')
-      .split(';')[0].trim().toLowerCase();
-    const kind = mime.startsWith('image/') ? 'image'
-               : mime.startsWith('video/') ? 'video'
-               : null;
-    if (!kind)
-      return res.status(415).json({ error: `Unsupported mime type: ${mime || '(none)'}` });
-
-    // Derive extension: prefer mime map, fall back to X-Filename extension
-    let ext = MIME_EXT[mime];
-    if (!ext) {
-      const xf = String(req.headers['x-filename'] || '');
-      const m = xf.match(/\.([a-z0-9]+)$/i);
-      ext = m ? m[1].toLowerCase() : (kind === 'image' ? 'bin' : 'bin');
-    }
-
-    const name = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`;
+  (req, res, next) => rawUpload(req, res, (e) => (e ? sendError(res, e) : next())),
+  async (req, res) => {
     try {
-      fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-      fs.writeFileSync(path.join(UPLOAD_DIR, name), buf);
+      res.status(201).json(await casework.saveMedia(Buffer.isBuffer(req.body) ? req.body : null, {
+        filename: req.headers['x-filename'],
+        sha256: req.headers['x-content-sha256'],
+      }));
     } catch (e) {
-      return res.status(500).json({ error: e.message });
+      sendError(res, e);
     }
-
-    const out = {
-      url:   `/uploads/${name}`,
-      type:  kind,
-      mime,
-      bytes: buf.length,
-    };
-    if (kind === 'image') {
-      const dim = imageDimensions(buf);
-      if (dim.width)  out.width  = dim.width;
-      if (dim.height) out.height = dim.height;
-    }
-    res.status(201).json(out);
   }
 );
+
+app.delete('/api/admin/uploads/:name', requireAuth, (req, res) => {
+  try {
+    res.json(casework.deleteMedia(db, req.params.name, { force: ['1', 'true'].includes(req.query.force) }));
+  } catch (e) {
+    sendError(res, e);
+  }
+});
 
 // ── Admin: CRUD ────────────────────────────────────────────────────────────────
 app.get('/api/admin/projects', requireAuth, (req, res) => {
@@ -1366,121 +1335,49 @@ app.get('/api/admin/projects', requireAuth, (req, res) => {
   );
 });
 
-app.post('/api/admin/projects', requireAuth, (req, res) => {
-  const b = req.body;
-  if (!b?.title) return res.status(400).json({ error: 'title is required' });
-  const slug = slugify(b.slug || b.title);
+app.get('/api/admin/projects/schema', requireAuth, (req, res) => res.json(casework.describe()));
+
+app.get('/api/admin/projects/:ref', requireAuth, (req, res) => {
+  const row = casework.findProject(db, req.params.ref);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  res.json(fmt(row));
+});
+
+app.get('/api/admin/projects/:ref/validate', requireAuth, async (req, res, next) => {
+  const row = casework.findProject(db, req.params.ref);
+  if (!row) return res.status(404).json({ error: 'Not found' });
   try {
-    const r = db.prepare(`
-      INSERT INTO projects
-        (title,slug,category,description,long_description,challenge,approach,
-         tags,tech_stack,client,year,status,featured,sort_order,
-         metrics,testimonial_text,testimonial_author,testimonial_role,
-         thumbnail_url,case_url,media,blocks,timeline,services,
-         results,subtitle,client_logo,industry,deliverables,
-         role_scope,og_image,team,awards)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    `).run(
-      b.title, slug,
-      b.category || 'Software',
-      b.description        || null,
-      b.long_description   || null,
-      b.challenge          || null,
-      b.approach           || null,
-      JSON.stringify(Array.isArray(b.tags)       ? b.tags       : []),
-      JSON.stringify(Array.isArray(b.tech_stack) ? b.tech_stack : []),
-      b.client || null,
-      b.year   || new Date().getFullYear(),
-      b.status === 'published' ? 'published' : 'draft',
-      b.featured ? 1 : 0,
-      b.sort_order || 0,
-      JSON.stringify(Array.isArray(b.metrics) ? b.metrics : []),
-      b.testimonial_text   || null,
-      b.testimonial_author || null,
-      b.testimonial_role   || null,
-      b.thumbnail_url      || null,
-      b.case_url           || null,
-      JSON.stringify(Array.isArray(b.media) ? b.media : []),
-      JSON.stringify(Array.isArray(b.blocks) ? b.blocks : []),
-      b.timeline           || null,
-      b.services           || null,
-      b.results            || null,
-      b.subtitle           || null,
-      b.client_logo        || null,
-      b.industry           || null,
-      b.deliverables       || null,
-      b.role_scope         || null,
-      b.og_image           || null,
-      JSON.stringify(Array.isArray(b.team) ? b.team : []),
-      JSON.stringify(Array.isArray(b.awards) ? b.awards : []),
-    );
-    res.status(201).json(
-      fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(r.lastInsertRowid))
-    );
+    res.json(await casework.validateProject(fmt(row), { remote: req.query.remote !== '0' }));
   } catch (e) {
-    if (e.message.includes('UNIQUE'))
-      return res.status(409).json({ error: `Slug "${slug}" already exists — choose another` });
-    res.status(500).json({ error: e.message });
+    next(e);
+  }
+});
+
+app.post('/api/admin/projects/:ref/preview', requireAuth, (req, res) => {
+  const row = casework.findProject(db, req.params.ref);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  try {
+    res.json(casework.signPreview(JWT_SECRET, row.id, (req.body || {}).hours));
+  } catch (e) {
+    sendError(res, e);
+  }
+});
+
+app.post('/api/admin/projects', requireAuth, (req, res) => {
+  try {
+    res.status(201).json(casework.saveProject(db, req.body || {}));
+  } catch (e) {
+    sendError(res, e);
   }
 });
 
 app.put('/api/admin/projects/:id', requireAuth, (req, res) => {
   const old = db.prepare('SELECT * FROM projects WHERE id=?').get(req.params.id);
   if (!old) return res.status(404).json({ error: 'Not found' });
-  const b    = req.body;
-  const slug = b.slug ? slugify(b.slug) : old.slug;
   try {
-    db.prepare(`
-      UPDATE projects SET
-        title=?,slug=?,category=?,description=?,long_description=?,
-        challenge=?,approach=?,tags=?,tech_stack=?,client=?,year=?,
-        status=?,featured=?,sort_order=?,metrics=?,
-        testimonial_text=?,testimonial_author=?,testimonial_role=?,
-        thumbnail_url=?,case_url=?,media=?,blocks=?,
-        timeline=?,services=?,results=?,subtitle=?,client_logo=?,industry=?,deliverables=?,
-        role_scope=?,og_image=?,team=?,awards=?
-      WHERE id=?
-    `).run(
-      b.title     ?? old.title,
-      slug,
-      b.category  ?? old.category,
-      b.description          !== undefined ? b.description          : old.description,
-      b.long_description     !== undefined ? b.long_description     : old.long_description,
-      b.challenge            !== undefined ? b.challenge            : old.challenge,
-      b.approach             !== undefined ? b.approach             : old.approach,
-      JSON.stringify(Array.isArray(b.tags)       ? b.tags       : safeJSON(old.tags,       [])),
-      JSON.stringify(Array.isArray(b.tech_stack) ? b.tech_stack : safeJSON(old.tech_stack, [])),
-      b.client !== undefined ? b.client : old.client,
-      b.year   ?? old.year,
-      ['draft','published'].includes(b.status) ? b.status : old.status,
-      b.featured   !== undefined ? (b.featured ? 1 : 0) : old.featured,
-      b.sort_order !== undefined ? b.sort_order           : old.sort_order,
-      JSON.stringify(Array.isArray(b.metrics) ? b.metrics : safeJSON(old.metrics, [])),
-      b.testimonial_text   !== undefined ? b.testimonial_text   : old.testimonial_text,
-      b.testimonial_author !== undefined ? b.testimonial_author : old.testimonial_author,
-      b.testimonial_role   !== undefined ? b.testimonial_role   : old.testimonial_role,
-      b.thumbnail_url !== undefined ? b.thumbnail_url : old.thumbnail_url,
-      b.case_url      !== undefined ? b.case_url      : old.case_url,
-      JSON.stringify(Array.isArray(b.media) ? b.media : safeJSON(old.media, [])),
-      JSON.stringify(Array.isArray(b.blocks) ? b.blocks : safeJSON(old.blocks, [])),
-      b.timeline      !== undefined ? b.timeline      : old.timeline,
-      b.services      !== undefined ? b.services      : old.services,
-      b.results      !== undefined ? b.results      : old.results,
-      b.subtitle     !== undefined ? b.subtitle     : old.subtitle,
-      b.client_logo  !== undefined ? b.client_logo  : old.client_logo,
-      b.industry     !== undefined ? b.industry     : old.industry,
-      b.deliverables !== undefined ? b.deliverables : old.deliverables,
-      b.role_scope   !== undefined ? b.role_scope   : old.role_scope,
-      b.og_image     !== undefined ? b.og_image     : old.og_image,
-      JSON.stringify(Array.isArray(b.team) ? b.team : safeJSON(old.team, [])),
-      JSON.stringify(Array.isArray(b.awards) ? b.awards : safeJSON(old.awards, [])),
-      req.params.id,
-    );
-    res.json(fmt(db.prepare('SELECT * FROM projects WHERE id=?').get(req.params.id)));
+    res.json(casework.saveProject(db, req.body || {}, old));
   } catch (e) {
-    if (e.message.includes('UNIQUE'))
-      return res.status(409).json({ error: `Slug "${slug}" already exists — choose another` });
-    res.status(500).json({ error: e.message });
+    sendError(res, e);
   }
 });
 
