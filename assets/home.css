@@ -14,11 +14,33 @@
 }
 .hero-inner { position: relative; }
 
-.hero-coord { position: absolute; top: 0.35rem; right: var(--pad); }
+.hero-coord {
+  position: absolute; top: 0; right: 0;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 0.65rem;
+  z-index: 2;
+}
+.social-badges { display: flex; align-items: center; gap: 0.4rem; }
+.social-badge {
+  width: 34px; height: 34px; border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  display: grid; place-items: center;
+  color: var(--muted);
+  background: rgba(7, 7, 10, 0.45);
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease), background 0.3s var(--ease);
+}
+.social-badge svg { width: 15px; height: 15px; }
+.social-badge:hover { color: var(--lime); border-color: var(--lime); background: var(--lime-dim); }
+.hero-coord-cta {
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 500;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--paper);
+  transition: color 0.3s var(--ease);
+}
+.hero-coord-cta:hover { color: var(--lime); }
 
 .hero-top {
   display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap;
   margin-bottom: clamp(1.8rem, 4vw, 2.4rem);
+  padding-right: 15rem;
 }
 
 .hero-grid {
@@ -65,8 +87,58 @@
 
 .hero-stack { border-top: 1px solid var(--hair); padding-top: 1.5rem; }
 .hero-stack-list {
-  margin-top: 1.3rem;
-  display: flex; flex-wrap: wrap; gap: 0.5rem;
+  margin-top: 1.1rem;
+  min-height: 196px;
+}
+.skill-globe {
+  position: relative;
+  width: min(100%, 320px);
+  height: 196px;
+}
+.skill-globe-sphere {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 118px; height: 118px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(0, 255, 136, 0.22), transparent 36%),
+    radial-gradient(circle at 50% 55%, #14141c 0%, #07070a 72%);
+  border: 1px solid var(--lime-edge);
+  box-shadow: inset -14px -10px 28px rgba(0, 0, 0, 0.55), 0 0 36px rgba(0, 255, 136, 0.08);
+  overflow: hidden;
+}
+.skill-globe-sphere::before,
+.skill-globe-sphere::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 13px, rgba(0, 255, 136, 0.28) 13px 14px),
+    repeating-linear-gradient(0deg, transparent 0 11px, rgba(0, 255, 136, 0.16) 11px 12px);
+  animation: globe-spin 22s linear infinite;
+}
+.skill-globe-sphere::after {
+  inset: 18% -8%;
+  top: 42%;
+  height: 28%;
+  background: none;
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  border-radius: 50%;
+  animation: none;
+}
+.skill-float {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  animation: skill-float 6.5s var(--ease-io) infinite;
+  animation-delay: var(--d);
+}
+@keyframes globe-spin { to { transform: rotate(360deg); } }
+@keyframes skill-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
 }
 .hero-stack-note {
   margin-top: 1.4rem;
@@ -116,8 +188,10 @@
 }
 @media (max-width: 860px) {
   .hero { padding-block: 8rem 3rem; }
-  /* The coordinate would collide with the eyebrow row once they share a line. */
-  .hero-coord { display: none; }
+  /* Badges sit in normal flow so they don't cover the eyebrow. */
+  .hero-coord { position: static; align-items: flex-start; margin-bottom: 1.4rem; }
+  .hero-top { padding-right: 0; }
+  .skill-globe { height: 210px; }
 }
 
 /* ============================================================
@@ -296,3 +370,17 @@
 }
 
 .footer-coord { margin-top: 1rem; letter-spacing: 0.12em; }
+
+/* Footer CTA stays an outline word on a hairline, but in one mint ramp
+   instead of mint + cyan + a near-black stroke. */
+#kontakt::before {
+  background: linear-gradient(90deg, var(--lime) 0%, rgba(0, 255, 136, 0.42) 46%, transparent 82%);
+}
+#kontakt .footer-big .o {
+  -webkit-text-stroke: 1.5px rgba(0, 255, 136, 0.7);
+}
+#kontakt .footer-big-link:hover .footer-big .o {
+  color: var(--lime);
+  -webkit-text-stroke-color: var(--lime);
+}
+#kontakt .signature { color: var(--muted); }

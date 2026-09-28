@@ -464,9 +464,84 @@ const requestSearch = (req) => {
   return i === -1 ? '' : req.originalUrl.slice(i);
 };
 
-app.get('/', (req, res, next) => {
+// Homepage figures: published cases, cases tagged SaaS, and GitHub commits
+// for the current calendar year (Flyvendedk799, public commit contributions).
+const COMMIT_LOGIN = 'Flyvendedk799';
+const commitCache = { year: 0, n: null, at: 0 };
+
+const hasSaasTag = (raw) => {
+  const tags = Array.isArray(raw) ? raw : safeJSON(raw, []);
+  return tags.some((t) => String(t).trim().toLowerCase() === 'saas');
+};
+
+const countsFromRows = (rows, tagsOf) => ({
+  cases: rows.length,
+  saas: rows.filter((r) => hasSaasTag(tagsOf(r))).length,
+});
+
+let remoteCountCache = { at: 0, value: null };
+
+const portfolioCounts = async () => {
+  const rows = db.prepare("SELECT tags FROM projects WHERE status='published'").all();
+  const local = countsFromRows(rows, (r) => r.tags);
+  if (local.cases > 0) return local;
+  // Local dev DB is often empty; the published portfolio is the live case list.
+  if (remoteCountCache.value && Date.now() - remoteCountCache.at < 10 * 60 * 1000) {
+    return remoteCountCache.value;
+  }
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch('https://mast3kmedia.dk/api/projects', { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) return local;
+    const projects = await res.json();
+    if (!Array.isArray(projects) || !projects.length) return local;
+    const counts = countsFromRows(projects, (p) => p.tags);
+    remoteCountCache = { at: Date.now(), value: counts };
+    return counts;
+  } catch {
+    return local;
+  }
+};
+
+const fmtStat = (n) => String(Math.round(Number(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+const paintHomeStat = (html, key, value) => {
+  if (value == null || Number.isNaN(Number(value))) return html;
+  const n = String(Math.round(Number(value)));
+  return html.replace(
+    new RegExp(`(data-home-stat="${key}" data-count=")[^"]*(">)[^<]*`, 'g'),
+    `$1${n}$2${fmtStat(n)}`
+  );
+};
+
+function refreshCommitsThisYear() {
+  const year = new Date().getFullYear();
+  if (commitCache.n != null && commitCache.year === year && Date.now() - commitCache.at < 6 * 60 * 60 * 1000) return;
+  const { execFile } = require('child_process');
+  const query = `query { user(login: "${COMMIT_LOGIN}") { contributionsCollection(from: "${year}-01-01T00:00:00Z", to: "${year}-12-31T23:59:59Z") { totalCommitContributions } } }`;
+  execFile('gh', ['api', 'graphql', '-f', `query=${query}`], { timeout: 8000 }, (err, stdout) => {
+    if (err) return;
+    try {
+      const n = JSON.parse(stdout).data.user.contributionsCollection.totalCommitContributions;
+      if (typeof n === 'number') {
+        commitCache.year = year;
+        commitCache.n = n;
+        commitCache.at = Date.now();
+      }
+    } catch {}
+  });
+}
+
+app.get('/', async (req, res, next) => {
   try {
     let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+    const counts = await portfolioCounts();
+    html = paintHomeStat(html, 'cases', counts.cases);
+    html = paintHomeStat(html, 'saas', counts.saas);
+    if (commitCache.n == null) refreshCommitsThisYear();
+    html = paintHomeStat(html, 'commits', commitCache.n);
     const projects = db.prepare('SELECT * FROM projects WHERE status=? AND featured=1 ORDER BY sort_order ASC, created_at DESC').all('published').map(fmt);
     
     const buildCaseCard = (p, idx, total) => {
@@ -1661,6 +1736,8 @@ async function start() {
     if (res.headersSent) return next(err);
     res.status(500).type('html').send(notFoundHtml.replace('Siden findes <span class="lime">ikke</span>.', 'Der skete en <span class="lime">fejl</span>.').replace('404', '500'));
   });
+
+  refreshCommitsThisYear();
 
   app.listen(PORT, () => {
     const W = 48;
