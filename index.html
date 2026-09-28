@@ -49,7 +49,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="assets/base.css?v=20260818-hero" />
-<link rel="stylesheet" href="assets/home.css?v=20260928-solo" />
+<link rel="stylesheet" href="assets/home.css?v=20260928-recent" />
 
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://mast3kmedia.dk/#organization","name":"Mast3kMedia ApS","url":"https://mast3kmedia.dk/","logo":"https://mast3kmedia.dk/assets/og-image.png","contactPoint":{"@type":"ContactPoint","telephone":"+45 23 82 24 82","contactType":"customer service","email":"hej@mast3kmedia.dk"},"sameAs":["https://linkedin.com/","https://github.com/Flyvendedk799"]},{"@type":"WebSite","@id":"https://mast3kmedia.dk/#website","url":"https://mast3kmedia.dk/","name":"Mast3kMedia","publisher":{"@id":"https://mast3kmedia.dk/#organization"}}]}
@@ -170,23 +170,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           </p>
         </div>
 
-        <a class="hero-recent" href="/arbejde.html">
-          <div class="hero-recent-head"><span class="eyebrow">Senest leveret</span></div>
-          <div class="hero-recent-row"><span class="hero-recent-n">NordSync</span><span class="hero-recent-c">SaaS · Dashboard</span></div>
-          <div class="hero-recent-row"><span class="hero-recent-n">Vela AI</span><span class="hero-recent-c">AI · Automatisering</span></div>
-          <div class="hero-recent-row"><span class="hero-recent-n">PayHub</span><span class="hero-recent-c">Fintech · API</span></div>
-        </a>
-
         <div class="spec">
           <div class="spec-head">
-            <span class="spec-id">M3K · Studio spec</span>
-            <span class="spec-live">Online</span>
+            <span class="spec-id">Senest leveret</span>
           </div>
-          <div class="spec-row"><span class="spec-k">Team</span><span class="spec-v">Kun seniorer</span></div>
-          <div class="spec-row"><span class="spec-k">Kode-ejerskab</span><span class="spec-v">Dig · fra dag ét</span></div>
-          <div class="spec-row"><span class="spec-k">Idé → live</span><span class="spec-v">6 uger i snit</span></div>
-          <div class="spec-row"><span class="spec-k">Svartid</span><span class="spec-v is-accent">&lt; 24 timer</span></div>
-          <a href="/kontakt.html#brief" class="spec-foot" data-track="cta" data-cta-id="home_spec_build_brief" data-cta-location="hero">Byg din brief
+          <div class="spec-recent">
+            <a class="spec-row" href="/arbejde/sweep-bet"><span class="spec-case-n">SweepBet</span><span class="spec-case-c">Fintech · 2026</span></a>
+            <a class="spec-row" href="/arbejde/ai-auth"><span class="spec-case-n">ai-auth</span><span class="spec-case-c">Software · 2024</span></a>
+            <a class="spec-row" href="/arbejde/sandboxos"><span class="spec-case-n">SandboxOS</span><span class="spec-case-c">Software · 2024</span></a>
+            <a class="spec-row" href="/arbejde/braiwser"><span class="spec-case-n">Braiwser</span><span class="spec-case-c">Software · 2024</span></a>
+          </div>
+          <a href="/arbejde.html" class="spec-foot" data-track="cta" data-cta-id="home_recent_all" data-cta-location="hero">Alle cases
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></a>
         </div>
       </aside>
@@ -504,18 +498,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* ── Dynamic "Senest leveret" from API ── */
   (function () {
     var ESC = function (s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
-    fetch('/api/projects?limit=3')
+    fetch('/api/projects?limit=4')
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (projects) {
         if (!projects || !projects.length) return;
-        var recent = document.querySelector('.hero-recent');
+        var recent = document.querySelector('.spec-recent');
         if (!recent) return;
-        var rows = projects.map(function (p) {
-          return '<div class="hero-recent-row"><span class="hero-recent-n">' + ESC(p.title) +
-            '</span><span class="hero-recent-c">' + ESC(p.category || '') +
-            (p.year ? ' \u00b7 ' + ESC(String(p.year)) : '') + '</span></div>';
+        recent.innerHTML = projects.map(function (p) {
+          return '<a class="spec-row" href="/arbejde/' + ESC(p.slug) + '"><span class="spec-case-n">' + ESC(p.title) +
+            '</span><span class="spec-case-c">' + ESC(p.category || '') +
+            (p.year ? ' \u00b7 ' + ESC(String(p.year)) : '') + '</span></a>';
         }).join('');
-        recent.innerHTML = '<div class="hero-recent-head"><span class="eyebrow">Senest leveret</span></div>' + rows;
       })
       .catch(function () {});
   })();

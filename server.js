@@ -574,12 +574,16 @@ app.get('/', async (req, res, next) => {
     // Remove the client-side script for featured projects
     html = html.replace(/<script>\s*\/\*\s*── Featured projects from the API.*?\s*\*\/[\s\S]*?<\/script>/, '');
 
-    // Server-render the "Senest leveret" list
-    const recentProjects = db.prepare('SELECT * FROM projects WHERE status=? ORDER BY sort_order ASC, created_at DESC LIMIT 3').all('published').map(fmt);
-    const recentHtml = '<div class="hero-recent-head"><span class="eyebrow">Senest leveret</span></div>' + 
-      recentProjects.map(p => '<div class="hero-recent-row"><span class="hero-recent-n">' + (p.title) + '</span><span class="hero-recent-c">' + (p.category || '') + (p.year ? ' · ' + p.year : '') + '</span></div>').join('');
-    
-    html = html.replace(/<a class="hero-recent" href="\/arbejde\.html">[\s\S]*?<\/a>/, '<a class="hero-recent" href="/arbejde.html">' + recentHtml + '</a>');
+    // Four latest cases, rendered inside the spec panel titled Senest leveret.
+    const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const recentProjects = db.prepare('SELECT * FROM projects WHERE status=? ORDER BY sort_order ASC, created_at DESC LIMIT 4').all('published').map(fmt);
+    if (recentProjects.length) {
+      const rows = recentProjects.map(p =>
+        '<a class="spec-row" href="/arbejde/' + esc(p.slug) + '"><span class="spec-case-n">' + esc(p.title) +
+        '</span><span class="spec-case-c">' + esc(p.category || '') + (p.year ? ' · ' + esc(p.year) : '') + '</span></a>'
+      ).join('');
+      html = html.replace(/<div class="spec-recent">[\s\S]*?<\/div>/, '<div class="spec-recent">' + rows + '</div>');
+    }
     html = html.replace(/<script>\s*\/\*\s*── Dynamic "Senest leveret".*?\s*\*\/[\s\S]*?<\/script>/, '');
 
     res.type('html').send(html);

@@ -75,12 +75,12 @@
   margin-bottom: clamp(2.6rem, 5vw, 4rem);
 }
 
-/* The right column carries its own weight: capability block at the top,
-   datasheet pinned to the bottom so it lands with the button row. */
+/* Stack, then the latest-work panel. Stats stay under the buttons, so a
+   taller right column does not open a gap above the figures. */
 .hero-side {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: clamp(1.8rem, 3vw, 2.6rem);
   padding-top: 0.6rem;
 }
@@ -148,42 +148,27 @@
   max-width: 38ch;
 }
 
-/* Three most recent cases as hairline rows — proof between the stack and the
-   datasheet, and the whole block is one link into the work page. */
-.hero-recent {
-  display: block;
-  border-top: 1px solid var(--hair);
-  padding-top: 1.5rem;
-  color: inherit;
-}
-.hero-recent-row {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
-  padding: 0.7rem 0;
-  border-bottom: 1px solid var(--hair);
-}
-.hero-recent-row:last-child { border-bottom: none; }
-.hero-recent-head { margin-bottom: 0.6rem; }
-.hero-recent-n {
+/* Latest cases live inside the spec panel, under the stack. */
+.spec-case-n {
   font-family: var(--font-display); font-weight: 600; font-size: 0.95rem;
   color: var(--ink-2);
   transition: color 0.3s var(--ease);
 }
-.hero-recent-c {
+.spec-case-c {
   font-family: var(--font-mono); font-size: 0.68rem;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim);
   text-align: right;
 }
-.hero-recent:hover .hero-recent-n { color: var(--lime); }
+.spec-recent .spec-row:last-child { border-bottom: none; }
+.spec-recent a.spec-row:hover .spec-case-n { color: var(--lime); }
 
-/* `auto` pins the rail to the bottom of the column so it lines up with the
-   datasheet in the next column; the button row supplies the minimum gap. */
-.hero-stats { margin-top: auto; }
+.hero-stats { margin-top: 0; }
 
 @media (max-width: 1040px) {
   .hero-grid { grid-template-columns: 1fr; gap: 2.8rem; }
   .hero-side { gap: 2.2rem; padding-top: 0; }
   .hero-actions { margin-bottom: 2.6rem; }
-  .hero-stack, .hero-recent { max-width: 560px; }
+  .hero-stack { max-width: 560px; }
   .hero-side .spec { max-width: 460px; }
 }
 @media (max-width: 860px) {
