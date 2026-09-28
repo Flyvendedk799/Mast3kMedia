@@ -10,6 +10,7 @@
     if (!root) return;
     const tabs = Array.from(root.querySelectorAll('.feat-tab'));
     const label = root.querySelector('.mock-label');
+    const img = root.querySelector('.mock-screen img');
     const bars = root.querySelector('.skel-bars');
     const progress = root.querySelector('.showcase-progress');
     if (!tabs.length) return;
@@ -27,6 +28,7 @@
       tabs.forEach((t, i) => t.classList.toggle('active', i === n));
       const t = tabs[n];
       if (label) label.textContent = t.dataset.screen || 'Skærm';
+      if (img && t.dataset.src) { img.src = t.dataset.src; img.alt = t.dataset.alt || ''; }
       randomize();
       if (window.gsap && !reduce) {
         gsap.fromTo(root.querySelector('.showcase-stage .mock'), { opacity: 0.4, scale: 0.985 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'power3.out' });
@@ -209,6 +211,10 @@
       node.className = 'lightbox-img';
     }
     mediaWrap.appendChild(node);
+    if (node.tagName === 'VIDEO' && node.autoplay) {
+      const played = node.play();
+      if (played) played.catch(() => {});
+    }
     const cap = item.caption || item.alt || '';
     capEl.textContent = cap;
     capEl.style.display = cap ? '' : 'none';
@@ -243,6 +249,8 @@
     isOpen = false;
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden', 'true');
+    const video = mediaWrap.querySelector('video');
+    if (video) video.pause();
     mediaWrap.innerHTML = '';
     document.body.classList.remove('lb-lock');
     if (lastFocus && lastFocus.focus) lastFocus.focus();
@@ -280,4 +288,40 @@
   }
 
   window.Lightbox = { open, close, attach, inferProvider, embedUrl };
+
+  /* Server-rendered case media: images and video tiles open in the lightbox */
+  function itemFor(tile) {
+    const cap = tile.querySelector('figcaption, .mock-label, .case-media-caption');
+    const caption = cap ? cap.textContent.trim() : '';
+    if (tile.dataset.lbSrc) {
+      return { url: tile.dataset.lbSrc, type: tile.dataset.lbType || 'video', poster: tile.dataset.lbPoster || '', caption };
+    }
+    const img = tile.querySelector('img');
+    return { url: img.currentSrc || img.src, type: 'image', alt: img.alt, caption };
+  }
+
+  function wireCaseMedia() {
+    const tiles = Array.from(document.querySelectorAll(
+      '.case-hero-media, [data-showcase] .mock-screen, .shot, .devices .mock-screen, .devices .phone-screen, .block-shot, .vid-trigger'
+    )).filter((el) => el.dataset.lbSrc || el.querySelector('img'));
+    tiles.forEach((tile, i) => {
+      const openAt = () => open(tiles.map(itemFor), i);
+      tile.classList.add('lb-trigger');
+      tile.setAttribute('role', 'button');
+      tile.setAttribute('tabindex', '0');
+      tile.addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        e.preventDefault();
+        openAt();
+      });
+      tile.addEventListener('keydown', (e) => {
+        if (e.target !== tile || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault();
+        openAt();
+      });
+    });
+  }
+
+  if (document.readyState !== 'loading') wireCaseMedia();
+  else document.addEventListener('DOMContentLoaded', wireCaseMedia);
 })();
