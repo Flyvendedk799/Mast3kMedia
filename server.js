@@ -19,6 +19,7 @@ const bcrypt     = require('bcryptjs');
 const { injectBlogArticle, renderBlogCard, renderBlogPager, parseMarkdown } = require('./assets/blog-markdown');
 const { injectCase } = require('./assets/case-render');
 const casework   = require('./lib/casework');
+const pricingLib = require('./lib/pricing');
 
 const PORT       = process.env.PORT        || 3000;
 const JWT_SECRET = process.env.JWT_SECRET  || 'mast3k_dev_secret_CHANGE_ME';
@@ -148,7 +149,30 @@ db.exec(`
   AFTER UPDATE ON blog_posts FOR EACH ROW BEGIN
     UPDATE blog_posts SET updated_at = datetime('now') WHERE id = NEW.id;
   END;
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
+
+try {
+  db.prepare('ALTER TABLE leads ADD COLUMN notes TEXT').run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
+try {
+  const seeded = db.prepare("SELECT key FROM settings WHERE key='pricing'").get();
+  if (!seeded) {
+    db.prepare("INSERT INTO settings (key, value) VALUES ('pricing', ?)").run(
+      JSON.stringify(pricingLib.defaultPricing())
+    );
+  }
+} catch (e) {
+  console.error('pricing seed failed', e);
+}
 
 try {
   db.prepare("ALTER TABLE projects ADD COLUMN media TEXT NOT NULL DEFAULT '[]'").run();
@@ -1329,6 +1353,8 @@ app.post('/api/leads', (req, res) => {
     user_agent: clipLine(req.headers['user-agent'], 500),
     ip: clipLine(req.headers['x-forwarded-for'] || req.socket.remoteAddress, 120),
   };
+  const phone = clipLine(b.phone, 40);
+  if (phone) metadata.phone = phone;
 
   try {
     const r = db.prepare(`
@@ -1374,10 +1400,78 @@ app.get('/api/admin/stats', requireAuth, (req, res) => {
   });
 });
 
+const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'archived'];
+const presentLead = (row) => ({ ...row, metadata: safeJSON(row.metadata, {}) });
+
+function readPricingConfig() {
+  const row = db.prepare("SELECT value FROM settings WHERE key='pricing'").get();
+  if (!row) return pricingLib.defaultPricing();
+  try {
+    return pricingLib.normalizePricing(JSON.parse(row.value));
+  } catch (e) {
+    console.error('stored pricing config is invalid, using defaults', e.message);
+    return pricingLib.defaultPricing();
+  }
+}
+
+app.get('/api/pricing', (req, res) => {
+  res.json(readPricingConfig());
+});
+
 app.get('/api/admin/leads', requireAuth, (req, res) => {
-  const limit = Math.min(200, Math.max(1, parseInt(req.query.limit || '100', 10) || 100));
+  const limit = Math.min(500, Math.max(1, parseInt(req.query.limit || '200', 10) || 200));
   const rows = db.prepare('SELECT * FROM leads ORDER BY created_at DESC LIMIT ?').all(limit);
-  res.json(rows.map((row) => ({ ...row, metadata: safeJSON(row.metadata, {}) })));
+  res.json(rows.map(presentLead));
+});
+
+app.patch('/api/admin/leads/:id', requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  const row = db.prepare('SELECT id FROM leads WHERE id=?').get(id);
+  if (!row) return res.status(404).json({ error: 'not found' });
+  const b = req.body || {};
+  const sets = [];
+  const args = [];
+  if (b.status !== undefined) {
+    if (!LEAD_STATUSES.includes(b.status)) return res.status(400).json({ error: 'invalid status' });
+    sets.push('status=?');
+    args.push(b.status);
+  }
+  if (b.notes !== undefined) {
+    sets.push('notes=?');
+    args.push(clipText(b.notes, 4000) || null);
+  }
+  if (!sets.length) return res.status(400).json({ error: 'nothing to update' });
+  args.push(id);
+  db.prepare('UPDATE leads SET ' + sets.join(', ') + ' WHERE id=?').run(...args);
+  res.json(presentLead(db.prepare('SELECT * FROM leads WHERE id=?').get(id)));
+});
+
+app.delete('/api/admin/leads/:id', requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  const result = db.prepare('DELETE FROM leads WHERE id=?').run(id);
+  if (!result.changes) return res.status(404).json({ error: 'not found' });
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/pricing', requireAuth, (req, res) => {
+  res.json(readPricingConfig());
+});
+
+app.get('/api/admin/pricing/defaults', requireAuth, (req, res) => {
+  res.json(pricingLib.defaultPricing());
+});
+
+app.put('/api/admin/pricing', requireAuth, (req, res) => {
+  try {
+    const config = pricingLib.normalizePricing(req.body || {});
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_at) VALUES ('pricing', ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=datetime('now')
+    `).run(JSON.stringify(config));
+    res.json(config);
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message });
+  }
 });
 
 // ── Admin: media (raw binary body; images become webp, integrity + magic bytes checked) ──
