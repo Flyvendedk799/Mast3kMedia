@@ -11,8 +11,8 @@
 
 /* Datasheet rail sits between the intro and the hero plate */
 .case-meta-list.rail { margin-top: clamp(2rem, 4vw, 2.8rem); }
-.case-meta-list.rail .cml { display: block; padding: 1.3rem 1.4rem; border: 0; }
-.case-meta-list.rail .cml dd { text-align: left; }
+.case-meta-list.rail .cml { display: block; min-width: 0; padding: 1.3rem 1.4rem; border: 0; }
+.case-meta-list.rail .cml dd { text-align: left; overflow-wrap: anywhere; hyphens: auto; }
 
 /* Figure index has to clear the plate artwork */
 .case-hero-media .fig-index { z-index: 4; }
