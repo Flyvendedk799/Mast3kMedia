@@ -436,7 +436,8 @@
       '<div class="bcard-info">' +
         '<h3 class="bcard-title">' + esc(p.title) + '</h3>' +
         (p.excerpt ? '<p class="bcard-desc">' + esc(p.excerpt) + '</p>' : '') +
-      '</div>' + tagsHtml + '</a>';
+        tagsHtml +
+      '</div></a>';
   }
 
   function renderBlogPager(state) {
