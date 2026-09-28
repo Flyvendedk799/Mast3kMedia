@@ -53,6 +53,12 @@
     return '<img class="case-media-img" src="' + attr(item.url) + '" alt="' + alt + '" loading="lazy" decoding="async">';
   }
 
+  function videoData(item) {
+    return ' data-lb-src="' + attr(item.url) + '"' +
+      (item.type === 'embed' ? ' data-lb-type="embed"' : '') +
+      (item.poster ? ' data-lb-poster="' + attr(item.poster) + '"' : '');
+  }
+
   function mdLite(s) {
     return esc(s).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
   }
@@ -64,7 +70,6 @@
     var pillsHtml = '';
     if (p.category) pillsHtml += '<span class="tag">' + esc(p.category) + '</span>';
     if (p.year) pillsHtml += '<span class="tag">' + esc(p.year) + '</span>';
-    if (p.status) pillsHtml += '<span class="tag">' + esc(p.status) + '</span>';
     if (p.case_url) {
       pillsHtml += '<a href="' + attr(p.case_url) + '" target="_blank" rel="noopener" class="pill-live is-link" title="Besøg live projekt">' +
         '<span class="dot"></span>Live i produktion <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-left:4px;vertical-align:middle"><path d="M7 17 17 7M7 7h10v10"/></svg></a>';
@@ -197,7 +202,8 @@
     var tabsHtml = features.map(function(f, i){
       var label = (f.caption || f.alt || ('Visning ' + (i + 1)));
       var desc = (f.alt && f.alt !== label) ? f.alt : (f.caption && f.caption !== label ? f.caption : '');
-      return '<button class="feat-tab' + (i === 0 ? ' active' : '') + '" type="button" role="tab" aria-selected="' + (i === 0) + '" data-feature-index="' + i + '">' +
+      return '<button class="feat-tab' + (i === 0 ? ' active' : '') + '" type="button" role="tab" aria-selected="' + (i === 0) + '" data-feature-index="' + i + '"' +
+        ' data-screen="' + attr(f.caption || ('Visning ' + (i + 1))) + '" data-src="' + attr(f.url) + '" data-alt="' + attr(f.alt || f.caption || label) + '">' +
         '<span class="ft-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg></span>' +
         '<span><h4>' + esc(label) + '</h4>' + (desc ? '<p>' + esc(desc) + '</p>' : '') + '</span>' +
       '</button>';
@@ -310,7 +316,7 @@
     if (!videos.length) return '';
     var vidsHtml = videos.map(function(item, i){
       var poster = item.poster ? ' style="background-image:url(' + attr(item.poster) + ');background-size:cover;background-position:center"' : '';
-      return '<figure class="vid vid-trigger" data-vid-index="' + i + '"' + poster + ' tabindex="0" role="button" aria-label="Afspil ' + attr(item.caption || 'video') + '">' +
+      return '<figure class="vid vid-trigger" data-vid-index="' + i + '"' + videoData(item) + poster + ' tabindex="0" role="button" aria-label="Afspil ' + attr(item.caption || 'video') + '">' +
         '<span class="play-mini"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>' +
         '<figcaption class="vid-cap">' + mediaCaption(item, 'Demovideo') + '</figcaption></figure>';
     }).join('');
@@ -438,7 +444,7 @@
           '<div class="vid-row block-video-row" data-reveal="stagger" data-block-video>' +
             items.map(function(item, i){
               var poster = item.poster ? ' style="background-image:url(' + attr(item.poster) + ');background-size:cover;background-position:center"' : '';
-              return '<figure class="vid vid-trigger" data-bv-index="' + i + '"' + poster + ' tabindex="0" role="button" aria-label="Afspil video">' +
+              return '<figure class="vid vid-trigger" data-bv-index="' + i + '"' + videoData(item) + poster + ' tabindex="0" role="button" aria-label="Afspil video">' +
                 '<span class="play-mini"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>' +
                 '<figcaption class="vid-cap">' + mediaCaption(item, 'Video') + '</figcaption></figure>';
             }).join('') +
