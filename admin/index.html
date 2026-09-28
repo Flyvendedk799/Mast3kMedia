@@ -73,6 +73,10 @@
         Henvendelser
         <span class="snav-badge" id="leadCount"></span>
       </a>
+      <a href="#" class="snav-item" data-view="pricing">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Prisberegner
+      </a>
       <a href="#" class="snav-item" data-view="blogPosts">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
         Blog-indlæg
@@ -151,12 +155,44 @@
       <div class="view-header">
         <div>
           <h2>Henvendelser</h2>
-          <p class="view-sub">Briefs sendt fra hero-formularen.</p>
+          <p class="view-sub">Kontaktbreve og prisestimater. Skift status, skriv noter, eller slet.</p>
         </div>
       </div>
 
+      <div class="toolbar">
+        <div class="filter-wrap">
+          <select id="leadStatusFilter">
+            <option value="">Alle statusser</option>
+            <option value="new">Nye</option>
+            <option value="contacted">Kontaktet</option>
+            <option value="qualified">Kvalificeret</option>
+            <option value="archived">Arkiveret</option>
+          </select>
+        </div>
+        <div class="filter-wrap">
+          <select id="leadSourceFilter">
+            <option value="">Alle formularer</option>
+            <option value="kontakt">Kontakt</option>
+            <option value="pris">Prisberegner</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="leadDetail" class="lead-detail" hidden></div>
       <div class="table-wrap" id="leadsTable">
         <div class="table-empty">Indlæser henvendelser...</div>
+      </div>
+    </div>
+
+    <div id="pricingView" class="view" hidden>
+      <div class="view-header">
+        <div>
+          <h2>Prisberegner</h2>
+          <p class="view-sub">Det kunderne ser på prissiden. Trin, priser, faktorer og tekster.</p>
+        </div>
+      </div>
+      <div id="pricingEditor">
+        <div class="table-empty">Indlæser prisberegner…</div>
       </div>
     </div>
 
@@ -788,6 +824,6 @@
   </div>
 </div>
 
-<script src="/admin/admin.js?v=20260920-blog"></script>
+<script src="/admin/admin.js?v=20260928-forms"></script>
 </body>
 </html>

@@ -10,12 +10,14 @@
    ============================================================ */
 .hero {
   position: relative;
-  padding-block: clamp(9rem, 16vw, 12rem) clamp(4rem, 7vw, 6rem);
+  /* Clear the fixed nav, then sit the hero high enough that the first
+     screen isn't a band of empty grid above the headline. */
+  padding-block: clamp(7rem, 8.5vw, 8rem) clamp(3.5rem, 6vw, 5rem);
 }
 .hero-inner { position: relative; }
 
 .hero-coord {
-  position: absolute; top: 0; right: 0;
+  position: absolute; top: 0; right: var(--pad);
   display: flex; flex-direction: column; align-items: flex-end; gap: 0.65rem;
   z-index: 2;
 }
@@ -37,10 +39,26 @@
 }
 .hero-coord-cta:hover { color: var(--lime); }
 
-.hero-top {
-  display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap;
-  margin-bottom: clamp(1.8rem, 4vw, 2.4rem);
-  padding-right: 15rem;
+.hero-kicker {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 0.7rem 1.25rem;
+  margin-bottom: clamp(1.6rem, 3.5vw, 2.2rem);
+  padding-right: 13rem;
+}
+.hero-kicker-line {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 0.45rem 0;
+  margin: 0;
+}
+.hero-kicker-line span {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 500;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--lime);
+}
+.hero-kicker-line span:not(:last-child)::after {
+  content: "";
+  width: 3px; height: 3px; margin-left: 0.7rem;
+  border-radius: 50%; background: var(--lime); opacity: 0.55;
 }
 
 .hero-grid {
@@ -172,10 +190,10 @@
   .hero-side .spec { max-width: 460px; }
 }
 @media (max-width: 860px) {
-  .hero { padding-block: 8rem 3rem; }
+  .hero { padding-block: 6.5rem 2.5rem; }
   /* Badges sit in normal flow so they don't cover the eyebrow. */
   .hero-coord { position: static; align-items: flex-start; margin-bottom: 1.4rem; }
-  .hero-top { padding-right: 0; }
+  .hero-kicker { padding-right: 0; }
   .skill-globe { height: 210px; }
 }
 

@@ -24,6 +24,10 @@ const S = {
   filterQuery:  '',
   blogFilterStatus: '',
   blogFilterQuery: '',
+  leadStatus: '',
+  leadSource: '',
+  leadOpenId: null,
+  pricing: null,
 };
 
 // ── API ────────────────────────────────────────────────────────────────────────
@@ -60,6 +64,11 @@ const api = {
   getStats:    ()         => api.req('GET',    '/api/admin/stats'),
   getProjects: ()         => api.req('GET',    '/api/admin/projects'),
   getLeads:    ()         => api.req('GET',    '/api/admin/leads'),
+  updateLead:  (id, d)    => api.req('PATCH',  `/api/admin/leads/${id}`, d),
+  deleteLead:  (id)       => api.req('DELETE', `/api/admin/leads/${id}`),
+  getPricing:  ()         => api.req('GET',    '/api/admin/pricing'),
+  pricingDefaults: ()     => api.req('GET',    '/api/admin/pricing/defaults'),
+  savePricing: (d)        => api.req('PUT',    '/api/admin/pricing', d),
   createProject: (d)      => api.req('POST',   '/api/admin/projects', d),
   updateProject: (id, d)  => api.req('PUT',    `/api/admin/projects/${id}`, d),
   deleteProject: (id)     => api.req('DELETE', `/api/admin/projects/${id}`),
@@ -143,10 +152,11 @@ function toast(msg, type = 'info') {
 }
 
 // ── Modal ──────────────────────────────────────────────────────────────────────
-function showModal(title, body, onConfirm) {
+function showModal(title, body, onConfirm, confirmLabel = 'Slet') {
   const modal = $('#deleteModal');
   $('#modalTitle').textContent = title;
   $('#modalBody').textContent  = body;
+  $('#modalConfirm').textContent = confirmLabel;
   modal.hidden = false;
   const cancel  = () => { modal.hidden = true; };
   const confirm = () => { modal.hidden = true; onConfirm(); };
@@ -245,16 +255,16 @@ function navigate(view, params = {}) {
   });
 
   // Show correct view
-  const views = ['dashboardView','leadsView','projectsView','formView','blogPostsView','blogFormView','blogCategoriesView'];
+  const views = ['dashboardView','leadsView','pricingView','projectsView','formView','blogPostsView','blogFormView','blogCategoriesView'];
   const map   = {
-    dashboard:'dashboardView', leads:'leadsView', projects:'projectsView', form:'formView',
+    dashboard:'dashboardView', leads:'leadsView', pricing:'pricingView', projects:'projectsView', form:'formView',
     blogPosts:'blogPostsView', blogForm:'blogFormView', blogCategories:'blogCategoriesView',
   };
   views.forEach(id => { $(`.view#${id}`) && ($(`.view#${id}`).hidden = (map[view] !== id)); });
 
   // Topbar title
   const titles = {
-    dashboard: 'Dashboard', leads: 'Henvendelser', projects: 'Projekter',
+    dashboard: 'Dashboard', leads: 'Henvendelser', pricing: 'Prisberegner', projects: 'Projekter',
     form: S.editId ? 'Rediger projekt' : 'Nyt projekt',
     blogPosts: 'Blog-indlæg',
     blogForm: S.blogEditId ? 'Rediger indlæg' : 'Nyt indlæg',
@@ -268,6 +278,7 @@ function navigate(view, params = {}) {
   // Load view content
   if (view === 'dashboard') loadDashboard();
   if (view === 'leads')     loadLeads();
+  if (view === 'pricing')   loadPricing();
   if (view === 'projects')  loadProjects();
   if (view === 'form')      loadForm();
   if (view === 'blogPosts') loadBlogPosts();
@@ -290,6 +301,14 @@ function navigate(view, params = {}) {
     draftBtn.onclick = () => submitBlogForm('draft');
     pubBtn.onclick   = () => submitBlogForm('published');
     actions.append(draftBtn, pubBtn);
+  }
+  if (view === 'pricing') {
+    const actions = $('#topbarActions');
+    const resetBtn = el('button', 'btn-outline', 'Nulstil til standard');
+    const saveBtn = el('button', 'btn-primary', 'Gem prisberegner');
+    resetBtn.onclick = resetPricingEditor;
+    saveBtn.onclick = savePricingEditor;
+    actions.append(resetBtn, saveBtn);
   }
 }
 
@@ -333,20 +352,137 @@ async function loadDashboard() {
 }
 
 // ── Leads list ────────────────────────────────────────────────────────────────
+const LEAD_STATUS = {
+  new: 'Ny',
+  contacted: 'Kontaktet',
+  qualified: 'Kvalificeret',
+  archived: 'Arkiveret',
+};
+const LEAD_SOURCE = { kontakt: 'Kontakt', pris: 'Prisberegner', hero: 'Forside' };
+
+function leadSourceLabel(source) {
+  return LEAD_SOURCE[source] || source || 'Formular';
+}
+
 async function loadLeads() {
   try {
     S.leads = await api.getLeads();
     const badge = $('#leadCount');
     if (badge) badge.textContent = S.leads.filter(l => l.status === 'new').length || '';
-    renderLeadsTable($('#leadsTable'), S.leads);
+    const statusFilter = $('#leadStatusFilter');
+    const sourceFilter = $('#leadSourceFilter');
+    if (statusFilter && !statusFilter._bound) {
+      statusFilter._bound = true;
+      statusFilter.value = S.leadStatus;
+      statusFilter.onchange = () => { S.leadStatus = statusFilter.value; renderLeads(); };
+    }
+    if (sourceFilter && !sourceFilter._bound) {
+      sourceFilter._bound = true;
+      sourceFilter.value = S.leadSource;
+      sourceFilter.onchange = () => { S.leadSource = sourceFilter.value; renderLeads(); };
+    }
+    renderLeads();
   } catch (err) {
     toast('Kunne ikke hente henvendelser: ' + err.message, 'error');
   }
 }
 
+function filteredLeads() {
+  return S.leads.filter((lead) => {
+    if (S.leadStatus && lead.status !== S.leadStatus) return false;
+    if (S.leadSource && lead.source !== S.leadSource) return false;
+    return true;
+  });
+}
+
+function renderLeads() {
+  const leads = filteredLeads();
+  const open = S.leadOpenId ? S.leads.find((lead) => lead.id === S.leadOpenId) : null;
+  renderLeadDetail(open);
+  renderLeadsTable($('#leadsTable'), leads);
+}
+
+function renderLeadDetail(lead) {
+  const box = $('#leadDetail');
+  if (!box) return;
+  if (!lead) { box.hidden = true; box.innerHTML = ''; return; }
+  const meta = lead.metadata || {};
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="lead-detail-head">
+      <div>
+        <h3>${esc(lead.name || lead.email)}</h3>
+        <p class="muted small">${esc(leadSourceLabel(lead.source))} · ${esc(fmtDate(lead.created_at))}</p>
+      </div>
+      <button type="button" class="btn-ghost" id="leadClose">Luk</button>
+    </div>
+    <div class="lead-meta">
+      <div><span class="muted small">Email</span><div><a href="mailto:${esc(lead.email)}">${esc(lead.email)}</a></div></div>
+      <div><span class="muted small">Firma</span><div>${esc(lead.company || '—')}</div></div>
+      <div><span class="muted small">Telefon</span><div>${esc(meta.phone || '—')}</div></div>
+      <div><span class="muted small">Type</span><div>${esc(lead.project_type || '—')}</div></div>
+      <div><span class="muted small">Mål</span><div>${esc(lead.goal || '—')}</div></div>
+      <div><span class="muted small">Budget</span><div>${esc(lead.budget || '—')}</div></div>
+      <div><span class="muted small">Tidslinje</span><div>${esc(lead.timeline || '—')}</div></div>
+    </div>
+    <div class="field-group">
+      <label>Besked</label>
+      <div class="lead-brief-full">${esc(lead.brief || 'Ingen besked.')}</div>
+    </div>
+    <div class="field-row" style="margin-top:1rem">
+      <div class="field-group">
+        <label for="leadStatusEdit">Status</label>
+        <select id="leadStatusEdit">
+          ${Object.entries(LEAD_STATUS).map(([key, label]) => `<option value="${key}"${lead.status === key ? ' selected' : ''}>${label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-group">
+        <label for="leadNotes">Interne noter</label>
+        <textarea id="leadNotes" rows="3" placeholder="Kun synligt her i admin">${esc(lead.notes || '')}</textarea>
+      </div>
+    </div>
+    <div class="lead-detail-actions">
+      <button type="button" class="btn-primary" id="leadSave">Gem</button>
+      <button type="button" class="btn-outline" id="leadDelete">Slet henvendelse</button>
+    </div>
+  `;
+  $('#leadClose').onclick = () => { S.leadOpenId = null; renderLeads(); };
+  $('#leadSave').onclick = () => saveLead(lead.id);
+  $('#leadDelete').onclick = () => {
+    showModal('Slet henvendelse?', 'Beskeden fra ' + (lead.email || 'denne kontakt') + ' slettes permanent.', async () => {
+      try {
+        await api.deleteLead(lead.id);
+        S.leads = S.leads.filter((row) => row.id !== lead.id);
+        S.leadOpenId = null;
+        const badge = $('#leadCount');
+        if (badge) badge.textContent = S.leads.filter(l => l.status === 'new').length || '';
+        toast('Henvendelse slettet', 'success');
+        renderLeads();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  };
+}
+
+async function saveLead(id) {
+  try {
+    const updated = await api.updateLead(id, {
+      status: $('#leadStatusEdit').value,
+      notes: $('#leadNotes').value,
+    });
+    const idx = S.leads.findIndex((lead) => lead.id === id);
+    if (idx >= 0) S.leads[idx] = updated;
+    const badge = $('#leadCount');
+    if (badge) badge.textContent = S.leads.filter(l => l.status === 'new').length || '';
+    toast('Henvendelse gemt', 'success');
+    renderLeads();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
 function renderLeadsTable(container, leads) {
   if (!leads.length) {
-    container.innerHTML = '<div class="table-empty">Ingen henvendelser endnu.</div>';
+    container.innerHTML = '<div class="table-empty">Ingen henvendelser i det her filter.</div>';
     return;
   }
 
@@ -355,36 +491,44 @@ function renderLeadsTable(container, leads) {
     <thead>
       <tr>
         <th>Kontakt</th>
+        <th>Formular</th>
         <th>Projekt</th>
-        <th>Rammer</th>
-        <th>Brief</th>
+        <th>Status</th>
         <th>Modtaget</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
       ${leads.map((lead) => `
-        <tr>
+        <tr class="${lead.status === 'new' ? 'is-new' : ''}">
           <td>
             <strong>${esc(lead.name || 'Ukendt')}</strong>
             <div class="muted small">${esc(lead.email)}</div>
             ${lead.company ? `<div class="muted small">${esc(lead.company)}</div>` : ''}
           </td>
+          <td><span class="status-badge">${esc(leadSourceLabel(lead.source))}</span></td>
           <td>
-            <span class="status-badge">${esc(lead.project_type)}</span>
+            <div>${esc(lead.project_type || '')}</div>
             <div class="muted small">${esc(lead.goal || '')}</div>
           </td>
-          <td>
-            <div class="muted small">Budget: ${esc(lead.budget || 'Ikke angivet')}</div>
-            <div class="muted small">Tempo: ${esc(lead.timeline || 'Ikke angivet')}</div>
-          </td>
-          <td class="lead-brief">${esc(lead.brief || '')}</td>
+          <td>${esc(LEAD_STATUS[lead.status] || lead.status)}</td>
           <td>${fmtDate(lead.created_at)}</td>
+          <td class="td-actions">
+            <button type="button" class="btn-ghost" data-lead-open="${lead.id}">Åbn</button>
+          </td>
         </tr>
       `).join('')}
     </tbody>
   `;
   container.innerHTML = '';
   container.appendChild(table);
+  container.querySelectorAll('[data-lead-open]').forEach((btn) => {
+    btn.onclick = () => {
+      S.leadOpenId = Number(btn.dataset.leadOpen);
+      renderLeads();
+      $('#leadDetail')?.scrollIntoView({ block: 'nearest' });
+    };
+  });
 }
 
 // ── Projects list ──────────────────────────────────────────────────────────────
@@ -1670,6 +1814,278 @@ function renderBlogCatsTable() {
   });
 }
 
+
+// ── Pricing calculator ─────────────────────────────────────────────────────────
+const PRICE_ICONS = [
+  ['', 'Ingen'],
+  ['site', 'Website'],
+  ['app', 'Webapp'],
+  ['mobile', 'Mobil'],
+  ['ai', 'AI'],
+  ['shop', 'Shop'],
+  ['growth', 'Vækst'],
+];
+
+function blankOption(kind) {
+  return kind === 'mult'
+    ? { name: '', desc: '', meta: '', icon: '', mult: 1 }
+    : { name: '', desc: '', meta: '', icon: '', cost: 0 };
+}
+
+function blankStep() {
+  return {
+    name: 'Nyt trin',
+    question: '',
+    help: '',
+    kind: 'add',
+    select: 'multi',
+    optional: true,
+    columns: 3,
+    mapsTo: '',
+    options: [blankOption('add')],
+  };
+}
+
+async function loadPricing() {
+  try {
+    S.pricing = await api.getPricing();
+    renderPricingEditor();
+  } catch (err) {
+    toast('Kunne ikke hente prisberegner: ' + err.message, 'error');
+  }
+}
+
+function readPricingEditor() {
+  const root = $('#pricingEditor');
+  const field = (name) => root.querySelector(`[data-cfg="${name}"]`)?.value ?? '';
+  const steps = [...root.querySelectorAll('[data-step-card]')].map((card) => {
+    const kind = card.querySelector('[data-step="kind"]').value;
+    return {
+      name: card.querySelector('[data-step="name"]').value,
+      question: card.querySelector('[data-step="question"]').value,
+      help: card.querySelector('[data-step="help"]').value,
+      kind,
+      select: card.querySelector('[data-step="select"]').value,
+      optional: card.querySelector('[data-step="optional"]').checked,
+      columns: Number(card.querySelector('[data-step="columns"]').value),
+      mapsTo: card.querySelector('[data-step="mapsTo"]').value,
+      options: [...card.querySelectorAll('[data-opt-row]')].map((row) => {
+        const opt = {
+          name: row.querySelector('[data-opt="name"]').value,
+          desc: row.querySelector('[data-opt="desc"]').value,
+          meta: row.querySelector('[data-opt="meta"]').value,
+          icon: row.querySelector('[data-opt="icon"]').value,
+        };
+        if (kind === 'mult') opt.mult = Number(row.querySelector('[data-opt="value"]').value);
+        else opt.cost = Number(row.querySelector('[data-opt="value"]').value);
+        return opt;
+      }),
+    };
+  });
+  return {
+    currency: field('currency'),
+    roundTo: Number(field('roundTo')),
+    lowFactor: Number(field('lowFactor')),
+    highFactor: Number(field('highFactor')),
+    resultNote: field('resultNote'),
+    offerTitle: field('offerTitle'),
+    offerSub: field('offerSub'),
+    offerButton: field('offerButton'),
+    offerFoot: field('offerFoot'),
+    successTitle: field('successTitle'),
+    successBody: field('successBody'),
+    disclaimer: field('disclaimer'),
+    hiddenHint: field('hiddenHint'),
+    steps,
+  };
+}
+
+function renderPricingEditor() {
+  const cfg = S.pricing;
+  const root = $('#pricingEditor');
+  if (!root || !cfg) return;
+  const iconOptions = (selected) => PRICE_ICONS.map(([value, label]) =>
+    `<option value="${value}"${selected === value ? ' selected' : ''}>${label}</option>`).join('');
+  root.innerHTML = `
+    <section class="price-card">
+      <h3>Beregning</h3>
+      <div class="field-row">
+        <div class="field-group"><label>Valuta</label><input data-cfg="currency" value="${esc(cfg.currency)}" maxlength="6" /></div>
+        <div class="field-group"><label>Afrund til</label><input data-cfg="roundTo" type="number" min="1" value="${esc(cfg.roundTo)}" /></div>
+        <div class="field-group"><label>Nedre faktor</label><input data-cfg="lowFactor" type="number" min="0.5" max="1" step="0.01" value="${esc(cfg.lowFactor)}" /></div>
+        <div class="field-group"><label>Øvre faktor</label><input data-cfg="highFactor" type="number" min="1" max="3" step="0.01" value="${esc(cfg.highFactor)}" /></div>
+      </div>
+      <p class="muted small">Intervallet er grundpris × faktorer ± tillæg, ganget med nedre og øvre faktor, og afrundet.</p>
+    </section>
+    <section class="price-card">
+      <h3>Tekster på resultatsiden</h3>
+      <div class="form-fields">
+        <div class="field-group"><label>Note under intervallet</label><textarea data-cfg="resultNote" rows="2">${esc(cfg.resultNote)}</textarea></div>
+        <div class="field-row">
+          <div class="field-group"><label>Tilbudstitel</label><input data-cfg="offerTitle" value="${esc(cfg.offerTitle)}" /></div>
+          <div class="field-group"><label>Knap</label><input data-cfg="offerButton" value="${esc(cfg.offerButton)}" /></div>
+        </div>
+        <div class="field-group"><label>Tilbudstekst</label><textarea data-cfg="offerSub" rows="2">${esc(cfg.offerSub)}</textarea></div>
+        <div class="field-row">
+          <div class="field-group"><label>Fodnote</label><input data-cfg="offerFoot" value="${esc(cfg.offerFoot)}" /></div>
+          <div class="field-group"><label>Skjult estimat</label><input data-cfg="hiddenHint" value="${esc(cfg.hiddenHint)}" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field-group"><label>Tak-titel</label><input data-cfg="successTitle" value="${esc(cfg.successTitle)}" /></div>
+          <div class="field-group"><label>Tak-tekst</label><input data-cfg="successBody" value="${esc(cfg.successBody)}" /></div>
+        </div>
+        <div class="field-group"><label>Disclaimer</label><textarea data-cfg="disclaimer" rows="2">${esc(cfg.disclaimer)}</textarea></div>
+      </div>
+    </section>
+    <div id="pricingSteps">
+      ${cfg.steps.map((step, index) => priceStepCard(step, index, iconOptions)).join('')}
+    </div>
+    <div class="lead-detail-actions">
+      <button type="button" class="btn-outline" id="addPriceStep">Tilføj trin</button>
+      <button type="button" class="btn-primary" id="savePriceStep">Gem prisberegner</button>
+    </div>
+  `;
+  $('#savePriceStep').onclick = savePricingEditor;
+  $('#addPriceStep').onclick = () => {
+    S.pricing = readPricingEditor();
+    S.pricing.steps.push(blankStep());
+    renderPricingEditor();
+  };
+  root.querySelectorAll('[data-step-add]').forEach((btn) => {
+    btn.onclick = () => {
+      S.pricing = readPricingEditor();
+      const i = Number(btn.dataset.stepAdd);
+      S.pricing.steps[i].options.push(blankOption(S.pricing.steps[i].kind));
+      renderPricingEditor();
+    };
+  });
+  root.querySelectorAll('[data-step-remove]').forEach((btn) => {
+    btn.onclick = () => {
+      S.pricing = readPricingEditor();
+      if (S.pricing.steps.length < 2) { toast('Der skal være mindst ét trin', 'error'); return; }
+      S.pricing.steps.splice(Number(btn.dataset.stepRemove), 1);
+      renderPricingEditor();
+    };
+  });
+  root.querySelectorAll('[data-step-move]').forEach((btn) => {
+    btn.onclick = () => {
+      S.pricing = readPricingEditor();
+      const i = Number(btn.dataset.stepMove);
+      const dir = Number(btn.dataset.dir);
+      const j = i + dir;
+      if (j < 0 || j >= S.pricing.steps.length) return;
+      const [row] = S.pricing.steps.splice(i, 1);
+      S.pricing.steps.splice(j, 0, row);
+      renderPricingEditor();
+    };
+  });
+  root.querySelectorAll('[data-opt-remove]').forEach((btn) => {
+    btn.onclick = () => {
+      S.pricing = readPricingEditor();
+      const step = S.pricing.steps[Number(btn.dataset.optRemove)];
+      if (step.options.length < 2) { toast('Et trin skal have mindst ét valg', 'error'); return; }
+      step.options.splice(Number(btn.dataset.optIndex), 1);
+      renderPricingEditor();
+    };
+  });
+  root.querySelectorAll('[data-step="kind"]').forEach((sel) => {
+    sel.onchange = () => {
+      S.pricing = readPricingEditor();
+      const step = S.pricing.steps[Number(sel.dataset.kindIndex)];
+      step.options = step.options.map((opt) => {
+        if (step.kind === 'mult') return { name: opt.name, desc: opt.desc, meta: opt.meta, icon: opt.icon, mult: opt.mult || 1 };
+        return { name: opt.name, desc: opt.desc, meta: opt.meta, icon: opt.icon, cost: opt.cost || 0 };
+      });
+      renderPricingEditor();
+    };
+  });
+}
+
+function priceStepCard(step, index, iconOptions) {
+  const valueLabel = step.kind === 'mult' ? 'Faktor' : 'Pris';
+  return `
+    <section class="price-card" data-step-card>
+      <div class="lead-detail-head">
+        <h3>Trin ${index + 1}</h3>
+        <div class="lead-detail-actions">
+          <button type="button" class="btn-ghost" data-step-move="${index}" data-dir="-1">Op</button>
+          <button type="button" class="btn-ghost" data-step-move="${index}" data-dir="1">Ned</button>
+          <button type="button" class="btn-ghost" data-step-remove="${index}">Fjern trin</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label>Navn i menuen</label><input data-step="name" value="${esc(step.name)}" /></div>
+        <div class="field-group"><label>Type</label>
+          <select data-step="kind" data-kind-index="${index}">
+            <option value="base"${step.kind === 'base' ? ' selected' : ''}>Grundpris</option>
+            <option value="mult"${step.kind === 'mult' ? ' selected' : ''}>Faktor</option>
+            <option value="add"${step.kind === 'add' ? ' selected' : ''}>Tillæg</option>
+          </select>
+        </div>
+        <div class="field-group"><label>Valg</label>
+          <select data-step="select">
+            <option value="single"${step.select === 'single' ? ' selected' : ''}>Ét valg</option>
+            <option value="multi"${step.select !== 'single' ? ' selected' : ''}>Flere valg</option>
+          </select>
+        </div>
+        <div class="field-group"><label>Kolonner</label>
+          <select data-step="columns">
+            <option value="2"${Number(step.columns) === 2 ? ' selected' : ''}>2</option>
+            <option value="3"${Number(step.columns) !== 2 ? ' selected' : ''}>3</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label>Spørgsmål</label><input data-step="question" value="${esc(step.question)}" /></div>
+        <div class="field-group"><label>Hjælpetekst</label><input data-step="help" value="${esc(step.help)}" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label>Bruges som</label>
+          <select data-step="mapsTo">
+            <option value=""${!step.mapsTo ? ' selected' : ''}>Kun i beregningen</option>
+            <option value="project_type"${step.mapsTo === 'project_type' ? ' selected' : ''}>Projekttype på henvendelsen</option>
+            <option value="timeline"${step.mapsTo === 'timeline' ? ' selected' : ''}>Tidslinje på henvendelsen</option>
+          </select>
+        </div>
+        <label class="price-check"><input type="checkbox" data-step="optional"${step.optional ? ' checked' : ''} /> Valgfrit trin</label>
+      </div>
+      <div class="price-options">
+        ${step.options.map((opt, optIndex) => `
+          <div class="price-opt" data-opt-row>
+            <div class="field-group"><label>Valg</label><input data-opt="name" value="${esc(opt.name)}" /></div>
+            <div class="field-group"><label>Beskrivelse</label><input data-opt="desc" value="${esc(opt.desc || '')}" /></div>
+            <div class="field-group"><label>Etiket</label><input data-opt="meta" value="${esc(opt.meta || '')}" placeholder="fx fra €6.000" /></div>
+            <div class="field-group"><label>${valueLabel}</label><input data-opt="value" type="number" step="${step.kind === 'mult' ? '0.05' : '100'}" value="${esc(step.kind === 'mult' ? opt.mult : opt.cost)}" /></div>
+            <div class="field-group"><label>Ikon</label><select data-opt="icon">${iconOptions(opt.icon || '')}</select></div>
+            <button type="button" class="btn-ghost" data-opt-remove="${index}" data-opt-index="${optIndex}">Fjern</button>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn-outline" data-step-add="${index}">Tilføj valg</button>
+    </section>
+  `;
+}
+
+async function savePricingEditor() {
+  const payload = readPricingEditor();
+  try {
+    S.pricing = await api.savePricing(payload);
+    renderPricingEditor();
+    toast('Prisberegneren er gemt', 'success');
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function resetPricingEditor() {
+  showModal('Nulstil prisberegner?', 'Standardtrin og priser lægges i editoren. De udgives først når du gemmer.', async () => {
+    try {
+      S.pricing = await api.pricingDefaults();
+      renderPricingEditor();
+      toast('Standard indlæst — tryk Gem for at udgive', 'info');
+    } catch (err) { toast(err.message, 'error'); }
+  }, 'Indlæs standard');
+}
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 checkAuth();
