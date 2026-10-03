@@ -138,7 +138,7 @@ test('preview links render drafts like the public page with noindex and no analy
   const live = await (await fetch(`${base}/arbejde/hemmelig-kladde`)).text();
   assert.doesNotMatch(live, /name="robots"/);
   const tpl = fs.readFileSync(path.join(root, 'case.html'), 'utf8');
-  const analyticsHead = tpl.slice(tpl.indexOf('<script>\nwindow.dataLayer'), tpl.indexOf('<meta charset'));
+  const analyticsHead = tpl.slice(tpl.indexOf('<!-- Google Tag Manager -->'), tpl.indexOf('<meta charset'));
   const gtmNoscript = tpl.match(/<!-- Google Tag Manager \(noscript\) -->[\s\S]*?<!-- End Google Tag Manager \(noscript\) -->\n/)[0];
   const push = live.match(/<script>window\.dataLayer=window\.dataLayer\|\|\[\];dataLayer\.push\(\{page_type:"case",[^\n]*<\/script>\n/)[0];
   assert.match(analyticsHead, /GTM-PS7PV9XN/);
