@@ -11,6 +11,7 @@
     "test": "node --test test/blog-markdown.test.mjs test/mcp-http.test.mjs test/server-routes.test.mjs test/casework-rest.test.mjs"
   },
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.10.0",
@@ -19,5 +20,8 @@
     "nodemailer": "^6.10.1",
     "sharp": "^0.35.4",
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }
