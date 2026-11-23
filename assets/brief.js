@@ -24,7 +24,7 @@
     const titles = {
       1: 'Hvad skal vi bygge?',
       2: 'Definér scope',
-      3: 'Hvem skriver vi til?',
+      3: 'Hvordan får jeg fat i dig?',
       4: 'Tjek og send'
     };
     const state = {

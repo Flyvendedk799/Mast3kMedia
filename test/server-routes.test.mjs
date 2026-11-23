@@ -41,7 +41,21 @@ test('server.js serves API, /mcp and pages, and hides repo files', async (t) => 
   const mcp = await fetch(`${base}/mcp`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
   assert.equal(mcp.status, 401);
 
-  assert.equal((await fetch(`${base}/kontakt.html`)).status, 200);
+  const texts = {};
+  for (const route of ['/', '/om.html', '/arbejde.html', '/kontakt.html', '/pris.html', '/privatlivspolitik.html']) {
+    const response = await fetch(base + route);
+    assert.equal(response.status, 200, route);
+    const page = await response.text();
+    assert.doesNotMatch(page, /Mast3kMedia ApS|Jonas Mikkelsen|Otte seniorer|NordSync|href="https:\/\/linkedin\.com\/"/, route);
+    texts[route] = page;
+  }
+  assert.match(texts['/'], /Jeg hedder Tobias Mastek og driver Mast3kMedia alene/);
+  assert.match(texts['/om.html'], /Jeg driver Mast3kMedia alene/);
+  for (const route of ['/kontakt.html', '/pris.html']) {
+    assert.match(texts[route], /<a[^>]*href="\/privatlivspolitik\.html"[^>]*>Sådan behandler jeg dine oplysninger<\/a>/);
+  }
+  assert.match(texts['/privatlivspolitik.html'], /normalt i 60 dage/);
+  assert.match(texts['/privatlivspolitik.html'], /tel:\+4523822482/);
   assert.equal((await fetch(`${base}/api/does-not-exist`)).status, 404);
   for (const p of ['/.git/HEAD', '/.git/config', '/.env', '/server.js', '/package.json']) {
     assert.equal((await fetch(base + p)).status, 404, p);

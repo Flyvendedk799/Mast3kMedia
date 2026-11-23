@@ -360,7 +360,7 @@
         if (errEl) {
           errEl.hidden = false;
           errEl.textContent = /email/i.test(err.message || '')
-            ? 'Skriv en email vi kan svare på.'
+            ? 'Skriv en e-mail jeg kan svare på.'
             : 'Kunne ikke sende estimatet. Prøv igen.';
         }
       }

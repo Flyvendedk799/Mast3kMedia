@@ -488,10 +488,7 @@ const requestSearch = (req) => {
   return i === -1 ? '' : req.originalUrl.slice(i);
 };
 
-// Homepage figures: published cases, cases tagged SaaS, and GitHub commits
-// for the current calendar year (Flyvendedk799, public commit contributions).
-const COMMIT_LOGIN = 'Flyvendedk799';
-const commitCache = { year: 0, n: null, at: 0 };
+// Homepage figures: published cases and cases tagged SaaS.
 
 const hasSaasTag = (raw) => {
   const tags = Array.isArray(raw) ? raw : safeJSON(raw, []);
@@ -540,32 +537,12 @@ const paintHomeStat = (html, key, value) => {
   );
 };
 
-function refreshCommitsThisYear() {
-  const year = new Date().getFullYear();
-  if (commitCache.n != null && commitCache.year === year && Date.now() - commitCache.at < 6 * 60 * 60 * 1000) return;
-  const { execFile } = require('child_process');
-  const query = `query { user(login: "${COMMIT_LOGIN}") { contributionsCollection(from: "${year}-01-01T00:00:00Z", to: "${year}-12-31T23:59:59Z") { totalCommitContributions } } }`;
-  execFile('gh', ['api', 'graphql', '-f', `query=${query}`], { timeout: 8000 }, (err, stdout) => {
-    if (err) return;
-    try {
-      const n = JSON.parse(stdout).data.user.contributionsCollection.totalCommitContributions;
-      if (typeof n === 'number') {
-        commitCache.year = year;
-        commitCache.n = n;
-        commitCache.at = Date.now();
-      }
-    } catch {}
-  });
-}
-
 app.get('/', async (req, res, next) => {
   try {
     let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
     const counts = await portfolioCounts();
     html = paintHomeStat(html, 'cases', counts.cases);
     html = paintHomeStat(html, 'saas', counts.saas);
-    if (commitCache.n == null) refreshCommitsThisYear();
-    html = paintHomeStat(html, 'commits', commitCache.n);
     const projects = db.prepare('SELECT * FROM projects WHERE status=? AND featured=1 ORDER BY sort_order ASC, created_at DESC').all('published').map(fmt);
     
     const buildCaseCard = (p, idx, total) => {
@@ -592,7 +569,7 @@ app.get('/', async (req, res, next) => {
         '</a>';
     };
 
-    const cardsHtml = projects.map((p, i) => buildCaseCard(p, i, projects.length)).join('');
+    const cardsHtml = projects.map((p, i) => buildCaseCard(p, i, projects.length)).join('') || '<p class="muted">Se <a class="ulink" href="/arbejde.html">alle projekter</a>.</p>';
     html = html.replace(/<div class="case-grid">[\s\S]*?<\/div>\s*<\/div>\s*<\/section>/, '<div class="case-grid">' + cardsHtml + '</div></div></section>');
     
     // Remove the client-side script for featured projects
@@ -810,8 +787,8 @@ app.get('/forfatter/tobias-mastek', (req, res) => {
     "name": "Tobias Mastek",
     "url": `${SITE_ORIGIN}/forfatter/tobias-mastek`,
     "jobTitle": "Stifter",
-    "worksFor": { "@type": "Organization", "name": "Mast3kMedia ApS" },
-    "sameAs": ["https://linkedin.com/", "https://github.com/Flyvendedk799"]
+    "worksFor": { "@type": "Organization", "name": "Mast3kMedia" },
+    "sameAs": ["https://github.com/Flyvendedk799"]
   };
   html = html.replace('</head>', `\n<script type="application/ld+json">\n${JSON.stringify(personJsonLd)}\n</script>\n</head>`);
   html = html.replace(/<script>\s*\/\*\s*── Dynamic blog.*?\s*\*\/[\s\S]*?<\/script>/, '');
@@ -904,7 +881,7 @@ app.get('/blog/:slug', (req, res) => {
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Mast3kMedia ApS",
+        "name": "Mast3kMedia",
         "logo": { "@type": "ImageObject", "url": `${SITE_ORIGIN}/assets/og-image.png` }
       },
       "mainEntityOfPage": `${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}`,
@@ -998,7 +975,7 @@ app.get('/blog/:slug', (req, res) => {
     </div>
     <div style="display:flex;gap:1rem;margin-top:2rem;" data-reveal="up">
       <a href="${fmtP.cta.url}" class="btn btn-solid"><span class="btn-label">${fmtP.cta.srv} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg></span></a>
-      <a href="/kontakt.html#brief" class="btn">Kontakt os</a>
+      <a href="/kontakt.html#brief" class="btn">Kontakt mig</a>
       <a href="/blog.html" class="btn">Tilbage til bloggen</a>
     </div>
   </div>
@@ -1835,7 +1812,6 @@ async function start() {
     res.status(500).type('html').send(notFoundHtml.replace('Siden findes <span class="lime">ikke</span>.', 'Der skete en <span class="lime">fejl</span>.').replace('404', '500'));
   });
 
-  refreshCommitsThisYear();
 
   app.listen(PORT, () => {
     const W = 48;
